@@ -209,7 +209,7 @@ YOUR traking id :{{tracking_id}}
 Track here: {{tracking_link}} 🚚
 Thank you for shopping with us!"
 
-DELHIVERY (Maruti_shipping):
+MARUTI (Maruti_shipping):
 "Hello {{name}}, your order
 shipped via Maruti.
 YOUR traking id :{{tracking_id}}
