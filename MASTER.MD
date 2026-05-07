@@ -42,7 +42,7 @@ SECTION 3 — WHAT USER ALREADY HAS
 → Render account (free)
 
 STILL NEED:
-→ Meta Business account (Dought full still needs to check)
+→ Meta Business account (Doughtfull still needs to check)
 → WhatsApp number (will own it)
 → Meta credentials (get when needed)
 → Google service account JSON
@@ -106,7 +106,6 @@ Col B → Last Order Date
 Col C → City
 Col D → Tags
 Col E → Opted In (YES/NO)
-COL F → 
 
 CAMPAIGNS SHEET (log):
 Col A → Campaign ID
@@ -127,19 +126,19 @@ ONE TEMPLATE PER COURIER
 ALL PRE APPROVED ON META
 
 ANJANI (anjani_shipping):
-"Hello {{name}}, your order {{order_id}}
+"Hello {{name}}, your order
 shipped via Anjani Courier.
 Track here: {{tracking_link}} 🚚
 Thank you for shopping with us!"
 
 DTDC (dtdc_shipping):
-"Hello {{name}}, your order {{order_id}}
+"Hello {{name}}, your order
 shipped via DTDC.
 Track here: {{tracking_link}} 🚚
 Thank you for shopping with us!"
 
 DELHIVERY (delhivery_shipping):
-"Hello {{name}}, your order {{order_id}}
+"Hello {{name}}, your order
 shipped via Delhivery.
 Track here: {{tracking_link}} 🚚
 Thank you for shopping with us!"
@@ -151,9 +150,8 @@ Track here: {{tracking_link}} 🚚
 Thank you for shopping with us!"
 
 VARIABLES SAME FOR ALL:
-{{name}}          → Col B
-{{order_id}}      → Col A
-{{tracking_link}} → Col E
+{{name}}          → Col A
+{{tracking_link}} → Col D
 
 CAMPAIGN TEMPLATES:
 → Created per campaign
