@@ -1,4 +1,4 @@
-# TRACKFLOW — MASTER DOCUMENT
+# YMCTRACKFLOW — MASTER DOCUMENT
 # Version 3.0 — FINAL CLEAN VERSION
 # Paste this at start of every coding chat
 
@@ -6,7 +6,7 @@
 SECTION 1 — WHAT WE BUILDING
 ═══════════════════════════════════════════
 
-Name    : TrackFlow
+Name    : YMCTrackFlow
 What    : WhatsApp order tracking system
           + bulk campaign messaging
 Who     : Small business team uses it
@@ -21,7 +21,7 @@ SECTION 2 — TECH WE USE
 Backend  : Python 3.11 + Flask
 Frontend : React 18 + Tailwind CSS
 Database : Google Sheets
-Hosting  : Railway (free)
+Hosting  : Render (free)
 WhatsApp : Meta Cloud API (direct)
 Editor   : VS Code
 Saving   : GitHub
@@ -36,15 +36,14 @@ NO MIDDLEMEN:
 ═══════════════════════════════════════════
 SECTION 3 — WHAT USER ALREADY HAS
 ═══════════════════════════════════════════
-
-→ WhatsApp number (owns it)
-→ Meta Business account (verified)
 → AiSensy account (cancel after build)
 → GitHub account (ready)
 → VS Code (installed)
-→ Railway account (free)
+→ Render account (free)
 
 STILL NEED:
+→ Meta Business account (Dought full still needs to check)
+→ WhatsApp number (will own it)
 → Meta credentials (get when needed)
 → Google service account JSON
 → Approved templates per courier
@@ -89,13 +88,12 @@ ONE MASTER FILE
 FOUR TABS INSIDE
 
 ALL TABS SAME COLUMNS:
-Col A → Order ID
-Col B → Customer Name
-Col C → Phone (91XXXXXXXXXX)
-Col D → Status
-Col E → Tracking Link
-Col F → Message Sent (YES/NO/FAILED)
-Col G → Last Updated
+Col A → Customer Name
+Col B → Phone (91XXXXXXXXXX)
+Col C → Status
+Col D → Tracking Link
+Col E → Message Sent (YES/NO/FAILED)
+Col F → Last Updated
 
 TAB 1 → Anjani
 TAB 2 → DTDC
@@ -103,12 +101,12 @@ TAB 3 → Delhivery
 TAB 4 → Others
 
 CONTACTS SHEET (for campaigns):
-Col A → Customer Name
-Col B → Phone (91XXXXXXXXXX)
-Col C → Last Order Date
-Col D → City
-Col E → Tags
-Col F → Opted In (YES/NO)
+Col A → Phone (91XXXXXXXXXX)
+Col B → Last Order Date
+Col C → City
+Col D → Tags
+Col E → Opted In (YES/NO)
+COL F → 
 
 CAMPAIGNS SHEET (log):
 Col A → Campaign ID
