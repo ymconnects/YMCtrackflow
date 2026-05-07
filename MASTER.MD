@@ -63,7 +63,7 @@ META_WABA_ID=
 TEMPLATES ONE PER COURIER:
 META_TEMPLATE_ANJANI=anjani_shipping
 META_TEMPLATE_DTDC=dtdc_shipping
-META_TEMPLATE_DELHIVERY=delhivery_shipping
+META_TEMPLATE_MARUTI=MARUTI_shipping
 META_TEMPLATE_OTHERS=general_shipping
 
 GOOGLE SHEETS:
@@ -73,7 +73,7 @@ GOOGLE_CREDENTIALS_FILE=credentials.json
 SHEET TAB NAMES:
 SHEET_TAB_1=Anjani
 SHEET_TAB_2=DTDC
-SHEET_TAB_3=Delhivery
+SHEET_TAB_3=MARUTI
 SHEET_TAB_4=Others
 
 LOGIN — ADMIN (sees everything):
@@ -209,9 +209,9 @@ YOUR traking id :{{tracking_id}}
 Track here: {{tracking_link}} 🚚
 Thank you for shopping with us!"
 
-DELHIVERY (delhivery_shipping):
+DELHIVERY (Maruti_shipping):
 "Hello {{name}}, your order
-shipped via Delhivery.
+shipped via Maruti.
 YOUR traking id :{{tracking_id}}
 Track here: {{tracking_link}} 🚚
 Thank you for shopping with us!"
@@ -571,8 +571,8 @@ PHASE 5 — REACT FRONTEND
 
 PHASE 6 — DEPLOY
 [ ] Push all to GitHub
-[ ] Deploy backend Railway
-[ ] Deploy frontend Railway
+[ ] Deploy backend Render
+[ ] Deploy frontend Render
 [ ] Set env variables
 [ ] Full live test
 [ ] Test all three roles
