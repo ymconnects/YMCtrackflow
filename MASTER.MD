@@ -1,5 +1,5 @@
 # YMCTRACKFLOW — MASTER DOCUMENT
-# Version 3.0 — FINAL CLEAN VERSION
+# Version 4.0 — WITH LOGIN + ROLES
 # Paste this at start of every coding chat
 
 ═══════════════════════════════════════════
@@ -13,6 +13,7 @@ Who     : Small business team uses it
 How     : Paste orders in Google Sheet
           System sends WhatsApp auto
           Team controls from dashboard
+          Each person sees own data only
 
 ═══════════════════════════════════════════
 SECTION 2 — TECH WE USE
@@ -36,13 +37,15 @@ NO MIDDLEMEN:
 ═══════════════════════════════════════════
 SECTION 3 — WHAT USER ALREADY HAS
 ═══════════════════════════════════════════
+
 → AiSensy account (cancel after build)
 → GitHub account (ready)
 → VS Code (installed)
 → Render account (free)
 
 STILL NEED:
-→ Meta Business account (Doughtfull still needs to check)
+→ Meta Business account
+  (doubtful - still needs to check)
 → WhatsApp number (will own it)
 → Meta credentials (get when needed)
 → Google service account JSON
@@ -73,6 +76,31 @@ SHEET_TAB_2=DTDC
 SHEET_TAB_3=Delhivery
 SHEET_TAB_4=Others
 
+LOGIN — ADMIN (sees everything):
+ADMIN_USERNAME=
+ADMIN_PASSWORD=
+
+LOGIN — MANAGERS (sees own tab only):
+MANAGER_1_USERNAME=
+MANAGER_1_PASSWORD=
+MANAGER_1_TAB=Anjani
+
+MANAGER_2_USERNAME=
+MANAGER_2_PASSWORD=
+MANAGER_2_TAB=DTDC
+
+MANAGER_3_USERNAME=
+MANAGER_3_PASSWORD=
+MANAGER_3_TAB=Delhivery
+
+MANAGER_4_USERNAME=
+MANAGER_4_PASSWORD=
+MANAGER_4_TAB=Others
+
+LOGIN — VIEWER (read only):
+VIEWER_USERNAME=
+VIEWER_PASSWORD=
+
 SYSTEM:
 CHECK_INTERVAL_MINUTES=10
 RETRY_INTERVAL_HOURS=2
@@ -81,7 +109,48 @@ FLASK_PORT=5000
 FLASK_SECRET_KEY=
 
 ═══════════════════════════════════════════
-SECTION 5 — GOOGLE SHEET STRUCTURE
+SECTION 5 — USER ROLES
+═══════════════════════════════════════════
+
+THREE ROLES:
+
+ADMIN
+→ Sees all 4 courier tabs
+→ Sees all orders
+→ Full campaigns access
+→ Can change settings
+→ Can send/retry messages
+→ Sees logs of everything
+→ One person (boss)
+
+MANAGER
+→ Sees ONLY their courier tab
+→ Cannot see other teams data
+→ Can send/retry their orders
+→ Cannot change settings
+→ Cannot see campaigns
+→ One per courier team
+
+VIEWER
+→ Sees orders only
+→ Read only
+→ Cannot send anything
+→ Cannot change anything
+→ No settings access
+→ No campaigns access
+
+WHAT EACH SEES:
+
+PAGE          ADMIN    MANAGER   VIEWER
+Dashboard     ALL      OWN TAB   OWN TAB
+Orders        ALL      OWN TAB   OWN TAB
+Campaigns     YES      NO        NO
+Templates     YES      NO        NO
+Logs          ALL      OWN ONLY  NO
+Settings      YES      NO        NO
+
+═══════════════════════════════════════════
+SECTION 6 — GOOGLE SHEET STRUCTURE
 ═══════════════════════════════════════════
 
 ONE MASTER FILE
@@ -91,13 +160,14 @@ ALL TABS SAME COLUMNS:
 Col A → Customer Name
 Col B → Phone (91XXXXXXXXXX)
 Col C → Status
-Col D → Tracking Link
-Col E → Message Sent (YES/NO/FAILED)
-Col F → Last Updated
+col D → Tracking id
+Col E → Tracking Link
+Col F → Message Sent (YES/NO/FAILED)
+Col G → Last Updated
 
 TAB 1 → Anjani
 TAB 2 → DTDC
-TAB 3 → Delhivery
+TAB 3 → Maruti
 TAB 4 → Others
 
 CONTACTS SHEET (for campaigns):
@@ -119,7 +189,7 @@ Col H → Created At
 Col I → Sent At
 
 ═══════════════════════════════════════════
-SECTION 6 — WHATSAPP TEMPLATES
+SECTION 7 — WHATSAPP TEMPLATES
 ═══════════════════════════════════════════
 
 ONE TEMPLATE PER COURIER
@@ -128,30 +198,35 @@ ALL PRE APPROVED ON META
 ANJANI (anjani_shipping):
 "Hello {{name}}, your order
 shipped via Anjani Courier.
+YOUR traking id :{{tracking_id}}
 Track here: {{tracking_link}} 🚚
 Thank you for shopping with us!"
 
 DTDC (dtdc_shipping):
 "Hello {{name}}, your order
 shipped via DTDC.
+YOUR traking id :{{tracking_id}}
 Track here: {{tracking_link}} 🚚
 Thank you for shopping with us!"
 
 DELHIVERY (delhivery_shipping):
 "Hello {{name}}, your order
 shipped via Delhivery.
+YOUR traking id :{{tracking_id}}
 Track here: {{tracking_link}} 🚚
 Thank you for shopping with us!"
 
 OTHERS (general_shipping):
-"Hello {{name}}, your order {{order_id}}
+"Hello {{name}}, your order
 has been shipped.
+YOUR traking id :{{tracking_id}}
 Track here: {{tracking_link}} 🚚
 Thank you for shopping with us!"
 
 VARIABLES SAME FOR ALL:
 {{name}}          → Col A
-{{tracking_link}} → Col D
+{{tracking_link}} → Col E
+{{tracking_id}}   → Col D
 
 CAMPAIGN TEMPLATES:
 → Created per campaign
@@ -159,10 +234,10 @@ CAMPAIGN TEMPLATES:
 → Submit to Meta separately
 
 ═══════════════════════════════════════════
-SECTION 7 — FOLDER STRUCTURE
+SECTION 8 — FOLDER STRUCTURE
 ═══════════════════════════════════════════
 
-trackflow/
+ymctrackflow/
 │
 ├── backend/
 │   ├── main.py
@@ -172,6 +247,7 @@ trackflow/
 │   ├── scheduler.py
 │   ├── logger.py
 │   ├── api.py
+│   ├── auth.py           ← NEW
 │   ├── campaigns/
 │   │   ├── campaign_manager.py
 │   │   ├── audience_filter.py
@@ -185,6 +261,7 @@ trackflow/
 │   ├── src/
 │   │   ├── App.jsx
 │   │   ├── pages/
+│   │   │   ├── Login.jsx         ← NEW
 │   │   │   ├── Dashboard.jsx
 │   │   │   ├── Orders.jsx
 │   │   │   ├── Campaigns.jsx
@@ -203,12 +280,14 @@ trackflow/
 │   │   │   ├── CampaignCard.jsx
 │   │   │   ├── AudienceFilter.jsx
 │   │   │   ├── CostEstimator.jsx
+│   │   │   ├── ProtectedRoute.jsx ← NEW
 │   │   │   └── Toast.jsx
 │   │   ├── hooks/
 │   │   │   ├── useOrders.js
 │   │   │   ├── useLogs.js
 │   │   │   ├── useStatus.js
-│   │   │   └── useCampaigns.js
+│   │   │   ├── useCampaigns.js
+│   │   │   └── useAuth.js        ← NEW
 │   │   └── utils/
 │   │       ├── api.js
 │   │       └── formatters.js
@@ -217,12 +296,20 @@ trackflow/
 └── README.md
 
 ═══════════════════════════════════════════
-SECTION 8 — ALL FUNCTIONS
+SECTION 9 — ALL FUNCTIONS
 ═══════════════════════════════════════════
 
 ── config.py ──
 load_config()
 validate_config()
+
+── auth.py ── (NEW)
+check_login(username, password)
+get_user_role(username)
+get_user_tab(username)
+create_session(username)
+verify_session(token)
+logout(token)
 
 ── sheets.py ──
 connect_google_sheets()
@@ -235,7 +322,7 @@ get_failed_orders()
 get_all_contacts()
 
 ── whatsapp.py ──
-send_whatsapp_message(phone, order_id,
+send_whatsapp_message(phone,
   name, tracking_link, courier_name)
 get_template_for_courier(courier_name)
 format_phone_number(phone)
@@ -249,10 +336,9 @@ stop_scheduler()
 keep_alive()
 
 ── logger.py ──
-log_success(order_id, phone,
-  name, courier)
-log_failure(order_id, phone,
-  name, courier, error)
+log_success(phone, name, courier)
+log_failure(phone, name,
+  courier, error)
 log_system_start()
 log_summary()
 
@@ -305,6 +391,10 @@ log_campaign_result(campaign_id,
 log_campaign_complete(campaign_id)
 
 ── api.py ──
+POST /login
+POST /logout
+GET  /me (who am i + my role)
+
 POST /run-now
 GET  /status
 GET  /orders
@@ -321,29 +411,45 @@ GET  /campaigns/:id/report
 GET  /audience/estimate
 
 ═══════════════════════════════════════════
-SECTION 9 — DASHBOARD PAGES
+SECTION 10 — DASHBOARD PAGES
 ═══════════════════════════════════════════
+
+Login.jsx (NEW — everyone sees first)
+→ Username box
+→ Password box
+→ Login button
+→ Wrong password → error shown
+→ Right password → enter dashboard
+
+ProtectedRoute.jsx (NEW)
+→ Checks if logged in
+→ Not logged in → back to login
+→ Wrong role → access denied
 
 Dashboard.jsx
 → System on/off status
 → Stats: orders, sent, pending, failed
+→ ADMIN sees all tabs stats
+→ MANAGER sees own tab stats
 → Recent orders table
 → 7 day chart
 → Run Now button
 
 Orders.jsx
-→ All orders from all tabs
-→ Search by name or order ID
-→ Filter by status or courier
+→ ADMIN sees all tabs
+→ MANAGER sees own tab only
+→ Search by name
+→ Filter by status
 → Send Now per row
+→ VIEWER sees but cannot send
 → Pagination
 
-Campaigns.jsx
+Campaigns.jsx (ADMIN ONLY)
 → Active campaigns
 → Past campaigns
 → New Campaign button
 
-CampaignCreate.jsx
+CampaignCreate.jsx (ADMIN ONLY)
 → Campaign name
 → Template picker
 → Audience filter
@@ -351,31 +457,34 @@ CampaignCreate.jsx
 → Cost estimator
 → Send now or schedule
 
-CampaignReport.jsx
+CampaignReport.jsx (ADMIN ONLY)
 → Sent/Delivered/Read/Failed
 → Delivery rate
 → Per contact table
 
-Templates.jsx
+Templates.jsx (ADMIN ONLY)
 → All 4 courier templates shown
 → Each with WhatsApp preview
 → Approval status shown
 
 Logs.jsx
-→ Every message sent
+→ ADMIN sees all logs
+→ MANAGER sees own tab logs only
+→ VIEWER cannot see logs
 → Filter by status
 → Export button
 
-Settings.jsx
+Settings.jsx (ADMIN ONLY)
 → Meta credentials (masked)
 → Google Sheet config
 → Courier tab names
 → Template names per courier
 → Check interval
 → System on/off toggle
+→ Manage users + roles
 
 ═══════════════════════════════════════════
-SECTION 10 — META API
+SECTION 11 — META API
 ═══════════════════════════════════════════
 
 Base URL:
@@ -393,20 +502,20 @@ Tracking msg    : ₹0.125 each
 Campaign msg    : ₹0.88 each
 
 ═══════════════════════════════════════════
-SECTION 11 — HOSTING
+SECTION 12 — HOSTING
 ═══════════════════════════════════════════
 
-Platform        : Railway (railway.app)
-Services        : trackflow-backend
-                  trackflow-frontend
+Platform        : Render
+Services        : ymctrackflow-backend
+                  ymctrackflow-frontend
 Keep alive      : UptimeRobot (free)
 
 Other project   : Student Extractor
-Platform        : Render (separate)
+Platform        : Render (separate account )
 DO NOT MIX      : Two projects apart
 
 ═══════════════════════════════════════════
-SECTION 12 — BUILD PROGRESS
+SECTION 13 — BUILD PROGRESS
 ═══════════════════════════════════════════
 
 PHASE 1 — BACKEND CORE
@@ -423,9 +532,13 @@ PHASE 2 — RELIABILITY
 [ ] keep_alive()
 [ ] TEST: runs 24/7 no errors ✅
 
-PHASE 3 — FLASK API
+PHASE 3 — FLASK API + AUTH
+[ ] auth.py
 [ ] api.py all endpoints
+[ ] Login/logout endpoints
+[ ] Role based data filtering
 [ ] TEST: all endpoints work ✅
+[ ] TEST: roles work correctly ✅
 
 PHASE 4 — CAMPAIGNS
 [ ] campaign_manager.py
@@ -437,6 +550,9 @@ PHASE 4 — CAMPAIGNS
 
 PHASE 5 — REACT FRONTEND
 [ ] Project setup + routing
+[ ] Login.jsx
+[ ] ProtectedRoute.jsx
+[ ] useAuth.js hook
 [ ] Sidebar.jsx + TopBar.jsx
 [ ] Dashboard.jsx
 [ ] Orders.jsx
@@ -448,6 +564,9 @@ PHASE 5 — REACT FRONTEND
 [ ] Settings.jsx
 [ ] All hooks
 [ ] api.js connected to Flask
+[ ] Role based page hiding
+[ ] TEST: login works ✅
+[ ] TEST: roles show right data ✅
 [ ] TEST: real data shows ✅
 
 PHASE 6 — DEPLOY
@@ -456,10 +575,11 @@ PHASE 6 — DEPLOY
 [ ] Deploy frontend Railway
 [ ] Set env variables
 [ ] Full live test
+[ ] Test all three roles
 [ ] Cancel AiSensy ✅
 
 ═══════════════════════════════════════════
-SECTION 13 — COSTS
+SECTION 14 — COSTS
 ═══════════════════════════════════════════
 
 Monthly         : ₹0
@@ -469,7 +589,7 @@ AiSensy saving  : ₹999/month
 Yearly saving   : ₹11,988
 
 ═══════════════════════════════════════════
-SECTION 14 — HOW TO USE THIS DOC
+SECTION 15 — HOW TO USE THIS DOC
 ═══════════════════════════════════════════
 
 EVERY NEW CHAT:
@@ -480,12 +600,12 @@ EVERY NEW CHAT:
 → Learn while building
 
 AFTER EACH FILE:
-→ Tick checkbox above
+→ Tick checkbox in Section 13
 → Push to GitHub
 → Update this doc
 
 GITHUB FILE:
-→ MASTER.md in repo root
+→ MASTER.md in YMCtrackflow repo
 → Always keep updated
 → This is your save file
 
@@ -498,6 +618,7 @@ LEARNING RULES:
 ═══════════════════════════════════════════
 STATUS   : PLANNING DONE ✅
 NEXT     : New chat → config.py
+REPO     : YMCtrackflow
 RULE     : Push to GitHub after every file
 🦴
 ═══════════════════════════════════════════
