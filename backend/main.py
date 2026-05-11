@@ -61,4 +61,3 @@ def retry_failed_orders():
             mark_as_failed(order["tab_name"], order["row_number"])
             print(f"Retry failed: {order['Customer Name']}")
         time.sleep(0.5)
-
