@@ -519,11 +519,11 @@ SECTION 13 — BUILD PROGRESS
 ═══════════════════════════════════════════
 
 PHASE 1 — BACKEND CORE
-[ ] config.py
-[ ] sheets.py
-[ ] whatsapp.py
-[ ] main.py
-[ ] TEST: one real message sends ✅
+[x] config.py
+[x] sheets.py
+[x] whatsapp.py
+[x] main.py
+[ ] TEST: one real message sends ✅ ← waiting for Meta
 
 PHASE 2 — RELIABILITY
 [ ] scheduler.py
