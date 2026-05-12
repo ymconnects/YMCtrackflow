@@ -1,5 +1,6 @@
 from sheets import get_all_pending_orders, get_pending_orders_from_tab, mark_as_sent, mark_as_failed, get_failed_orders
 from whatsapp import send_whatsapp_message
+from logger import log_success, log_failure, log_system_start
 from config import load_config
 import time
 def should_send_message(order):
@@ -26,10 +27,10 @@ def process_single_tab(tab_name):
         )
         if success:
             mark_as_sent(tab_name, order["row_number"])
-            print(f"Sent to {order['Customer Name']} - {order['Phone']}")
+            log_success(order["Phone"], order["Customer Name"], tab_name)
         else:
             mark_as_failed(tab_name, order["row_number"])
-            print(f"Failed for {order['Customer Name']} - {message}")
+            log_failure(order["Phone"], order["Customer Name"], tab_name, message)
         
         time.sleep(0.5)
         
