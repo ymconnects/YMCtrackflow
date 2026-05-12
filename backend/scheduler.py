@@ -10,3 +10,15 @@ def keep_alive():
         print("Keep alive ping sent.")
     except Exception as e:
         print(f"Keep alive failed: {e}")
+
+def start_scheduler():
+    config = load_config()
+    interval = config["CHECK_INTERVAL_MINUTES"]
+    scheduler.add_job(process_all_tabs, 'interval', minutes=interval)
+    scheduler.add_job(keep_alive, 'interval', minutes=interval)
+    scheduler.start()
+    print(f"Scheduler started. Running every {interval} minutes.")
+
+def stop_scheduler():
+    scheduler.shutdown()
+    print("Scheduler stopped.")        
