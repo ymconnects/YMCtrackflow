@@ -80,22 +80,13 @@ LOGIN — ADMIN (sees everything):
 ADMIN_USERNAME=
 ADMIN_PASSWORD=
 
-LOGIN — MANAGERS (sees own tab only):
-MANAGER_1_USERNAME=
-MANAGER_1_PASSWORD=
-MANAGER_1_TAB=Anjani
+LOGIN — MANAGER (sees all tabs):
+MANAGER_USERNAME=
+MANAGER_PASSWORD=
 
-MANAGER_2_USERNAME=
-MANAGER_2_PASSWORD=
-MANAGER_2_TAB=DTDC
-
-MANAGER_3_USERNAME=
-MANAGER_3_PASSWORD=
-MANAGER_3_TAB=Maruti
-
-MANAGER_4_USERNAME=
-MANAGER_4_PASSWORD=
-MANAGER_4_TAB=Others
+LOGIN — CAMPAIGNER (campaigns only):
+CAMPAIGNER_USERNAME=
+CAMPAIGNER_PASSWORD=
 
 LOGIN — VIEWER (read only):
 VIEWER_USERNAME=
@@ -535,22 +526,24 @@ PHASE 1 — BACKEND CORE
 [x] sheets.py
 [x] whatsapp.py
 [x] main.py
-[ ] TEST: one real message sends ✅ ← waiting for Meta
+[ ] TEST: one real message sends (waiting Meta)
 
 PHASE 2 — RELIABILITY
-[ ] scheduler.py
-[ ] logger.py
-[ ] retry logic in main.py
-[ ] keep_alive()
-[ ] TEST: runs 24/7 no errors ✅
+[x] scheduler.py (with auto toggle)
+[x] logger.py
+[x] retry logic in main.py
+[x] keep_alive()
+[ ] TEST: runs 24/7 no errors (waiting Meta)
 
 PHASE 3 — FLASK API + AUTH
-[ ] auth.py
-[ ] api.py all endpoints
-[ ] Login/logout endpoints
-[ ] Role based data filtering
-[ ] TEST: all endpoints work ✅
-[ ] TEST: roles work correctly ✅
+[x] auth.py
+[x] api.py all endpoints
+[x] Login/logout endpoints
+[x] Role based data filtering
+[x] Auto message toggle endpoint
+[x] System toggle endpoint
+[ ] TEST: all endpoints work (waiting Meta)
+[ ] TEST: roles work correctly (waiting Meta)
 
 PHASE 4 — CAMPAIGNS
 [ ] campaign_manager.py
