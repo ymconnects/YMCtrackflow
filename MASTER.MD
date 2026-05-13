@@ -335,6 +335,9 @@ send_template_message(phone,
 start_scheduler()
 stop_scheduler()
 keep_alive()
+run_if_enabled()
+toggle_auto_message(enabled)
+get_auto_message_status()
 
 ── logger.py ──
 log_success(phone, name, courier)
@@ -396,6 +399,7 @@ POST /login
 POST /logout
 GET  /me (who am i + my role)
 POST /toggle-auto-message
+GET  /auto-message-status
 POST /toggle-system
 
 POST /run-now
