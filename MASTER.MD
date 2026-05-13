@@ -394,6 +394,8 @@ log_campaign_complete(campaign_id)
 POST /login
 POST /logout
 GET  /me (who am i + my role)
+POST /toggle-auto-message
+POST /toggle-system
 
 POST /run-now
 GET  /status
