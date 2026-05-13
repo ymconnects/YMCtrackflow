@@ -112,7 +112,7 @@ FLASK_SECRET_KEY=
 SECTION 5 — USER ROLES
 ═══════════════════════════════════════════
 
-THREE ROLES:
+FOUR ROLES:
 
 ADMIN
 → Sees all 4 courier tabs
@@ -124,30 +124,40 @@ ADMIN
 → One person (boss)
 
 MANAGER
-→ Sees ONLY their courier tab
-→ Cannot see other teams data
-→ Can send/retry their orders
+→ Sees all 4 courier tabs
+→ Can send/retry orders
 → Cannot change settings
 → Cannot see campaigns
-→ One per courier team
+→ Sees all order logs
+→ One person
+
+CAMPAIGNER
+→ Only campaigns access
+→ Cannot see orders
+→ Cannot send tracking messages
+→ Cannot change settings
+→ Sees only campaign logs
+→ One person
 
 VIEWER
-→ Sees orders only
-→ Read only
+→ Sees all orders (read only)
 → Cannot send anything
 → Cannot change anything
 → No settings access
 → No campaigns access
+→ Sees all order logs (read only)
 
 WHAT EACH SEES:
 
-PAGE          ADMIN    MANAGER   VIEWER
-Dashboard     ALL      OWN TAB   OWN TAB
-Orders        ALL      OWN TAB   OWN TAB
-Campaigns     YES      NO        NO
-Templates     YES      NO        NO
-Logs          ALL      OWN ONLY  NO
-Settings      YES      NO        NO
+PAGE          ADMIN    MANAGER   CAMPAIGNER   VIEWER
+Dashboard     ALL      ALL       CAMPAIGNS    ALL
+Orders        ALL      ALL       NO           ALL (RO)
+Campaigns     YES      NO        YES          NO
+Templates     YES      NO        YES          NO
+Logs          ALL      ORDERS    CAMPAIGNS    ORDERS (RO)
+Settings      YES      NO        NO           NO
+
+RO = Read Only
 
 ═══════════════════════════════════════════
 SECTION 6 — GOOGLE SHEET STRUCTURE
