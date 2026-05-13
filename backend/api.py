@@ -72,10 +72,9 @@ def orders():
     payload = verify_session(token)
     if not payload:
         return jsonify({"success": False, "message": "Not logged in"}), 401
-    if payload["role"] == "admin":
-        data = get_all_pending_orders()
-    else:
-        data = get_pending_orders_from_tab(payload["tab"])
+    if payload["role"] == "campaigner":
+        return jsonify({"success": False, "message": "Access denied"}), 403
+    data = get_all_pending_orders()
     return jsonify({"success": True, "orders": data})
 
 @app.route("/retry-failed", methods=["POST"])
@@ -88,6 +87,57 @@ def retry_failed():
         return jsonify({"success": False, "message": "Access denied"}), 403
     retry_failed_orders()
     return jsonify({"success": True, "message": "Retry started"})
+@app.route("/toggle-auto-message", methods=["POST"])
+def toggle_auto_message_endpoint():
+    token = get_token_from_request()
+    payload = verify_session(token)
+    if not payload:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    if payload["role"] != "admin":
+        return jsonify({"success": False, "message": "Access denied"}), 403
+    
+    data = request.json
+    enabled = data.get("enabled", True)
+    
+    from scheduler import toggle_auto_message
+    toggle_auto_message(enabled)
+    
+    return jsonify({"success": True, "auto_message": enabled})
+
+@app.route("/auto-message-status", methods=["GET"])
+def auto_message_status():
+    token = get_token_from_request()
+    payload = verify_session(token)
+    if not payload:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    
+    from scheduler import get_auto_message_status
+    return jsonify({"success": True, "enabled": get_auto_message_status()})
+
+@app.route("/toggle-system", methods=["POST"])
+def toggle_system_endpoint():
+    token = get_token_from_request()
+    payload = verify_session(token)
+    if not payload:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    if payload["role"] != "admin":
+        return jsonify({"success": False, "message": "Access denied"}), 403
+    
+    data = request.json
+    action = data.get("action")
+    
+    from scheduler import scheduler, start_scheduler, stop_scheduler
+    
+    if action == "start":
+        if not scheduler.running:
+            start_scheduler()
+        return jsonify({"success": True, "system": "started"})
+    elif action == "stop":
+        if scheduler.running:
+            stop_scheduler()
+        return jsonify({"success": True, "system": "stopped"})
+    else:
+        return jsonify({"success": False, "message": "Invalid action"}), 400
 
 if __name__ == "__main__":
     config = load_config()

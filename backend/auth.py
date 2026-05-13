@@ -11,25 +11,15 @@ def get_all_users():
             "role": "admin",
             "tab": None
         },
-        config["MANAGER_1_USERNAME"]: {
-            "password": config["MANAGER_1_PASSWORD"],
+        config["MANAGER_USERNAME"]: {
+            "password": config["MANAGER_PASSWORD"],
             "role": "manager",
-            "tab": config["MANAGER_1_TAB"]
+            "tab": None
         },
-        config["MANAGER_2_USERNAME"]: {
-            "password": config["MANAGER_2_PASSWORD"],
-            "role": "manager",
-            "tab": config["MANAGER_2_TAB"]
-        },
-        config["MANAGER_3_USERNAME"]: {
-            "password": config["MANAGER_3_PASSWORD"],
-            "role": "manager",
-            "tab": config["MANAGER_3_TAB"]
-        },
-        config["MANAGER_4_USERNAME"]: {
-            "password": config["MANAGER_4_PASSWORD"],
-            "role": "manager",
-            "tab": config["MANAGER_4_TAB"]
+        config["CAMPAIGNER_USERNAME"]: {
+            "password": config["CAMPAIGNER_PASSWORD"],
+            "role": "campaigner",
+            "tab": None
         },
         config["VIEWER_USERNAME"]: {
             "password": config["VIEWER_PASSWORD"],
@@ -38,7 +28,6 @@ def get_all_users():
         },
     }
     return users
-
 def check_login(username, password):
     users = get_all_users()
     if username in users:
