@@ -373,13 +373,13 @@ filter_opted_in_only()
 estimate_audience_count(filters)
 
 ── campaigns/bulk_sender.py ──
+── campaigns/bulk_sender.py ──
+send_template_message(phone, template_name, variables)
+send_batch(contacts, template, variables_per_contact)
+send_bulk_parallel(contacts, template, variables_per_contact)
 send_campaign(campaign_id)
-send_batch(contacts, template,
-  variables)
-send_bulk_parallel(contacts, template)
 track_progress(campaign_id)
-calculate_cost(audience_count,
-  template_type)
+calculate_cost(audience_count, template_type)
 
 ── campaigns/campaign_scheduler.py ──
 schedule_campaign(campaign_id,
@@ -401,7 +401,6 @@ GET  /me (who am i + my role)
 POST /toggle-auto-message
 GET  /auto-message-status
 POST /toggle-system
-
 
 POST /run-now
 GET  /status
