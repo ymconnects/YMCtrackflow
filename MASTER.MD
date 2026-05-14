@@ -389,6 +389,7 @@ get_scheduled_campaigns()
 run_scheduled_campaigns()
 
 ── campaigns/campaign_logger.py ──
+def write_campaign_log(level, message)
 log_campaign_start(campaign_id)
 log_campaign_result(campaign_id,
   sent, failed)
