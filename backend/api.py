@@ -87,6 +87,7 @@ def retry_failed():
         return jsonify({"success": False, "message": "Access denied"}), 403
     retry_failed_orders()
     return jsonify({"success": True, "message": "Retry started"})
+
 @app.route("/toggle-auto-message", methods=["POST"])
 def toggle_auto_message_endpoint():
     token = get_token_from_request()
