@@ -383,7 +383,7 @@ calculate_cost(audience_count, template_type)
 
 ── campaigns/campaign_scheduler.py ──
 schedule_campaign(campaign_id,
-  datetime)
+  run_datetime)
 cancel_scheduled_campaign(campaign_id)
 get_scheduled_campaigns()
 run_scheduled_campaigns()
