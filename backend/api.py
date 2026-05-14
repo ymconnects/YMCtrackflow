@@ -4,6 +4,10 @@ from auth import check_login, create_session, verify_session, get_user_role, get
 from main import process_all_tabs, process_single_tab, retry_failed_orders
 from sheets import get_all_pending_orders, get_pending_orders_from_tab
 from logger import log_system_start
+from campaigns.campaign_manager import create_campaign, get_all_campaigns, get_campaign_status, update_campaign_status, delete_campaign
+from campaigns.bulk_sender import send_campaign, calculate_cost, track_progress
+from campaigns.audience_filter import estimate_audience_count
+from campaigns.campaign_scheduler import schedule_campaign, cancel_scheduled_campaign, get_scheduled_campaigns
 from config import load_config
 
 app = Flask(__name__)
@@ -139,6 +143,108 @@ def toggle_system_endpoint():
         return jsonify({"success": True, "system": "stopped"})
     else:
         return jsonify({"success": False, "message": "Invalid action"}), 400
+    
+@app.route("/campaigns", methods=["GET"])
+def list_campaigns():
+    token = get_token_from_request()
+    payload = verify_session(token)
+    if not payload:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    if payload["role"] not in ["admin", "campaigner"]:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+    
+    campaigns = get_all_campaigns()
+    return jsonify({"success": True, "campaigns": campaigns})
+
+@app.route("/campaigns/create", methods=["POST"])
+def create_new_campaign():
+    token = get_token_from_request()
+    payload = verify_session(token)
+    if not payload:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    if payload["role"] not in ["admin", "campaigner"]:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+    
+    data = request.json
+    name = data.get("name")
+    template = data.get("template")
+    audience = data.get("audience", [])
+    
+    campaign_id = create_campaign(name, template, audience)
+    return jsonify({"success": True, "campaign_id": campaign_id})
+
+@app.route("/campaigns/<campaign_id>/status", methods=["GET"])
+def campaign_status(campaign_id):
+    token = get_token_from_request()
+    payload = verify_session(token)
+    if not payload:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    if payload["role"] not in ["admin", "campaigner"]:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+    
+    campaign = get_campaign_status(campaign_id)
+    if not campaign:
+        return jsonify({"success": False, "message": "Campaign not found"}), 404
+    return jsonify({"success": True, "campaign": campaign})
+
+@app.route("/campaigns/<campaign_id>/send", methods=["POST"])
+def send_campaign_endpoint(campaign_id):
+    token = get_token_from_request()
+    payload = verify_session(token)
+    if not payload:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    if payload["role"] not in ["admin", "campaigner"]:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+    
+    success, result = send_campaign(campaign_id)
+    return jsonify({"success": success, "result": result})
+
+@app.route("/campaigns/<campaign_id>/cancel", methods=["POST"])
+def cancel_campaign_endpoint(campaign_id):
+    token = get_token_from_request()
+    payload = verify_session(token)
+    if not payload:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    if payload["role"] not in ["admin", "campaigner"]:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+    
+    success = cancel_scheduled_campaign(campaign_id)
+    return jsonify({"success": success})
+
+@app.route("/campaigns/<campaign_id>/report", methods=["GET"])
+def campaign_report(campaign_id):
+    token = get_token_from_request()
+    payload = verify_session(token)
+    if not payload:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    if payload["role"] not in ["admin", "campaigner"]:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+    
+    progress = track_progress(campaign_id)
+    if not progress:
+        return jsonify({"success": False, "message": "Campaign not found"}), 404
+    return jsonify({"success": True, "report": progress})
+
+@app.route("/audience/estimate", methods=["POST"])
+def audience_estimate():
+    token = get_token_from_request()
+    payload = verify_session(token)
+    if not payload:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    if payload["role"] not in ["admin", "campaigner"]:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+    
+    data = request.json
+    filters = data.get("filters", {})
+    
+    count = estimate_audience_count(filters)
+    cost = calculate_cost(count, "campaign")
+    
+    return jsonify({
+        "success": True,
+        "count": count,
+        "estimated_cost": cost
+    })
 
 if __name__ == "__main__":
     config = load_config()
