@@ -5,15 +5,17 @@ from main import process_all_tabs
 import requests
 scheduler = BackgroundScheduler()
 auto_message_enabled = True
-def run_if_enabled():
-    if auto_message_enabled:
-        process_all_tabs()
+
 def keep_alive():
     try:
         requests.get("https://ymctrackflow-backend.onrender.com/status")
         print("Keep alive ping sent.")
     except Exception as e:
         print(f"Keep alive failed: {e}")
+
+def run_if_enabled():
+    if auto_message_enabled:
+        process_all_tabs()
 
 def start_scheduler():
     config = load_config()
@@ -25,4 +27,12 @@ def start_scheduler():
 
 def stop_scheduler():
     scheduler.shutdown()
-    print("Scheduler stopped.")        
+    print("Scheduler stopped.")
+
+def toggle_auto_message(state):
+    global auto_message_enabled
+    auto_message_enabled = state
+    print(f"Auto message: {'ON' if state else 'OFF'}")
+
+def get_auto_message_status():
+    return auto_message_enabled        

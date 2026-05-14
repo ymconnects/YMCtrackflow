@@ -36,3 +36,38 @@ def create_campaign(name, template, audience):
     ]
     sheet.append_row(new_row)
     return campaign_id
+
+def get_all_campaigns():
+    sheet = connect_campaigns_sheet()
+    return sheet.get_all_records()
+
+def get_campaign_status(campaign_id):
+    campaigns = get_all_campaigns()
+    for campaign in campaigns:
+        if campaign["Campaign ID"] == campaign_id:
+            return campaign
+    return None
+
+def update_campaign_status(campaign_id, status):
+    sheet = connect_campaigns_sheet()
+    campaigns = sheet.get_all_records()
+    
+    for index, campaign in enumerate(campaigns):
+        if campaign["Campaign ID"] == campaign_id:
+            row_number = index + 2
+            sheet.update_cell(row_number, 7, status)
+            if status == "SENT":
+                sheet.update_cell(row_number, 9, str(datetime.now()))
+            return True
+    return False
+
+def delete_campaign(campaign_id):
+    sheet = connect_campaigns_sheet()
+    campaigns = sheet.get_all_records()
+    
+    for index, campaign in enumerate(campaigns):
+        if campaign["Campaign ID"] == campaign_id:
+            row_number = index + 2
+            sheet.delete_rows(row_number)
+            return True
+    return False

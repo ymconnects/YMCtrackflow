@@ -103,3 +103,35 @@ def track_progress(campaign_id):
         "percentage": round((sent + failed) / total * 100, 2) if total > 0 else 0
     }
     return progress
+
+def send_campaign(campaign_id):
+    from campaigns.campaign_manager import get_campaign_status, update_campaign_status
+    from campaigns.audience_filter import get_all_customers
+    
+    campaign = get_campaign_status(campaign_id)
+    if not campaign:
+        return False, "Campaign not found"
+    
+    update_campaign_status(campaign_id, "RUNNING")
+    
+    contacts = get_all_customers()
+    template = campaign["Template Used"]
+    
+    variables_per_contact = []
+    for contact in contacts:
+        variables_per_contact.append([
+            contact.get("Name", "Customer")
+        ])
+    
+    results = send_bulk_parallel(contacts, template, variables_per_contact)
+    
+    sent_count = sum(1 for r in results if r["success"])
+    failed_count = sum(1 for r in results if not r["success"])
+    
+    update_campaign_status(campaign_id, "SENT")
+    
+    return True, {
+        "sent": sent_count,
+        "failed": failed_count,
+        "total": len(results)
+    }
