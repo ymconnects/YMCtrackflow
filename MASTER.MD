@@ -551,12 +551,13 @@ PHASE 3 — FLASK API + AUTH
 [ ] TEST: roles work correctly (waiting Meta)
 
 PHASE 4 — CAMPAIGNS
-[ ] campaign_manager.py
-[ ] audience_filter.py
-[ ] bulk_sender.py
-[ ] campaign_scheduler.py
-[ ] campaign_logger.py
-[ ] TEST: bulk send works ✅
+PHASE 4 — CAMPAIGNS
+[x] campaign_manager.py
+[x] audience_filter.py
+[x] bulk_sender.py
+[x] campaign_scheduler.py
+[x] campaign_logger.py
+[ ] TEST: bulk send works (waiting Meta)
 
 PHASE 5 — REACT FRONTEND
 [ ] Project setup + routing
