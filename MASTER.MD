@@ -1,5 +1,5 @@
 # YMCTRACKFLOW — MASTER DOCUMENT
-# Version 4.0 — WITH LOGIN + ROLES
+# Version 5.0 — BACKEND COMPLETE
 # Paste this at start of every coding chat
 
 ═══════════════════════════════════════════
@@ -161,7 +161,7 @@ ALL TABS SAME COLUMNS:
 Col A → Customer Name
 Col B → Phone (91XXXXXXXXXX)
 Col C → Status
-col D → Tracking id
+Col D → Tracking ID
 Col E → Tracking Link
 Col F → Message Sent (YES/NO/FAILED)
 Col G → Last Updated
@@ -226,8 +226,8 @@ Thank you for shopping with us!"
 
 VARIABLES SAME FOR ALL:
 {{name}}          → Col A
-{{tracking_link}} → Col E
 {{tracking_id}}   → Col D
+{{tracking_link}} → Col E
 
 CAMPAIGN TEMPLATES:
 → Created per campaign
@@ -248,7 +248,7 @@ ymctrackflow/
 │   ├── scheduler.py
 │   ├── logger.py
 │   ├── api.py
-│   ├── auth.py           ← NEW
+│   ├── auth.py
 │   ├── campaigns/
 │   │   ├── campaign_manager.py
 │   │   ├── audience_filter.py
@@ -262,7 +262,7 @@ ymctrackflow/
 │   ├── src/
 │   │   ├── App.jsx
 │   │   ├── pages/
-│   │   │   ├── Login.jsx         ← NEW
+│   │   │   ├── Login.jsx
 │   │   │   ├── Dashboard.jsx
 │   │   │   ├── Orders.jsx
 │   │   │   ├── Campaigns.jsx
@@ -281,14 +281,14 @@ ymctrackflow/
 │   │   │   ├── CampaignCard.jsx
 │   │   │   ├── AudienceFilter.jsx
 │   │   │   ├── CostEstimator.jsx
-│   │   │   ├── ProtectedRoute.jsx ← NEW
+│   │   │   ├── ProtectedRoute.jsx
 │   │   │   └── Toast.jsx
 │   │   ├── hooks/
 │   │   │   ├── useOrders.js
 │   │   │   ├── useLogs.js
 │   │   │   ├── useStatus.js
 │   │   │   ├── useCampaigns.js
-│   │   │   └── useAuth.js        ← NEW
+│   │   │   └── useAuth.js
 │   │   └── utils/
 │   │       ├── api.js
 │   │       └── formatters.js
@@ -304,7 +304,7 @@ SECTION 9 — ALL FUNCTIONS
 load_config()
 validate_config()
 
-── auth.py ── 
+── auth.py ──
 get_all_users()
 check_login(username, password)
 get_user_role(username)
@@ -319,9 +319,9 @@ read_all_tabs()
 get_pending_orders_from_tab(tab_name)
 get_all_pending_orders()
 mark_as_sent(tab_name, row_number)
-mark_as_failed(tab_name, row_number)
-get_failed_orders() 
-get_all_contacts()  
+mark_as_failed(tab_name, row_number) 
+get_failed_orders()
+get_all_contacts() 
 
 ── whatsapp.py ──
 format_phone_number(phone)
@@ -329,40 +329,37 @@ validate_phone_number(phone)
 get_template_for_courier(courier_name)
 send_whatsapp_message(phone, name, tracking_id, tracking_link, courier_name)
 
-
 ── scheduler.py ──
-start_scheduler()
-stop_scheduler()
 keep_alive()
 run_if_enabled()
+start_scheduler()
+stop_scheduler()
 toggle_auto_message(enabled)
 get_auto_message_status()
 
 ── logger.py ──
 write_log(level, message)
 log_success(phone, name, courier)
-log_failure(phone, name,courier, error)
+log_failure(phone, name, courier, error)
 log_system_start()
 log_summary()
 
 ── main.py ──
-process_all_tabs()
-process_single_tab(tab_name)
 should_send_message(order)
+process_single_tab(tab_name)
+process_all_tabs()
 retry_failed_orders()
-notify_admin_on_failure(error)
-notify_daily_summary()
 
 ── campaigns/campaign_manager.py ──
-create_campaign(name, template,
-  audience)
+connect_campaigns_sheet()
+create_campaign(name, template, audience)
 get_all_campaigns()
 get_campaign_status(campaign_id)
-update_campaign_status(campaign_id,
-  status)
+update_campaign_status(campaign_id, status)
 delete_campaign(campaign_id)
 
 ── campaigns/audience_filter.py ──
+connect_contacts_sheet()
 get_all_customers()
 filter_by_date_range(start, end)
 filter_by_status(status)
@@ -380,81 +377,79 @@ track_progress(campaign_id)
 calculate_cost(audience_count, template_type)
 
 ── campaigns/campaign_scheduler.py ──
-schedule_campaign(campaign_id,run_datetime)
+schedule_campaign(campaign_id, run_datetime)
 cancel_scheduled_campaign(campaign_id)
 get_scheduled_campaigns()
 run_scheduled_campaigns()
 
 ── campaigns/campaign_logger.py ──
-def write_campaign_log(level, message)
+write_campaign_log(level, message)
 log_campaign_start(campaign_id)
-log_campaign_result(campaign_id,
-  sent, failed)
+log_campaign_result(campaign_id, sent, failed)
 log_campaign_complete(campaign_id)
 
 ── api.py ──
+def get_token_from_request()
 POST /login
 POST /logout
-GET  /me (who am i + my role)
+GET  /me
+GET  /status
+GET  /orders
+POST /run-now
+POST /retry-failed
 POST /toggle-auto-message
 GET  /auto-message-status
 POST /toggle-system
-
-POST /run-now
-GET  /status
-GET  /orders
-GET  /logs
-POST /retry-failed
-POST /toggle-system
-POST /update-settings
 GET  /campaigns
 POST /campaigns/create
-GET  /campaigns/:id/status
-POST /campaigns/:id/send
-POST /campaigns/:id/cancel
-GET  /campaigns/:id/report
-POST  /audience/estimate
+GET  /campaigns/<campaign_id>/status
+POST /campaigns/<campaign_id>/send
+POST /campaigns/<campaign_id>/cancel
+GET  /campaigns/<campaign_id>/report
+POST /audience/estimate
 
+STILL TO BUILD (Phase 5):
+GET  /logs
+POST /update-settings
 ═══════════════════════════════════════════
 SECTION 10 — DASHBOARD PAGES
 ═══════════════════════════════════════════
 
-Login.jsx (NEW — everyone sees first)
+Login.jsx (everyone sees first)
 → Username box
 → Password box
 → Login button
 → Wrong password → error shown
 → Right password → enter dashboard
 
-ProtectedRoute.jsx (NEW)
+ProtectedRoute.jsx
 → Checks if logged in
 → Not logged in → back to login
 → Wrong role → access denied
 
 Dashboard.jsx
 → System on/off status
+→ Auto message on/off toggle
 → Stats: orders, sent, pending, failed
-→ ADMIN sees all tabs stats
-→ MANAGER sees own tab stats
+→ All roles see all tabs stats
 → Recent orders table
 → 7 day chart
-→ Run Now button
+→ Run Now button (admin + manager only)
 
 Orders.jsx
-→ ADMIN sees all tabs
-→ MANAGER sees own tab only
+→ All roles see all orders
 → Search by name
 → Filter by status
-→ Send Now per row
+→ Send Now per row (admin + manager only)
 → VIEWER sees but cannot send
 → Pagination
 
-Campaigns.jsx (ADMIN ONLY)
+Campaigns.jsx (admin + campaigner only)
 → Active campaigns
 → Past campaigns
 → New Campaign button
 
-CampaignCreate.jsx (ADMIN ONLY)
+CampaignCreate.jsx (admin + campaigner only)
 → Campaign name
 → Template picker
 → Audience filter
@@ -462,30 +457,32 @@ CampaignCreate.jsx (ADMIN ONLY)
 → Cost estimator
 → Send now or schedule
 
-CampaignReport.jsx (ADMIN ONLY)
+CampaignReport.jsx (admin + campaigner only)
 → Sent/Delivered/Read/Failed
 → Delivery rate
 → Per contact table
 
-Templates.jsx (ADMIN ONLY)
+Templates.jsx (admin + campaigner only)
 → All 4 courier templates shown
 → Each with WhatsApp preview
 → Approval status shown
 
 Logs.jsx
 → ADMIN sees all logs
-→ MANAGER sees own tab logs only
-→ VIEWER cannot see logs
+→ MANAGER sees order logs
+→ CAMPAIGNER sees campaign logs
+→ VIEWER sees order logs (read only)
 → Filter by status
 → Export button
 
-Settings.jsx (ADMIN ONLY)
+Settings.jsx (admin only)
 → Meta credentials (masked)
 → Google Sheet config
 → Courier tab names
 → Template names per courier
 → Check interval
 → System on/off toggle
+→ Auto message toggle
 → Manage users + roles
 
 ═══════════════════════════════════════════
@@ -516,7 +513,7 @@ Services        : ymctrackflow-backend
 Keep alive      : UptimeRobot (free)
 
 Other project   : Student Extractor
-Platform        : Render (separate account )
+Platform        : Render (separate account)
 DO NOT MIX      : Two projects apart
 
 ═══════════════════════════════════════════
@@ -544,16 +541,18 @@ PHASE 3 — FLASK API + AUTH
 [x] Role based data filtering
 [x] Auto message toggle endpoint
 [x] System toggle endpoint
+[ ] GET /logs endpoint (build with Logs.jsx)
+[ ] POST /update-settings endpoint (build with Settings.jsx)
 [ ] TEST: all endpoints work (waiting Meta)
 [ ] TEST: roles work correctly (waiting Meta)
 
-PHASE 4 — CAMPAIGNS
 PHASE 4 — CAMPAIGNS
 [x] campaign_manager.py
 [x] audience_filter.py
 [x] bulk_sender.py
 [x] campaign_scheduler.py
 [x] campaign_logger.py
+[x] Campaign endpoints in api.py
 [ ] TEST: bulk send works (waiting Meta)
 
 PHASE 5 — REACT FRONTEND
@@ -573,9 +572,9 @@ PHASE 5 — REACT FRONTEND
 [ ] All hooks
 [ ] api.js connected to Flask
 [ ] Role based page hiding
-[ ] TEST: login works ✅
-[ ] TEST: roles show right data ✅
-[ ] TEST: real data shows ✅
+[ ] TEST: login works
+[ ] TEST: roles show right data
+[ ] TEST: real data shows
 
 PHASE 6 — DEPLOY
 [ ] Push all to GitHub
@@ -583,8 +582,8 @@ PHASE 6 — DEPLOY
 [ ] Deploy frontend Render
 [ ] Set env variables
 [ ] Full live test
-[ ] Test all three roles
-[ ] Cancel AiSensy ✅
+[ ] Test all four roles
+[ ] Cancel AiSensy
 
 ═══════════════════════════════════════════
 SECTION 14 — COSTS
@@ -624,8 +623,8 @@ LEARNING RULES:
 → Understand before moving on
 
 ═══════════════════════════════════════════
-STATUS   : PLANNING DONE ✅
-NEXT     : New chat → config.py
+STATUS   : BACKEND COMPLETE ✅
+NEXT     : Phase 5 → React Frontend
 REPO     : YMCtrackflow
 RULE     : Push to GitHub after every file
 🦴
