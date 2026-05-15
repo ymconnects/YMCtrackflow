@@ -58,5 +58,15 @@ def create_session(username):
     token = jwt.encode(payload, config["FLASK_SECRET_KEY"], algorithm="HS256")
     return token
 
+def verify_session(token):
+    config = load_config()
+    try:
+        payload = jwt.decode(token, config["FLASK_SECRET_KEY"], algorithms=["HS256"])
+        return payload
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+
 def logout(token):
     return True
