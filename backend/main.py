@@ -1,4 +1,4 @@
-from sheets import get_all_pending_orders, get_pending_orders_from_tab, mark_as_sent, mark_as_failed, get_failed_orders
+from sheets import get_pending_orders_from_tab, mark_as_sent, mark_as_failed, get_failed_orders
 from whatsapp import send_whatsapp_message
 from logger import log_success, log_failure, log_system_start
 from config import load_config
