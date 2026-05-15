@@ -304,7 +304,7 @@ SECTION 9 — ALL FUNCTIONS
 load_config()
 validate_config()
 
-── auth.py ── (NEW)
+── auth.py ── 
 get_all_users()
 check_login(username, password)
 get_user_role(username)
@@ -324,13 +324,11 @@ get_failed_orders()
 get_all_contacts()  
 
 ── whatsapp.py ──
-send_whatsapp_message(phone,
-  name, tracking_link, courier_name)
-get_template_for_courier(courier_name)
 format_phone_number(phone)
 validate_phone_number(phone)
-send_template_message(phone,
-  template_name, variables)
+get_template_for_courier(courier_name)
+send_whatsapp_message(phone, name, tracking_id, tracking_link, courier_name)
+
 
 ── scheduler.py ──
 start_scheduler()
@@ -341,9 +339,9 @@ toggle_auto_message(enabled)
 get_auto_message_status()
 
 ── logger.py ──
+write_log(level, message)
 log_success(phone, name, courier)
-log_failure(phone, name,
-  courier, error)
+log_failure(phone, name,courier, error)
 log_system_start()
 log_summary()
 
@@ -374,7 +372,6 @@ filter_opted_in_only()
 estimate_audience_count(filters)
 
 ── campaigns/bulk_sender.py ──
-── campaigns/bulk_sender.py ──
 send_template_message(phone, template_name, variables)
 send_batch(contacts, template, variables_per_contact)
 send_bulk_parallel(contacts, template, variables_per_contact)
@@ -383,8 +380,7 @@ track_progress(campaign_id)
 calculate_cost(audience_count, template_type)
 
 ── campaigns/campaign_scheduler.py ──
-schedule_campaign(campaign_id,
-  run_datetime)
+schedule_campaign(campaign_id,run_datetime)
 cancel_scheduled_campaign(campaign_id)
 get_scheduled_campaigns()
 run_scheduled_campaigns()
@@ -417,7 +413,7 @@ GET  /campaigns/:id/status
 POST /campaigns/:id/send
 POST /campaigns/:id/cancel
 GET  /campaigns/:id/report
-GET  /audience/estimate
+POST  /audience/estimate
 
 ═══════════════════════════════════════════
 SECTION 10 — DASHBOARD PAGES
