@@ -305,6 +305,7 @@ load_config()
 validate_config()
 
 ── auth.py ── (NEW)
+get_all_users()
 check_login(username, password)
 get_user_role(username)
 get_user_tab(username)
@@ -319,8 +320,8 @@ get_pending_orders_from_tab(tab_name)
 get_all_pending_orders()
 mark_as_sent(tab_name, row_number)
 mark_as_failed(tab_name, row_number)
-get_failed_orders()
-get_all_contacts()
+get_failed_orders() 
+get_all_contacts()  
 
 ── whatsapp.py ──
 send_whatsapp_message(phone,
