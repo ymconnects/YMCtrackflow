@@ -51,3 +51,19 @@ export const getMsgStatusColor = (status) => {
   }
   return colors[status] || 'neutral'
 }
+
+export const truncate = (str, length = 30) => {
+  if (!str) return ''
+  if (str.length <= length) return str
+  return str.slice(0, length) + '...'
+}
+
+export const getInitials = (name) => {
+  if (!name) return ''
+  return name
+    .split(' ')
+    .map(word => word[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+}
