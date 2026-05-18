@@ -183,16 +183,21 @@ const Login = ({ onLogin }) => {
           display: 'flex',
           gap: '18px'
         }}>
-          <span>v1.0.0</span>
-          <span>Meta Cloud API</span>
-          <span>Asia/Kolkata</span>
+          {['v1.0.0', 'Meta Cloud API', 'Asia/Kolkata'].map(t => (
+            <span key={t} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>•</span>
+              {t}
+            </span>
+          ))}
         </div>
-      </div>
+        </div>
       {/* RIGHT SIDE - login form */}
       <div style={{
         padding: '56px',
-        display: 'grid',
-        placeItems: 'center'
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+
       }}>
         <div style={{
           width: '100%',
@@ -209,32 +214,45 @@ const Login = ({ onLogin }) => {
             margin: '0 0 6px',
             fontSize: '24px',
             fontWeight: '700',
-            letterSpacing: '-0.01em'
+            letterSpacing: '-0.01em',
+            textAlign: 'left'
           }}>Welcome back</h2>
           <p style={{
             color: '#4b5160',
             margin: '0 0 26px',
-            fontSize: '14px'
+            fontSize: '14px',
+            textAlign: 'left'
           }}>Sign in to your operations dashboard.</p>
 
           {/* login form */}
           <form onSubmit={handleSubmit}>
 
             {/* username field */}
-            <div style={{ marginBottom: '16px' }}>
+            <div style={{ marginBottom: '16px',textAlign: 'left' }}>
               <label style={{
                 display: 'block',
                 fontSize: '12px',
                 color: '#4b5160',
                 marginBottom: '7px',
                 fontWeight: '600',
-                letterSpacing: '0.02em'
-              }}>USERNAME</label>
+                letterSpacing: '0.02em',
+                textAlign: 'left'
+              }}>Username</label>
               <input
                 type='text'
                 value={username}
                 onChange={e => setUsername(e.target.value)}
-                placeholder='admin'
+                placeholder='ENTER YOUR USERNAME'
+                onFocus={e => e.target.style.borderColor = '#128C7E'}
+                onBlur={e => e.target.style.borderColor = '#d9dde4'}
+                 onFocus={e => {
+                  e.target.style.borderColor = '#128C7E'
+                  e.target.style.boxShadow = '0 0 0 3px rgba(18,140,126,0.18)'
+                }}
+                onBlur={e => {
+                  e.target.style.borderColor = '#d9dde4'
+                  e.target.style.boxShadow = 'none'
+                }}
                 style={{
                   width: '100%',
                   height: '44px',
@@ -245,11 +263,13 @@ const Login = ({ onLogin }) => {
                   fontSize: '14px',
                   fontFamily: 'inherit',
                   color: '#0f1117',
-                  outline: 'none'
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                  
                 }}
               />
             </div>
-            {/* password field */}
+           {/* password field */}
             <div style={{ marginBottom: '16px' }}>
               <label style={{
                 display: 'block',
@@ -257,14 +277,28 @@ const Login = ({ onLogin }) => {
                 color: '#4b5160',
                 marginBottom: '7px',
                 fontWeight: '600',
-                letterSpacing: '0.02em'
-              }}>PASSWORD</label>
-              <div style={{ position: 'relative' }}>
+                letterSpacing: '0.02em',
+                textAlign: 'left'
+              }}>Password</label>
+              <div style={{ 
+                position: 'relative',
+                width: '100%'
+              }}>
                 <input
                   type={showPass ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  placeholder='••••••••'
+                  placeholder='ENTER YOUR PASSWORD'
+                  onFocus={e => e.target.style.borderColor = '#128C7E'}
+                  onBlur={e => e.target.style.borderColor = '#d9dde4'}
+                   onFocus={e => {
+                  e.target.style.borderColor = '#128C7E'
+                  e.target.style.boxShadow = '0 0 0 3px rgba(18,140,126,0.18)'
+                }}
+                onBlur={e => {
+                  e.target.style.borderColor = '#d9dde4'
+                  e.target.style.boxShadow = 'none'
+                }}
                   style={{
                     width: '100%',
                     height: '44px',
@@ -275,23 +309,25 @@ const Login = ({ onLogin }) => {
                     fontSize: '14px',
                     fontFamily: 'inherit',
                     color: '#0f1117',
-                    outline: 'none'
+                    outline: 'none',
+                    boxSizing: 'border-box'
                   }}
                 />
-                {/* show/hide password button */}
                 <button
                   type='button'
                   onClick={() => setShowPass(!showPass)}
                   style={{
                     position: 'absolute',
-                    right: '8px',
+                    right: '10px',
                     top: '50%',
                     transform: 'translateY(-50%)',
                     background: 'transparent',
                     border: 'none',
                     cursor: 'pointer',
                     color: '#7a8090',
-                    fontSize: '16px'
+                    fontSize: '16px',
+                    padding: '0',
+                    lineHeight: '1'
                   }}
                 >{showPass ? '🙈' : '👁'}</button>
               </div>
@@ -318,12 +354,22 @@ const Login = ({ onLogin }) => {
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'flex-end',
+              justifyContent: 'space-between',
               marginTop: '22px'
             }}>
+              <span 
+                onClick={() => alert('Please contact Admin to reset your password.')}
+                style={{ 
+                  fontSize: '12px', 
+                  color: '#7a8090',
+                  cursor: 'pointer'
+                }}
+              >Forgot password?</span>
               <button
                 type='submit'
                 disabled={loading}
+                onMouseEnter={e => e.currentTarget.style.background = '#0e7a6e'}
+                onMouseLeave={e => e.currentTarget.style.background = '#128C7E'}
                 style={{
                   height: '44px',
                   padding: '0 24px',
@@ -344,69 +390,9 @@ const Login = ({ onLogin }) => {
               </button>
             </div>
           </form>
-          {/* divider */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            margin: '26px 0 14px',
-            color: '#7a8090',
-            fontSize: '11.5px',
-            letterSpacing: '0.16em',
-            textTransform: 'uppercase'
-          }}>
-            <div style={{ flex: 1, height: '1px', background: '#d9dde4' }}></div>
-            Or sign in as demo role
-            <div style={{ flex: 1, height: '1px', background: '#d9dde4' }}></div>
-          </div>
+          
 
-          {/* demo role buttons */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '8px'
-          }}>
-            {[
-              { label: 'Admin',      user: 'admin',     pass: 'admin123', icon: '👑' },
-              { label: 'Manager',    user: 'manager1',  pass: 'mgr123',   icon: '📦' },
-              { label: 'Campaigner', user: 'campaign1', pass: 'camp123',  icon: '📣' },
-              { label: 'Viewer',     user: 'viewer1',   pass: 'view123',  icon: '👁'  }
-            ].map(role => (
-              <button
-                key={role.label}
-                type='button'
-                onClick={() => fillDemo(role.user, role.pass)}
-                style={{
-                  padding: '10px 12px',
-                  border: '1px solid #d9dde4',
-                  background: '#eef0f4',
-                  borderRadius: '10px',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  fontFamily: 'inherit',
-                  transition: 'all 0.15s'
-                }}
-              >
-                <span style={{
-                  width: '30px', height: '30px',
-                  borderRadius: '8px',
-                  background: 'rgba(18,140,126,0.1)',
-                  color: '#128C7E',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '14px'
-                }}>{role.icon}</span>
-                <span>
-                  <div style={{ fontWeight: '600', fontSize: '13px' }}>{role.label}</div>
-                  <div style={{ color: '#7a8090', fontSize: '11px' }}>{role.user}</div>
-                </span>
-              </button>
-            ))}
-          </div>
+         
 
         </div>
       </div>
