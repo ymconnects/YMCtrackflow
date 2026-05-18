@@ -61,149 +61,98 @@ const App = () => {
   }
 
   return (
-    // router wraps everything
-    // enables page navigation
     <BrowserRouter>
-      
-      {/* toast notifications container */}
-      {/* shows success/error messages */}
       <ToastContainer />
-
       <Routes>
-
-        {/* login route - public */}
-        {/* anyone can access this */}
         <Route path='/login' element={
           user ? <Navigate to='/dashboard' replace /> : <Login onLogin={handleLogin} />
         } />
-        {/* protected app route */}
-        {/* shows sidebar and topbar */}
-        <Route path='/' element={
-          <ProtectedRoute 
-            isLoggedIn={!!user} 
-            isAllowed={true}
-            loading={loading}
-          >
-            {/* app shell - sidebar + topbar */}
-            <div style={appLayout}>
-              
-              {/* sidebar navigation */}
-              <Sidebar
-                user={user}
-                role={role}
-                onLogout={handleLogout}
-                currentPage={currentPage}
-                isAllowed={isAllowed}
-              />
 
-              {/* topbar */}
-              <TopBar
-                currentPage={currentPage}
-                systemOn={systemOn}
-                autoMsg={autoMsg}
-                onToggleSystem={handleToggleSystem}
-                onToggleAutoMsg={handleToggleAutoMsg}
-                role={role}
-              />
-
-              {/* page content */}
-              <main style={mainStyle}>
-                <Routes>
-                  {/* dashboard route */}
-                  <Route path='dashboard' element={
-                    <ProtectedRoute
-                      isLoggedIn={!!user}
-                      isAllowed={isAllowed('dashboard')}
-                      loading={loading}
-                    >
-                      <Dashboard 
-                        role={role}
-                        onPageChange={setCurrentPage}
-                      />
-                    </ProtectedRoute>
-                  } />
-
-                  {/* orders route */}
-                  <Route path='orders' element={
-                    <ProtectedRoute
-                      isLoggedIn={!!user}
-                      isAllowed={isAllowed('orders')}
-                      loading={loading}
-                    >
-                      <Orders 
-                        role={role}
-                        onPageChange={setCurrentPage}
-                      />
-                    </ProtectedRoute>
-                  } />
-
-                  {/* campaigns route */}
-                  <Route path='campaigns' element={
-                    <ProtectedRoute
-                      isLoggedIn={!!user}
-                      isAllowed={isAllowed('campaigns')}
-                      loading={loading}
-                    >
-                      <Campaigns 
-                        role={role}
-                        onPageChange={setCurrentPage}
-                      />
-                    </ProtectedRoute>
-                  } />
-                  {/* templates route */}
-                  <Route path='templates' element={
-                    <ProtectedRoute
-                      isLoggedIn={!!user}
-                      isAllowed={isAllowed('templates')}
-                      loading={loading}
-                    >
-                      <Templates 
-                        role={role}
-                        onPageChange={setCurrentPage}
-                      />
-                    </ProtectedRoute>
-                  } />
-
-                  {/* logs route */}
-                  <Route path='logs' element={
-                    <ProtectedRoute
-                      isLoggedIn={!!user}
-                      isAllowed={isAllowed('logs')}
-                      loading={loading}
-                    >
-                      <Logs 
-                        role={role}
-                        onPageChange={setCurrentPage}
-                      />
-                    </ProtectedRoute>
-                  } />
-
-                  {/* settings route - admin only */}
-                  <Route path='settings' element={
-                    <ProtectedRoute
-                      isLoggedIn={!!user}
-                      isAllowed={isAllowed('settings')}
-                      loading={loading}
-                    >
-                      <Settings 
-                        role={role}
-                        onPageChange={setCurrentPage}
-                      />
-                    </ProtectedRoute>
-                  } />
-
-                  {/* default redirect to dashboard */}
-                  <Route path='*' element={<Navigate to='dashboard' replace />} />
-
-                </Routes>
-              </main>
+        <Route path='/dashboard' element={
+          <ProtectedRoute isLoggedIn={!!user} isAllowed={isAllowed('dashboard')} loading={loading}>
+            <div style={{ display: 'flex', minHeight: '100vh', background: '#f6f7f9', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
+              <Sidebar user={user} role={role} onLogout={handleLogout} currentPage={currentPage} isAllowed={isAllowed} />
+              <div style={{ marginLeft: '240px', flex: 1 }}>
+                <TopBar currentPage={currentPage} systemOn={systemOn} autoMsg={autoMsg} onToggleSystem={handleToggleSystem} onToggleAutoMsg={handleToggleAutoMsg} role={role} />
+                <div style={{ marginTop: '60px', padding: '24px 28px' }}>
+                  <Dashboard role={role} onPageChange={setCurrentPage} />
+                </div>
+              </div>
             </div>
           </ProtectedRoute>
         } />
 
-        {/* catch all - redirect to login */}
-        <Route path='*' element={<Navigate to='/login' replace />} />
+        <Route path='/orders' element={
+          <ProtectedRoute isLoggedIn={!!user} isAllowed={isAllowed('orders')} loading={loading}>
+            <div style={{ display: 'flex', minHeight: '100vh', background: '#f6f7f9', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
+              <Sidebar user={user} role={role} onLogout={handleLogout} currentPage={currentPage} isAllowed={isAllowed} />
+              <div style={{ marginLeft: '240px', flex: 1 }}>
+                <TopBar currentPage={currentPage} systemOn={systemOn} autoMsg={autoMsg} onToggleSystem={handleToggleSystem} onToggleAutoMsg={handleToggleAutoMsg} role={role} />
+                <div style={{ marginTop: '60px', padding: '24px 28px' }}>
+                  <Orders role={role} onPageChange={setCurrentPage} />
+                </div>
+              </div>
+            </div>
+          </ProtectedRoute>
+        } />
 
+        <Route path='/campaigns' element={
+          <ProtectedRoute isLoggedIn={!!user} isAllowed={isAllowed('campaigns')} loading={loading}>
+            <div style={{ display: 'flex', minHeight: '100vh', background: '#f6f7f9', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
+              <Sidebar user={user} role={role} onLogout={handleLogout} currentPage={currentPage} isAllowed={isAllowed} />
+              <div style={{ marginLeft: '240px', flex: 1 }}>
+                <TopBar currentPage={currentPage} systemOn={systemOn} autoMsg={autoMsg} onToggleSystem={handleToggleSystem} onToggleAutoMsg={handleToggleAutoMsg} role={role} />
+                <div style={{ marginTop: '60px', padding: '24px 28px' }}>
+                  <Campaigns role={role} onPageChange={setCurrentPage} />
+                </div>
+              </div>
+            </div>
+          </ProtectedRoute>
+        } />
+
+        <Route path='/templates' element={
+          <ProtectedRoute isLoggedIn={!!user} isAllowed={isAllowed('templates')} loading={loading}>
+            <div style={{ display: 'flex', minHeight: '100vh', background: '#f6f7f9', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
+              <Sidebar user={user} role={role} onLogout={handleLogout} currentPage={currentPage} isAllowed={isAllowed} />
+              <div style={{ marginLeft: '240px', flex: 1 }}>
+                <TopBar currentPage={currentPage} systemOn={systemOn} autoMsg={autoMsg} onToggleSystem={handleToggleSystem} onToggleAutoMsg={handleToggleAutoMsg} role={role} />
+                <div style={{ marginTop: '60px', padding: '24px 28px' }}>
+                  <Templates role={role} onPageChange={setCurrentPage} />
+                </div>
+              </div>
+            </div>
+          </ProtectedRoute>
+        } />
+
+        <Route path='/logs' element={
+          <ProtectedRoute isLoggedIn={!!user} isAllowed={isAllowed('logs')} loading={loading}>
+            <div style={{ display: 'flex', minHeight: '100vh', background: '#f6f7f9', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
+              <Sidebar user={user} role={role} onLogout={handleLogout} currentPage={currentPage} isAllowed={isAllowed} />
+              <div style={{ marginLeft: '240px', flex: 1 }}>
+                <TopBar currentPage={currentPage} systemOn={systemOn} autoMsg={autoMsg} onToggleSystem={handleToggleSystem} onToggleAutoMsg={handleToggleAutoMsg} role={role} />
+                <div style={{ marginTop: '60px', padding: '24px 28px' }}>
+                  <Logs role={role} onPageChange={setCurrentPage} />
+                </div>
+              </div>
+            </div>
+          </ProtectedRoute>
+        } />
+
+        <Route path='/settings' element={
+          <ProtectedRoute isLoggedIn={!!user} isAllowed={isAllowed('settings')} loading={loading}>
+            <div style={{ display: 'flex', minHeight: '100vh', background: '#f6f7f9', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
+              <Sidebar user={user} role={role} onLogout={handleLogout} currentPage={currentPage} isAllowed={isAllowed} />
+              <div style={{ marginLeft: '240px', flex: 1 }}>
+                <TopBar currentPage={currentPage} systemOn={systemOn} autoMsg={autoMsg} onToggleSystem={handleToggleSystem} onToggleAutoMsg={handleToggleAutoMsg} role={role} />
+                <div style={{ marginTop: '60px', padding: '24px 28px' }}>
+                  <Settings role={role} onPageChange={setCurrentPage} />
+                </div>
+              </div>
+            </div>
+          </ProtectedRoute>
+        } />
+
+        <Route path='*' element={<Navigate to='/login' replace />} />
       </Routes>
     </BrowserRouter>
   )

@@ -33,6 +33,7 @@ const useAuth = () => {
       saveToken(res.data.token)
       setUser(res.data.username)
       setRole(res.data.role)
+      window.location.href = '/dashboard'
       return true
     } catch (err) {
       setError('Wrong username or password')
@@ -50,6 +51,7 @@ const useAuth = () => {
       removeToken()
       setUser(null)
       setRole(null)
+      window.location.href = '/login'
     }
   }
   const isAllowed = (page) => {
