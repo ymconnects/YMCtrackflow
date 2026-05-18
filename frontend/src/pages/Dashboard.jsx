@@ -2,12 +2,15 @@
 // Main overview page
 // Shows stats, chart, recent orders
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import useOrders from '../hooks/useOrders'
 import useStatus from '../hooks/useStatus'
 import StatCard from '../components/StatCard'
 import OrdersTable from '../components/OrdersTable'
 import ToastContainer from '../components/ToastContainer'
+import { Package, Send, Clock, AlertTriangle } from 'lucide-react'
+import { Chart, registerables } from 'chart.js'
+Chart.register(...registerables)
 
 const Dashboard = ({ role, onPageChange }) => {
 
@@ -15,23 +18,99 @@ const Dashboard = ({ role, onPageChange }) => {
   const {
     orders,
     loading,
-    error,
     running,
     handleRunNow,
-    handleRetryFailed,
     getStats
   } = useOrders()
 
   // get system status from hook
   const { systemOn, autoMsg } = useStatus()
 
+  // chart references - must be before any return
+  const chartRef = useRef(null)
+  const chartInstance = useRef(null)
+
   // tell App.jsx we are on dashboard
   useEffect(() => {
     onPageChange('dashboard')
   }, [onPageChange])
 
+  // build chart when component loads
+  useEffect(() => {
+    if (!chartRef.current) return
+    if (loading) return
+
+    // destroy old chart if exists
+    if (chartInstance.current) {
+      chartInstance.current.destroy()
+    }
+
+    const ctx = chartRef.current.getContext('2d')
+
+    // green gradient fill
+    const gradient = ctx.createLinearGradient(0, 0, 0, 260)
+    gradient.addColorStop(0, 'rgba(18,140,126,0.22)')
+    gradient.addColorStop(1, 'rgba(18,140,126,0)')
+
+    chartInstance.current = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        datasets: [
+          {
+            label: 'Sent',
+            data: [186, 224, 198, 312, 287, 168, 242],
+            borderColor: '#128C7E',
+            backgroundColor: gradient,
+            fill: true,
+            tension: 0.4,
+            borderWidth: 2.2,
+            pointRadius: 3,
+            pointBackgroundColor: '#128C7E',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2
+          },
+          {
+            label: 'Failed',
+            data: [12, 18, 8, 24, 16, 6, 14],
+            borderColor: '#dc2626',
+            backgroundColor: 'rgba(220,38,38,0)',
+            fill: false,
+            tension: 0.4,
+            borderWidth: 2,
+            pointRadius: 3,
+            pointBackgroundColor: '#dc2626',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          x: {
+            grid: { color: 'rgba(15,17,23,0.06)' },
+            border: { display: false },
+            ticks: { color: '#7a8090', font: { size: 11 } }
+          },
+          y: {
+            grid: { color: 'rgba(15,17,23,0.06)' },
+            border: { display: false },
+            ticks: { color: '#7a8090', font: { size: 11 } },
+            beginAtZero: true
+          }
+        }
+      }
+    })
+  }, [loading])
+
   // get stats for cards
   const stats = getStats()
+
   // run now button handler
   const handleRun = async () => {
     const result = await handleRunNow()
@@ -57,6 +136,7 @@ const Dashboard = ({ role, onPageChange }) => {
       </div>
     )
   }
+
   return (
     // page wrapper
     <div>
@@ -113,6 +193,7 @@ const Dashboard = ({ role, onPageChange }) => {
           )}
         </div>
       </div>
+
       {/* 4 stat cards */}
       <div style={{
         display: 'grid',
@@ -123,7 +204,7 @@ const Dashboard = ({ role, onPageChange }) => {
         <StatCard
           label='Total orders'
           value={stats.total.toLocaleString('en-IN')}
-          icon='📦'
+          icon={<Package size={18} />}
           tone='green'
           delta='All 4 couriers'
           deltaDir='neutral'
@@ -131,7 +212,7 @@ const Dashboard = ({ role, onPageChange }) => {
         <StatCard
           label='Sent today'
           value={stats.sent.toLocaleString('en-IN')}
-          icon='✓'
+          icon={<Send size={18} />}
           tone='blue'
           delta='WhatsApp delivered'
           deltaDir='up'
@@ -139,7 +220,7 @@ const Dashboard = ({ role, onPageChange }) => {
         <StatCard
           label='Pending'
           value={stats.pending.toLocaleString('en-IN')}
-          icon='⏰'
+          icon={<Clock size={18} />}
           tone='amber'
           delta='Not yet sent'
           deltaDir='neutral'
@@ -147,12 +228,13 @@ const Dashboard = ({ role, onPageChange }) => {
         <StatCard
           label='Failed'
           value={stats.failed.toLocaleString('en-IN')}
-          icon='⚠'
+          icon={<AlertTriangle size={18} />}
           tone='red'
           delta='Need retry'
           deltaDir='down'
         />
       </div>
+
       {/* chart and courier split row */}
       <div style={{
         display: 'grid',
@@ -183,18 +265,9 @@ const Dashboard = ({ role, onPageChange }) => {
             </span>
           </div>
 
-          {/* chart placeholder - will add chart later */}
-          <div style={{
-            height: '200px',
-            background: '#f6f7f9',
-            borderRadius: '8px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#7a8090',
-            fontSize: '13px'
-          }}>
-            📊 Chart coming soon
+          {/* real chart */}
+          <div style={{ height: '260px', position: 'relative' }}>
+            <canvas ref={chartRef} style={{ width: '100%', height: '100%' }}></canvas>
           </div>
         </div>
 
@@ -209,7 +282,7 @@ const Dashboard = ({ role, onPageChange }) => {
           <h3 style={{ margin: '0 0 14px', fontSize: '14.5px', fontWeight: '700' }}>
             Courier split
           </h3>
-          {/* recent orders table */}
+
           {/* courier bars */}
           {[
             { name: 'Anjani', pct: 42, color: '#25D366' },

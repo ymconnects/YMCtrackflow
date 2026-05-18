@@ -1,15 +1,19 @@
  import { useNavigate } from 'react-router-dom'
 import { getInitials } from '../utils/formatters'
+import { LayoutDashboard, Package, Megaphone, MessageSquare, ScrollText, Settings } from 'lucide-react'
 
 const Sidebar = ({ user, role, onLogout, currentPage, isAllowed }) => {
   const navigate = useNavigate()
-  const navItems = [
-    { label: 'Dashboard', page: 'dashboard', icon: '⊞' },
-    { label: 'Orders',    page: 'orders',    icon: '📦' },
-    { label: 'Campaigns', page: 'campaigns', icon: '📣' },
-    { label: 'Templates', page: 'templates', icon: '💬' },
-    { label: 'Logs',      page: 'logs',      icon: '📋' },
-    { label: 'Settings',  page: 'settings',  icon: '⚙' },
+  const workspaceItems = [
+    { label: 'Dashboard', page: 'dashboard', icon: <LayoutDashboard size={17} /> },
+    { label: 'Orders',    page: 'orders',    icon: <Package size={17} /> },
+    { label: 'Campaigns', page: 'campaigns', icon: <Megaphone size={17} /> },
+    { label: 'Templates', page: 'templates', icon: <MessageSquare size={17} /> },
+    { label: 'Logs',      page: 'logs',      icon: <ScrollText size={17} /> },
+  ]
+
+  const adminItems = [
+    { label: 'Settings',  page: 'settings',  icon: <Settings size={17} /> },
   ]
   return (
     <aside style={{
@@ -58,7 +62,7 @@ const Sidebar = ({ user, role, onLogout, currentPage, isAllowed }) => {
           padding: '14px 12px 6px'
         }}>Workspace</div>
 
-        {navItems.filter(item => isAllowed(item.page)).map(item => (
+        {workspaceItems.filter(item => isAllowed(item.page)).map(item => (
           <div
             key={item.page}
             onClick={() => navigate('/' + item.page)}
@@ -80,6 +84,41 @@ const Sidebar = ({ user, role, onLogout, currentPage, isAllowed }) => {
             <span>{item.label}</span>
           </div>
         ))}
+        {/* admin section */}
+        {isAllowed('settings') && (
+          <>
+            <div style={{
+              fontSize: '10.5px',
+              color: '#7a8090',
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
+              padding: '14px 12px 6px'
+            }}>Admin</div>
+
+            {adminItems.map(item => (
+              <div
+                key={item.page}
+                onClick={() => navigate('/' + item.page)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '11px',
+                  padding: '9px 12px',
+                  borderRadius: '8px',
+                  color: currentPage === item.page ? '#128C7E' : '#4b5160',
+                  background: currentPage === item.page ? 'rgba(18,140,126,0.10)' : 'transparent',
+                  cursor: 'pointer',
+                  fontWeight: '500',
+                  fontSize: '13.5px',
+                  marginBottom: '2px'
+                }}
+              >
+                <span>{item.icon}</span>
+                <span>{item.label}</span>
+              </div>
+            ))}
+          </>
+        )}
       </nav>
       <div style={{
         padding: '14px',
