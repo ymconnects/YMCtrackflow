@@ -11,7 +11,7 @@ from campaigns.campaign_scheduler import schedule_campaign, cancel_scheduled_cam
 from config import load_config
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins="*")
 
 def get_token_from_request():
     auth_header = request.headers.get("Authorization")
