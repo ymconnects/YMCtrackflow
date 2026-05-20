@@ -6,7 +6,7 @@ const Sidebar = ({ user, role, onLogout, currentPage, isAllowed }) => {
   const navigate = useNavigate()
   const workspaceItems = [
     { label: 'Dashboard', page: 'dashboard', icon: <LayoutDashboard size={17} /> },
-    { label: 'Orders',    page: 'orders',    icon: <Package size={17} /> },
+    { label: 'Orders',    page: 'orders',    icon: <Package size={17} />, badge: true },
     { label: 'Campaigns', page: 'campaigns', icon: <Megaphone size={17} /> },
     { label: 'Templates', page: 'templates', icon: <MessageSquare size={17} /> },
     { label: 'Logs',      page: 'logs',      icon: <ScrollText size={17} /> },
@@ -114,7 +114,18 @@ const Sidebar = ({ user, role, onLogout, currentPage, isAllowed }) => {
                 }}
               >
                 <span>{item.icon}</span>
-                <span>{item.label}</span>
+                <span style={{ flex: 1 }}>{item.label}</span>
+                {item.badge && (
+                  <span style={{
+                    fontSize: '10.5px',
+                    background: '#eef0f4',
+                    color: '#4b5160',
+                    padding: '2px 7px',
+                    borderRadius: '6px',
+                    fontWeight: '600',
+                    fontFamily: 'JetBrains Mono, monospace'
+                  }}>0</span>
+                )}
               </div>
             ))}
           </>
@@ -148,7 +159,9 @@ const Sidebar = ({ user, role, onLogout, currentPage, isAllowed }) => {
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: '600', fontSize: '13px' }}>{user}</div>
-            <div style={{ color: '#7a8090', fontSize: '11px' }}>{role}</div>
+          <div style={{ color: '#7a8090', fontSize: '11px' }}>
+            {role ? role.charAt(0).toUpperCase() + role.slice(1) : ''}
+          </div>
           </div>
           <button
             onClick={onLogout}

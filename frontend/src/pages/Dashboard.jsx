@@ -154,9 +154,10 @@ const Dashboard = ({ role, onPageChange }) => {
         <div>
           <h1 style={{
             margin: 0,
-            fontSize: '22px',
+            fontSize: '28px',
             fontWeight: '700',
-            letterSpacing: '-0.01em'
+            letterSpacing: '-0.01em',
+            textAlign: 'left'
           }}>Operations overview</h1>
           <div style={{
             color: '#4b5160',
@@ -278,9 +279,14 @@ const Dashboard = ({ role, onPageChange }) => {
             alignItems: 'center',
             marginBottom: '14px'
           }}>
-            <h3 style={{ margin: 0, fontSize: '14.5px', fontWeight: '700' }}>
-              Message activity — last 7 days
-            </h3>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '14.5px', fontWeight: '700' }}>
+                Last 7 days — sent vs failed
+              </h3>
+              <div style={{ fontSize: '12px', color: '#7a8090', marginTop: '2px' }}>
+                Hourly aggregation, all couriers
+              </div>
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#4b5160' }}>
                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#128C7E', display: 'inline-block' }}></span>
@@ -307,16 +313,19 @@ const Dashboard = ({ role, onPageChange }) => {
           padding: '18px',
           boxShadow: '0 1px 2px rgba(15,17,23,0.04)'
         }}>
-          <h3 style={{ margin: '0 0 14px', fontSize: '14.5px', fontWeight: '700' }}>
-            Courier split
-          </h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+            <h3 style={{ margin: 0, fontSize: '14.5px', fontWeight: '700' }}>
+              Courier split
+            </h3>
+            <span style={{ fontSize: '12px', color: '#7a8090' }}>Last 30 days</span>
+          </div>
 
           {/* courier bars */}
           {[
-            { name: 'Anjani', pct: 42, color: '#25D366' },
-            { name: 'DTDC',   pct: 28, color: '#2563eb' },
-            { name: 'Maruti', pct: 18, color: '#7c3aed' },
-            { name: 'Others', pct: 12, color: '#f59e0b' },
+            { name: 'Anjani', pct: 42, color: '#25D366', count: '1,044' },
+            { name: 'DTDC',   pct: 28, color: '#2563eb', count: '696'   },
+            { name: 'Maruti', pct: 18, color: '#7c3aed', count: '448'   },
+            { name: 'Others', pct: 12, color: '#f59e0b', count: '298'   },
           ].map(c => (
             <div key={c.name} style={{ marginBottom: '10px' }}>
               <div style={{
@@ -326,10 +335,16 @@ const Dashboard = ({ role, onPageChange }) => {
                 marginBottom: '4px'
               }}>
                 <span style={{ fontWeight: '600' }}>{c.name}</span>
-                <span style={{ color: '#7a8090', fontFamily: 'JetBrains Mono, monospace' }}>
-                  {c.pct}%
-                </span>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <span style={{ color: '#7a8090', fontFamily: 'JetBrains Mono, monospace', fontSize: '12px' }}>
+                    {c.pct}%
+                  </span>
+                  <span style={{ color: '#7a8090', fontFamily: 'JetBrains Mono, monospace', fontSize: '12px' }}>
+                    {c.count}
+                  </span>
+                </div>
               </div>
+              
               <div style={{
                 height: '8px',
                 background: '#f3f4f7',
@@ -345,8 +360,25 @@ const Dashboard = ({ role, onPageChange }) => {
               </div>
             </div>
           ))}
+          
+
+          <div style={{
+            borderTop: '1px dashed #e6e8ee',
+            marginTop: '14px',
+            paddingTop: '12px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            fontSize: '12px',
+            color: '#7a8090'
+          }}>
+            <span>Total dispatched</span>
+            <span style={{ fontFamily: 'JetBrains Mono, monospace', color: '#0f1117', fontWeight: '600' }}>2,486</span>
+          </div>
+
         </div>
       </div>
+
+     
 
       {/* recent orders table */}
       <div style={{
