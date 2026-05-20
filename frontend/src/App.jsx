@@ -46,7 +46,7 @@ const App = () => {
   // layout style - sidebar + main content
   const appLayout = {
     display: 'flex',
-    minHeight: '100vh',
+    minHeight: '120vh',
     background: '#f6f7f9',
     fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif'
   }
@@ -74,7 +74,7 @@ const App = () => {
               <Sidebar user={user} role={role} onLogout={handleLogout} currentPage={currentPage} isAllowed={isAllowed} />
               <div style={{ marginLeft: '240px', flex: 1 }}>
                 <TopBar currentPage={currentPage} systemOn={systemOn} autoMsg={autoMsg} onToggleSystem={handleToggleSystem} onToggleAutoMsg={handleToggleAutoMsg} role={role} />
-                <div style={{ marginTop: '60px', padding: '24px 28px' }}>
+                <div style={{ marginTop: '60px', padding: '24px 28px' , minHeight: 'calc(100vh - 60px)'}}>
                   <Dashboard role={role} onPageChange={setCurrentPage} />
                 </div>
               </div>
@@ -86,7 +86,7 @@ const App = () => {
           <ProtectedRoute isLoggedIn={!!user} isAllowed={isAllowed('orders')} loading={loading}>
             <div style={{ display: 'flex', minHeight: '100vh', background: '#f6f7f9', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
               <Sidebar user={user} role={role} onLogout={handleLogout} currentPage={currentPage} isAllowed={isAllowed} />
-              <div style={{ marginLeft: '240px', flex: 1 }}>
+              <div style={{ marginLeft: '240px', flex: 1 , width: 'calc(100% - 240px)'}}>
                 <TopBar currentPage={currentPage} systemOn={systemOn} autoMsg={autoMsg} onToggleSystem={handleToggleSystem} onToggleAutoMsg={handleToggleAutoMsg} role={role} />
                 <div style={{ marginTop: '60px', padding: '24px 28px' }}>
                   <Orders role={role} onPageChange={setCurrentPage} />
