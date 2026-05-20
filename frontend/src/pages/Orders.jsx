@@ -1,4 +1,240 @@
- const Orders = () => {
-  return <div>Orders coming soon</div>
+// Orders.jsx
+// Shows all orders from Google Sheets
+// Admin and Manager can send/retry
+// Viewer can only view
+
+import { useEffect, useState } from 'react'
+import useOrders from '../hooks/useOrders'
+import OrdersTable from '../components/OrdersTable'
+import ToastContainer from '../components/ToastContainer'
+import { RefreshCw, RotateCcw } from 'lucide-react'
+
+const Orders = ({ role, onPageChange }) => {
+
+  // get orders and functions from hook
+  const {
+    orders,
+    loading,
+    running,
+    fetchOrders,
+    handleRunNow,
+    handleRetryFailed
+  } = useOrders()
+
+  // search and filter state
+  const [search, setSearch] = useState('')
+  const [courierFilter, setCourierFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('all')
+
+  // tell App.jsx we are on orders page
+  useEffect(() => {
+    onPageChange('orders')
+  }, [onPageChange])
+  // filter orders based on search and filters
+  const filteredOrders = orders.filter(order => {
+    // search filter
+    const matchSearch = search === '' ||
+      order.customer_name?.toLowerCase().includes(search.toLowerCase()) ||
+      order.order_id?.toLowerCase().includes(search.toLowerCase())
+
+    // courier filter
+    const matchCourier = courierFilter === 'all' ||
+      order.courier === courierFilter
+
+    // status filter
+    const matchStatus = statusFilter === 'all' ||
+      order.msg_sent === statusFilter
+
+    return matchSearch && matchCourier && matchStatus
+  })
+
+  // handle send single order
+  const handleSend = async (order) => {
+    ToastContainer.addToast(`Sending to ${order.customer_name}...`, 'info')
+  }
+
+  // handle retry single order
+  const handleRetry = async (order) => {
+    ToastContainer.addToast(`Retrying ${order.customer_name}...`, 'info')
+  }
+
+  // handle retry all failed
+  const handleRetryAll = async () => {
+    const result = await handleRetryFailed()
+    if (result.success) {
+      ToastContainer.addToast(result.message, 'success')
+    } else {
+      ToastContainer.addToast(result.message, 'error')
+    }
+  }
+  // loading state
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '400px',
+        color: '#7a8090',
+        fontSize: '14px'
+      }}>
+        Loading orders...
+      </div>
+    )
+  }
+
+  return (
+    <div>
+
+      {/* page header */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'flex-end',
+        justifyContent: 'space-between',
+        marginBottom: '22px',
+        flexWrap: 'wrap',
+        gap: '16px'
+      }}>
+        <div>
+          <h1 style={{
+            margin: 0,
+            fontSize: '22px',
+            fontWeight: '700',
+            letterSpacing: '-0.01em',
+            textAlign: 'left'
+          }}>Orders</h1>
+          <div style={{ color: '#4b5160', fontSize: '13.5px', marginTop: '2px' }}>
+            {role === 'viewer'
+              ? 'Read only access — viewing all order activity.'
+              : 'Send tracking messages and retry failed deliveries.'}
+          </div>
+        </div>
+
+        {/* action buttons */}
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={fetchOrders}
+            style={{
+              height: '36px', padding: '0 14px',
+              background: 'transparent',
+              border: '1px solid #e6e8ee',
+              borderRadius: '8px', fontWeight: '600',
+              fontSize: '13px', cursor: 'pointer',
+              display: 'flex', alignItems: 'center',
+              gap: '6px', fontFamily: 'inherit', color: '#4b5160'
+            }}
+          >
+            <RefreshCw size={14} /> Sync sheet
+          </button>
+
+          {/* retry failed - admin and manager only */}
+          {(role === 'admin' || role === 'manager') && (
+            <button
+              onClick={handleRetryAll}
+              disabled={running}
+              style={{
+                height: '36px', padding: '0 14px',
+                background: 'rgba(220,38,38,0.08)',
+                border: '1px solid rgba(220,38,38,0.25)',
+                borderRadius: '8px', fontWeight: '600',
+                fontSize: '13px', cursor: 'pointer',
+                display: 'flex', alignItems: 'center',
+                gap: '6px', fontFamily: 'inherit', color: '#dc2626'
+              }}
+            >
+              <RotateCcw size={14} /> Retry failed
+            </button>
+          )}
+        </div>
+      </div>
+      {/* filters row */}
+      <div style={{
+        display: 'flex',
+        gap: '10px',
+        alignItems: 'center',
+        marginBottom: '16px',
+      }}>
+
+        {/* search input */}
+        <div style={{ position: 'relative', width: '420px', flexShrink: 0 }}>
+          <span style={{
+            position: 'absolute', left: '12px', top: '50%',
+            transform: 'translateY(-50%)', color: '#7a8090', fontSize: '14px'
+          }}>🔍</span>
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder='Search by orders ID , customer name, Phone number...'
+            style={{
+              width: '100%', height: '38px',
+              padding: '0 12px 0 36px',
+              background: '#ffffff',
+              border: '1px solid #e6e8ee',
+              borderRadius: '10px', color: '#0f1117',
+              fontFamily: 'inherit', fontSize: '13px',
+              outline: 'none', boxSizing: 'border-box'
+            }}
+            onFocus={e => e.target.style.borderColor = '#128C7E'}
+            onBlur={e => e.target.style.borderColor = '#e6e8ee'}
+          />
+        </div>
+
+        {/* courier filter */}
+        <select
+          value={courierFilter}
+          onChange={e => setCourierFilter(e.target.value)}
+          style={{
+            height: '38px', padding: '0 12px',
+            border: '1px solid #e6e8ee',
+            background: '#ffffff',
+            borderRadius: '10px', color: '#0f1117',
+            fontFamily: 'inherit', fontSize: '13px',
+            cursor: 'pointer', outline: 'none',
+            flexShrink: 0
+          }}
+        >
+          <option value='all'>All couriers</option>
+          <option value='Anjani'>Anjani</option>
+          <option value='DTDC'>DTDC</option>
+          <option value='Maruti'>Maruti</option>
+          <option value='Others'>Others</option>
+        </select>
+
+        {/* status filter */}
+        <select
+          value={statusFilter}
+          onChange={e => setStatusFilter(e.target.value)}
+          style={{
+            height: '38px', padding: '0 12px',
+            border: '1px solid #e6e8ee',
+            background: '#ffffff',
+            borderRadius: '10px', color: '#0f1117',
+            fontFamily: 'inherit', fontSize: '13px',
+            cursor: 'pointer', outline: 'none',
+            flexShrink: 0
+          }}
+        >
+          <option value='all'>All statuses</option>
+          <option value='YES'>Sent</option>
+          <option value='NO'>Pending</option>
+          <option value='FAILED'>Failed</option>
+        </select>
+
+        {/* order count */}
+        <span style={{ marginLeft: 'auto', fontSize: '12.5px', color: '#7a8090' }}>
+          {filteredOrders.length} orders
+        </span>
+      </div>
+      {/* orders table */}
+      <OrdersTable
+        orders={filteredOrders}
+        showActions={role === 'admin' || role === 'manager'}
+        onSend={handleSend}
+        onRetry={handleRetry}
+      />
+
+    </div>
+  )
 }
+
 export default Orders
