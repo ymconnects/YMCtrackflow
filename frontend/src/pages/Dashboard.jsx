@@ -8,8 +8,8 @@ import useStatus from '../hooks/useStatus'
 import StatCard from '../components/StatCard'
 import OrdersTable from '../components/OrdersTable'
 import ToastContainer from '../components/ToastContainer'
-import { Package, Send, Clock, AlertTriangle } from 'lucide-react'
 import { Chart, registerables } from 'chart.js'
+import { Package, Send, Clock, AlertTriangle, RefreshCw } from 'lucide-react'
 Chart.register(...registerables)
 
 const Dashboard = ({ role, onPageChange }) => {
@@ -19,6 +19,7 @@ const Dashboard = ({ role, onPageChange }) => {
     orders,
     loading,
     running,
+    fetchOrders,
     handleRunNow,
     getStats
   } = useOrders()
@@ -168,6 +169,26 @@ const Dashboard = ({ role, onPageChange }) => {
 
         {/* run now button - admin and manager only */}
         <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={fetchOrders}
+            style={{
+              height: '36px',
+              padding: '0 14px',
+              background: 'transparent',
+              border: '1px solid #e6e8ee',
+              borderRadius: '8px',
+              fontWeight: '600',
+              fontSize: '13px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontFamily: 'inherit',
+              color: '#4b5160'
+            }}
+          >
+            <RefreshCw size={14} /> Refresh
+          </button>
           {(role === 'admin' || role === 'manager') && (
             <button
               onClick={handleRun}
@@ -260,9 +281,16 @@ const Dashboard = ({ role, onPageChange }) => {
             <h3 style={{ margin: 0, fontSize: '14.5px', fontWeight: '700' }}>
               Message activity — last 7 days
             </h3>
-            <span style={{ fontSize: '12px', color: '#7a8090' }}>
-              Sent vs Failed
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#4b5160' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#128C7E', display: 'inline-block' }}></span>
+                Sent
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#4b5160' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#dc2626', display: 'inline-block' }}></span>
+                Failed
+              </span>
+            </div>
           </div>
 
           {/* real chart */}
