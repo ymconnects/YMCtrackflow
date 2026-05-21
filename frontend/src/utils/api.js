@@ -54,7 +54,9 @@ export const toggleAutoMessage = (enabled) => {
 }
 
 export const toggleSystem = (enabled) => {
-  return api.post('/toggle-system', { enabled })
+  return api.post('/toggle-system', { 
+    action: enabled ? 'start' : 'stop' 
+  })
 }
 
 export const getAutoMessageStatus = () => {
