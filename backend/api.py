@@ -246,6 +246,20 @@ def audience_estimate():
         "estimated_cost": cost
     })
 
+@app.route("/logs", methods=["GET"])
+def get_logs():
+    token = get_token_from_request()
+    payload = verify_session(token)
+    if not payload:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    
+    try:
+        from logger import read_logs
+        logs = read_logs()
+        return jsonify({"success": True, "logs": logs})
+    except Exception as e:
+        return jsonify({"success": True, "logs": []})
+
 if __name__ == "__main__":
     config = load_config()
     log_system_start()
