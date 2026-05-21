@@ -145,7 +145,14 @@ const App = () => {
               <div style={{ marginLeft: '240px', flex: 1 }}>
                 <TopBar currentPage={currentPage} systemOn={systemOn} autoMsg={autoMsg} onToggleSystem={handleToggleSystem} onToggleAutoMsg={handleToggleAutoMsg} role={role} />
                 <div style={{ marginTop: '60px', padding: '24px 28px' }}>
-                  <Settings role={role} onPageChange={setCurrentPage} />
+                  <Settings 
+                    role={role}
+                    onPageChange={setCurrentPage}
+                    systemOn={systemOn}
+                    autoMsg={autoMsg}
+                    onToggleSystem={handleToggleSystem}
+                    onToggleAutoMsg={handleToggleAutoMsg}
+                  />
                 </div>
               </div>
             </div>

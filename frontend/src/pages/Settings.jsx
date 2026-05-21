@@ -66,14 +66,8 @@ const Toggle = ({ on, onToggle, onText, offText }) => (
 
 // ── main component ──
 
-const Settings = ({ role, onPageChange }) => {
+const Settings = ({ role, onPageChange, systemOn, autoMsg, onToggleSystem, onToggleAutoMsg }) => {
 
-  const {
-    systemOn,
-    autoMsg,
-    handleToggleSystem,
-    handleToggleAutoMsg
-  } = useStatus()
 
   const [showToken, setShowToken] = useState(false)
 
@@ -114,14 +108,14 @@ const Settings = ({ role, onPageChange }) => {
   }
 
   const handleSysToggle = async () => {
-    const result = await handleToggleSystem()
+    const result = await onToggleSystem()
     if (result.success) {
       ToastContainer.addToast(systemOn ? 'System paused' : 'System resumed', systemOn ? 'error' : 'success')
     }
   }
 
   const handleAutoToggle = async () => {
-    const result = await handleToggleAutoMsg()
+    const result = await onToggleAutoMsg()
     if (result.success) {
       ToastContainer.addToast(autoMsg ? 'Auto message disabled' : 'Auto message enabled', autoMsg ? 'error' : 'success')
     }
