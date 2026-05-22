@@ -2,7 +2,7 @@
 import { getInitials } from '../utils/formatters'
 import { LayoutDashboard, Package, Megaphone, MessageSquare, ScrollText, Settings } from 'lucide-react'
 
-const Sidebar = ({ user, role, onLogout, currentPage, isAllowed }) => {
+const Sidebar = ({ user, role, onLogout, currentPage, isAllowed, ordersCount }) => {
   const navigate = useNavigate()
   const workspaceItems = [
     { label: 'Dashboard', page: 'dashboard', icon: <LayoutDashboard size={17} /> },
@@ -135,7 +135,7 @@ const Sidebar = ({ user, role, onLogout, currentPage, isAllowed }) => {
                     borderRadius: '6px',
                     fontWeight: '600',
                     fontFamily: 'JetBrains Mono, monospace'
-                  }}>0</span>
+                  }}>{ordersCount}</span>
                 )}
               </div>
             ))}

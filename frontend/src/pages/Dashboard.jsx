@@ -20,6 +20,7 @@ const Dashboard = ({ role, onPageChange }) => {
     loading,
     running,
     fetchOrders,
+    handleSync,
     handleRunNow,
     getStats
   } = useOrders()
@@ -171,7 +172,12 @@ const Dashboard = ({ role, onPageChange }) => {
         {/* run now button - admin and manager only */}
         <div style={{ display: 'flex', gap: '8px' }}>
           <button
-            onClick={fetchOrders}
+            onClick={async () => {
+            const result = await handleSync()
+            if (result.success) {
+              ToastContainer.addToast('Synced ✓', 'success')
+            }
+          }}
             style={{
               height: '36px',
               padding: '0 14px',

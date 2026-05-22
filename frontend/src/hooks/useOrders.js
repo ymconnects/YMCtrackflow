@@ -1,6 +1,5 @@
  import { useState, useEffect } from 'react'
-import { getOrders, runNow, retryFailed } from '../utils/api'
-
+import { getOrders, runNow, retryFailed , syncOrders} from '../utils/api'
 const useOrders = () => {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
@@ -15,6 +14,19 @@ const useOrders = () => {
       setOrders(res.data.orders)
     } catch (err) {
       setError('Failed to load orders')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSync = async () => {
+    try {
+      setLoading(true)
+      const res = await syncOrders()
+      setOrders(res.data.orders)
+      return { success: true, message: 'Synced successfully' }
+    } catch (err) {
+      return { success: false, message: 'Sync failed' }
     } finally {
       setLoading(false)
     }
@@ -64,6 +76,7 @@ const useOrders = () => {
     error,
     running,
     fetchOrders,
+    handleSync,
     handleRunNow,
     handleRetryFailed,
     getStats

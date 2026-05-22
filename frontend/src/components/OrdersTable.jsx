@@ -84,7 +84,37 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry }) => {
               </td>
 
               {/* courier name */}
-              <td style={{ padding: '12px 16px', fontSize: '13.5px' }}></td>
+              {/* courier name */}
+              <td style={{ padding: '12px 16px', fontSize: '13.5px' }}>
+                {order.courier}
+              </td>
+
+              {/* order status */}
+              <td style={{ padding: '12px 16px' }}>
+                <StatusBadge status={order.status || 'Shipped'} />
+              </td>
+
+              {/* tracking link */}
+              <td style={{ padding: '12px 16px' }}>
+                {order.tracking_link ? (
+                  <a href={order.tracking_link} target="_blank" rel="noreferrer"
+                    style={{ color: '#128C7E', fontSize: '12px',
+                      fontFamily: 'JetBrains Mono, monospace' }}>
+                    Track ↗
+                  </a>
+                ) : order.tracking_id ? (
+                  <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '12px', color: '#4b5160' }}>
+                    {order.tracking_id}
+                  </span>
+                ) : '—'}
+              </td>
+
+              {/* message sent status badge */}
+              <td style={{ padding: '12px 16px' }}>
+                <StatusBadge status={order.msg_sent || 'NO'} />
+              </td>
+
+              {/* action buttons - only if showActions true */}
               {/* action buttons - only if showActions true */}
               {showActions && (
                 <td style={{ padding: '12px 16px' }}>

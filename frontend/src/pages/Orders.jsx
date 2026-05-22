@@ -17,6 +17,7 @@ const Orders = ({ role, onPageChange }) => {
     loading,
     running,
     fetchOrders,
+    handleSync,
     handleRunNow,
     handleRetryFailed
   } = useOrders()
@@ -113,7 +114,14 @@ const Orders = ({ role, onPageChange }) => {
         {/* action buttons */}
         <div style={{ display: 'flex', gap: '8px' }}>
           <button
-            onClick={fetchOrders}
+            onClick={async () => {
+              const result = await handleSync()
+              if (result.success) {
+                ToastContainer.addToast('Sheet synced ✓', 'success')
+              } else {
+                ToastContainer.addToast('Sync failed', 'error')
+              }
+            }}
             style={{
               height: '36px', padding: '0 14px',
               background: 'transparent',
