@@ -9,7 +9,7 @@ import OrdersTable from '../components/OrdersTable'
 import ToastContainer from '../components/ToastContainer'
 import { RefreshCw, RotateCcw } from 'lucide-react'
 
-const Orders = ({ role, onPageChange }) => {
+const Orders = ({ role, onPageChange, onOrdersLoad }) => {
 
   // get orders and functions from hook
   const {
@@ -31,6 +31,12 @@ const Orders = ({ role, onPageChange }) => {
   useEffect(() => {
     onPageChange('orders')
   }, [onPageChange])
+  useEffect(() => {
+    if (orders.length > 0 && onOrdersLoad) {
+      console.log('orders count:', orders.length)
+      onOrdersLoad(orders.length)
+    }
+  }, [orders])
   // filter orders based on search and filters
   const filteredOrders = orders.filter(order => {
     // search filter

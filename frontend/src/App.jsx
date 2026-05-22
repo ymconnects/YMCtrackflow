@@ -40,7 +40,7 @@ const App = () => {
     handleToggleSystem,
     handleToggleAutoMsg
   } = useStatus()
-  const { orders } = useOrders()
+  const [ordersCount, setOrdersCount] = useState(0)
 
   // track which page is currently open
   const [currentPage, setCurrentPage] = useState('dashboard')
@@ -72,7 +72,7 @@ const App = () => {
         <Route path='/dashboard' element={
           <ProtectedRoute isLoggedIn={!!user} isAllowed={isAllowed('dashboard')} loading={loading}>
             <div style={{ display: 'flex', minHeight: '100vh', background: '#f6f7f9', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
-              <Sidebar user={user} role={role} onLogout={handleLogout} currentPage={currentPage} isAllowed={isAllowed} ordersCount={orders.length} />
+              <Sidebar user={user} role={role} onLogout={handleLogout} currentPage={currentPage} isAllowed={isAllowed} ordersCount={ordersCount} />
               <div style={{ marginLeft: '240px', flex: 1 }}>
                 <TopBar currentPage={currentPage} systemOn={systemOn} autoMsg={autoMsg} onToggleSystem={handleToggleSystem} onToggleAutoMsg={handleToggleAutoMsg} role={role} />
                 <div style={{ marginTop: '60px', padding: '24px 28px' , minHeight: 'calc(100vh - 60px)'}}>
@@ -86,11 +86,11 @@ const App = () => {
         <Route path='/orders' element={
           <ProtectedRoute isLoggedIn={!!user} isAllowed={isAllowed('orders')} loading={loading}>
             <div style={{ display: 'flex', minHeight: '100vh', background: '#f6f7f9', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
-              <Sidebar user={user} role={role} onLogout={handleLogout} currentPage={currentPage} isAllowed={isAllowed} ordersCount={orders.length} />
+              <Sidebar user={user} role={role} onLogout={handleLogout} currentPage={currentPage} isAllowed={isAllowed} ordersCount={ordersCount} />
               <div style={{ marginLeft: '240px', flex: 1 , width: 'calc(100% - 240px)'}}>
                 <TopBar currentPage={currentPage} systemOn={systemOn} autoMsg={autoMsg} onToggleSystem={handleToggleSystem} onToggleAutoMsg={handleToggleAutoMsg} role={role} />
                 <div style={{ marginTop: '60px', padding: '24px 28px' }}>
-                  <Orders role={role} onPageChange={setCurrentPage} />
+                  <Orders role={role} onPageChange={setCurrentPage} onOrdersLoad={setOrdersCount} />
                 </div>
               </div>
               
@@ -101,7 +101,7 @@ const App = () => {
         <Route path='/campaigns' element={
           <ProtectedRoute isLoggedIn={!!user} isAllowed={isAllowed('campaigns')} loading={loading}>
             <div style={{ display: 'flex', minHeight: '100vh', background: '#f6f7f9', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
-              <Sidebar user={user} role={role} onLogout={handleLogout} currentPage={currentPage} isAllowed={isAllowed} ordersCount={orders.length} />
+              <Sidebar user={user} role={role} onLogout={handleLogout} currentPage={currentPage} isAllowed={isAllowed} ordersCount={ordersCount} />
               <div style={{ marginLeft: '240px', flex: 1 }}>
                 <TopBar currentPage={currentPage} systemOn={systemOn} autoMsg={autoMsg} onToggleSystem={handleToggleSystem} onToggleAutoMsg={handleToggleAutoMsg} role={role} />
                 <div style={{ marginTop: '60px', padding: '24px 28px' }}>
@@ -115,7 +115,7 @@ const App = () => {
         <Route path='/templates' element={
           <ProtectedRoute isLoggedIn={!!user} isAllowed={isAllowed('templates')} loading={loading}>
             <div style={{ display: 'flex', minHeight: '100vh', background: '#f6f7f9', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
-              <Sidebar user={user} role={role} onLogout={handleLogout} currentPage={currentPage} isAllowed={isAllowed} ordersCount={orders.length} />
+              <Sidebar user={user} role={role} onLogout={handleLogout} currentPage={currentPage} isAllowed={isAllowed} ordersCount={ordersCount} />
               <div style={{ marginLeft: '240px', flex: 1 }}>
                 <TopBar currentPage={currentPage} systemOn={systemOn} autoMsg={autoMsg} onToggleSystem={handleToggleSystem} onToggleAutoMsg={handleToggleAutoMsg} role={role} />
                 <div style={{ marginTop: '60px', padding: '24px 28px' }}>
@@ -129,7 +129,7 @@ const App = () => {
         <Route path='/logs' element={
           <ProtectedRoute isLoggedIn={!!user} isAllowed={isAllowed('logs')} loading={loading}>
             <div style={{ display: 'flex', minHeight: '100vh', background: '#f6f7f9', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
-              <Sidebar user={user} role={role} onLogout={handleLogout} currentPage={currentPage} isAllowed={isAllowed} ordersCount={orders.length} />
+              <Sidebar user={user} role={role} onLogout={handleLogout} currentPage={currentPage} isAllowed={isAllowed} ordersCount={ordersCount} />
               <div style={{ marginLeft: '240px', flex: 1 }}>
                 <TopBar currentPage={currentPage} systemOn={systemOn} autoMsg={autoMsg} onToggleSystem={handleToggleSystem} onToggleAutoMsg={handleToggleAutoMsg} role={role} />
                 <div style={{ marginTop: '60px', padding: '24px 28px' }}>
@@ -143,7 +143,7 @@ const App = () => {
         <Route path='/settings' element={
           <ProtectedRoute isLoggedIn={!!user} isAllowed={isAllowed('settings')} loading={loading}>
             <div style={{ display: 'flex', minHeight: '100vh', background: '#f6f7f9', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
-              <Sidebar user={user} role={role} onLogout={handleLogout} currentPage={currentPage} isAllowed={isAllowed} ordersCount={orders.length} />
+              <Sidebar user={user} role={role} onLogout={handleLogout} currentPage={currentPage} isAllowed={isAllowed} ordersCount={ordersCount} />
               <div style={{ marginLeft: '240px', flex: 1 }}>
                 <TopBar currentPage={currentPage} systemOn={systemOn} autoMsg={autoMsg} onToggleSystem={handleToggleSystem} onToggleAutoMsg={handleToggleAutoMsg} role={role} />
                 <div style={{ marginTop: '60px', padding: '24px 28px' }}>
