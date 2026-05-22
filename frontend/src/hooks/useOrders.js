@@ -11,7 +11,8 @@ const useOrders = () => {
       setLoading(true)
       setError(null)
       const res = await getOrders()
-      setOrders(res.data.orders)
+      console.log('orders fetched:', res.data.orders)
+setOrders(res.data.orders)
     } catch (err) {
       setError('Failed to load orders')
     } finally {

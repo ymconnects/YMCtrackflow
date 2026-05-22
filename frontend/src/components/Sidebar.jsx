@@ -91,7 +91,7 @@ const Sidebar = ({ user, role, onLogout, currentPage, isAllowed, ordersCount }) 
                 borderRadius: '6px',
                 fontWeight: '600',
                 fontFamily: 'JetBrains Mono, monospace'
-              }}>0</span>
+              }}>{ordersCount}</span>
             )}
           </div>
         ))}
