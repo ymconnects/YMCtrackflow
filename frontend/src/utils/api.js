@@ -41,6 +41,10 @@ export const getOrders = () => {
   return api.get('/orders')
 }
 
+export const syncOrders = () => {
+  return api.post('/sync')
+}
+
 export const runNow = () => {
   return api.post('/run-now')
 }

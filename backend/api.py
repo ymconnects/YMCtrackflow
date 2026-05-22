@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from auth import check_login, create_session, verify_session, get_user_role, get_user_tab
 from main import process_all_tabs, process_single_tab, retry_failed_orders
-from sheets import get_all_pending_orders, get_pending_orders_from_tab
+from sheets import get_all_orders, get_all_pending_orders, refresh_cache
 from logger import log_system_start
 from campaigns.campaign_manager import create_campaign, get_all_campaigns, get_campaign_status, update_campaign_status, delete_campaign
 from campaigns.bulk_sender import send_campaign, calculate_cost, track_progress
@@ -78,7 +78,8 @@ def orders():
         return jsonify({"success": False, "message": "Not logged in"}), 401
     if payload["role"] == "campaigner":
         return jsonify({"success": False, "message": "Access denied"}), 403
-    data = get_all_pending_orders()
+    from sheets import get_all_orders, refresh_cache
+    data = get_all_orders()
     return jsonify({"success": True, "orders": data})
 
 @app.route("/retry-failed", methods=["POST"])
@@ -259,6 +260,16 @@ def get_logs():
         return jsonify({"success": True, "logs": logs})
     except Exception as e:
         return jsonify({"success": True, "logs": []})
+    
+@app.route("/sync", methods=["POST"])
+def sync():
+    token = get_token_from_request()
+    payload = verify_session(token)
+    if not payload:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    from sheets import refresh_cache
+    orders = refresh_cache()
+    return jsonify({"success": True, "message": "Synced", "orders": orders})
 
 if __name__ == "__main__":
     config = load_config()
