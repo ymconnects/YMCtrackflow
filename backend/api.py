@@ -57,7 +57,14 @@ def me():
 
 @app.route("/status", methods=["GET"])
 def status():
-    return jsonify({"success": True, "status": "running"})
+    # return system on/off and auto message status
+    from scheduler import get_system_status, get_auto_message_status
+    return jsonify({
+        "success": True,
+        "status": "running",
+        "system_on": get_system_status(),
+        "auto_message": get_auto_message_status()
+    })
 
 @app.route("/run-now", methods=["POST"])
 def run_now():
