@@ -281,4 +281,5 @@ def sync():
 if __name__ == "__main__":
     config = load_config()
     log_system_start()
-    app.run(port=config["FLASK_PORT"], debug=True)
+    app.run(host='0.0.0.0', port=config["FLASK_PORT"], debug=True)
+
