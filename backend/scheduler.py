@@ -5,6 +5,7 @@ from main import process_all_tabs
 import requests
 scheduler = BackgroundScheduler()
 auto_message_enabled = True
+system_on = True
 
 def keep_alive():
     try:
@@ -35,4 +36,14 @@ def toggle_auto_message(state):
     print(f"Auto message: {'ON' if state else 'OFF'}")
 
 def get_auto_message_status():
-    return auto_message_enabled        
+    return auto_message_enabled     
+
+def get_system_status():
+    # return current system on/off state
+    return system_on
+
+def toggle_system(state):
+    # set system on or off
+    global system_on
+    system_on = state
+    print(f"System: {'ON' if state else 'OFF'}")   
