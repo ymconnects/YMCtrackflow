@@ -107,7 +107,7 @@ def mark_as_sent(tab_name, row_number):
     tab.update_cell(row_number, 5, "YES")
     tab.update_cell(row_number, 6, str(datetime.now()))
     # refresh cache after update
-    refresh_cache()
+    
 
 def mark_as_failed(tab_name, row_number):
     # updates Google Sheet cell to FAILED
@@ -118,7 +118,37 @@ def mark_as_failed(tab_name, row_number):
     tab.update_cell(row_number, 5, "FAILED")
     tab.update_cell(row_number, 6, str(datetime.now()))
     # refresh cache after update
-    refresh_cache()
+    
+def batch_update_orders(updates):
+    # updates multiple orders in ONE API call
+    # updates = list of {tab_name, row_number, status}
+    config = load_config()
+    client = connect_google_sheets()
+    sheet = client.open_by_key(config["GOOGLE_SHEET_ID"])
+    now = str(datetime.now())
+    
+    # group updates by tab
+    tabs = {}
+    for update in updates:
+        tab_name = update["tab_name"]
+        if tab_name not in tabs:
+            tabs[tab_name] = []
+        tabs[tab_name].append(update)
+    
+    # update each tab once
+    for tab_name, tab_updates in tabs.items():
+        tab = sheet.worksheet(tab_name)
+        for update in tab_updates:
+            row = update["row_number"]
+            status = update["status"]
+            tab.update_cell(row, 5, status)
+            tab.update_cell(row, 6, now)
+            # update cache in memory directly
+            if _cache["orders"]:
+                for order in _cache["orders"]:
+                    if order["row_number"] == row and order["tab_name"] == tab_name:
+                        order["msg_sent"] = status
+                        order["last_updated"] = now
 
 def get_all_contacts():
     # returns contacts for campaigns
