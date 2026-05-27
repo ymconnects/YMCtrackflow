@@ -18,6 +18,7 @@ const Dashboard = ({ role, onPageChange }) => {
   const {
     orders,
     loading,
+    syncing,
     running,
     fetchOrders,
     handleSync,
@@ -138,8 +139,28 @@ const Dashboard = ({ role, onPageChange }) => {
       </div>
     )
   }
+  // calculate courier split from real orders
+const courierColors = {
+  'Anjani': '#25D366',
+  'DTDC': '#2563eb',
+  'MARUTI': '#7c3aed',
+  'Others': '#f59e0b'
+}
+const courierCounts = ['Anjani', 'DTDC', 'MARUTI', 'Others'].map(name => ({
+  name,
+  count: orders.filter(o => o.courier === name).length,
+  color: courierColors[name]
+}))
+const totalOrders = courierCounts.reduce((sum, c) => sum + c.count, 0)
+console.log('courier counts:', courierCounts)
+const courierData = courierCounts.map(c => ({
+  ...c,
+  pct: totalOrders > 0 ? Math.round((c.count / totalOrders) * 100) : 0
+}))
 
-  return (
+return (
+
+  
     // page wrapper
     <div>
 
@@ -194,7 +215,8 @@ const Dashboard = ({ role, onPageChange }) => {
               color: '#4b5160'
             }}
           >
-            <RefreshCw size={14} /> Refresh
+            <RefreshCw size={14} style={{ animation: syncing ? 'spin 1s linear infinite' : 'none' }} /> 
+{syncing ? 'Syncing...' : 'Refresh'}
           </button>
           {(role === 'admin' || role === 'manager') && (
             <button
@@ -328,10 +350,7 @@ const Dashboard = ({ role, onPageChange }) => {
 
           {/* courier bars */}
           {[
-            { name: 'Anjani', pct: 42, color: '#25D366', count: '1,044' },
-            { name: 'DTDC',   pct: 28, color: '#2563eb', count: '696'   },
-            { name: 'Maruti', pct: 18, color: '#7c3aed', count: '448'   },
-            { name: 'Others', pct: 12, color: '#f59e0b', count: '298'   },
+            ...courierData,
           ].map(c => (
             <div key={c.name} style={{ marginBottom: '10px' }}>
               <div style={{
@@ -378,7 +397,7 @@ const Dashboard = ({ role, onPageChange }) => {
             color: '#7a8090'
           }}>
             <span>Total dispatched</span>
-            <span style={{ fontFamily: 'JetBrains Mono, monospace', color: '#0f1117', fontWeight: '600' }}>2,486</span>
+            <span style={{ fontFamily: 'JetBrains Mono, monospace', color: '#0f1117', fontWeight: '600' }}>{totalOrders}</span>
           </div>
 
         </div>
@@ -411,7 +430,7 @@ const Dashboard = ({ role, onPageChange }) => {
             </div>
           </div>
           <button
-            onClick={() => onPageChange('orders')}
+            onClick={() => { onPageChange('orders'); window.location.href = '/orders' }}
             style={{
               height: '32px',
               padding: '0 12px',

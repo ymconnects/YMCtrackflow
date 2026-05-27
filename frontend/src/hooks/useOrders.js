@@ -5,6 +5,7 @@ const useOrders = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [running, setRunning] = useState(false)
+  const [syncing, setSyncing] = useState(false)
 
   const fetchOrders = async () => {
     try {
@@ -22,14 +23,14 @@ setOrders(res.data.orders)
 
   const handleSync = async () => {
     try {
-      setLoading(true)
+      setSyncing(true)
       const res = await syncOrders()
       setOrders(res.data.orders)
       return { success: true, message: 'Synced successfully' }
     } catch (err) {
       return { success: false, message: 'Sync failed' }
     } finally {
-      setLoading(false)
+      setSyncing(false)
     }
   }
 
@@ -76,11 +77,13 @@ setOrders(res.data.orders)
     loading,
     error,
     running,
+    syncing,
     fetchOrders,
     handleSync,
     handleRunNow,
     handleRetryFailed,
-    getStats
+    getStats,
+    
   }
 }
 
