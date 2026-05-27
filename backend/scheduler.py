@@ -21,10 +21,12 @@ def run_if_enabled():
 def start_scheduler():
     config = load_config()
     interval = config["CHECK_INTERVAL_MINUTES"]
+    # keep alive runs every 10 minutes to prevent server sleep
+    scheduler.add_job(keep_alive, 'interval', minutes=10)
+    # message processing runs on configured interval
     scheduler.add_job(run_if_enabled, 'interval', minutes=interval)
-    scheduler.add_job(keep_alive, 'interval', minutes=interval)
     scheduler.start()
-    print(f"Scheduler started. Running every {interval} minutes.")
+    print(f"Scheduler started. Keep alive every 10 min. Messages every {interval} minutes.")
 
 def stop_scheduler():
     scheduler.shutdown()

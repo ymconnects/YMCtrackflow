@@ -1,4 +1,4 @@
-from sheets import get_all_orders, mark_as_sent, mark_as_failed, get_failed_orders, refresh_cache
+from sheets import get_all_orders, get_failed_orders, batch_update_orders
 from whatsapp import send_whatsapp_message
 from logger import log_success, log_failure, log_system_start
 from config import load_config
@@ -16,6 +16,10 @@ def process_single_tab(tab_name):
     all_orders = get_all_orders()
     orders = [o for o in all_orders if o["tab_name"] == tab_name and o["msg_sent"] != "YES"]
     print(f"Processing {tab_name}: {len(orders)} pending orders")
+    
+    # collect all updates here
+    updates = []
+    
     for order in orders:
         if not should_send_message(order):
             continue
@@ -27,13 +31,17 @@ def process_single_tab(tab_name):
             courier_name=tab_name
         )
         if success:
-            mark_as_sent(tab_name, order["row_number"])
+            updates.append({"tab_name": tab_name, "row_number": order["row_number"], "status": "YES"})
             log_success(order["phone"], order["customer_name"], tab_name)
         else:
-            mark_as_failed(tab_name, order["row_number"])
+            updates.append({"tab_name": tab_name, "row_number": order["row_number"], "status": "FAILED"})
             log_failure(order["phone"], order["customer_name"], tab_name, message)
         
         time.sleep(0.5)
+    
+    # send all updates in one API call
+    if updates:
+        batch_update_orders(updates)
         
 def process_all_tabs():
     print("Starting to process all tabs...")
@@ -48,6 +56,10 @@ def process_all_tabs():
 def retry_failed_orders():
     failed_orders = get_failed_orders()
     print(f"Retrying {len(failed_orders)} failed orders")
+    
+    # collect all updates
+    updates = []
+    
     for order in failed_orders:
         success, message = send_whatsapp_message(
             phone=order["phone"],
@@ -57,9 +69,13 @@ def retry_failed_orders():
             courier_name=order["tab_name"]
         )
         if success:
-            mark_as_sent(order["tab_name"], order["row_number"])
+            updates.append({"tab_name": order["tab_name"], "row_number": order["row_number"], "status": "YES"})
             print(f"Retry success: {order['customer_name']}")
         else:
-            mark_as_failed(order["tab_name"], order["row_number"])
+            updates.append({"tab_name": order["tab_name"], "row_number": order["row_number"], "status": "FAILED"})
             print(f"Retry failed: {order['customer_name']}")
         time.sleep(0.5)
+    
+    # send all updates in one API call
+    if updates:
+        batch_update_orders(updates)

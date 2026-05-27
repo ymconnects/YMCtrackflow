@@ -403,7 +403,7 @@ const Dashboard = ({ role, onPageChange }) => {
           alignItems: 'center'
         }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: '14.5px', fontWeight: '700' }}>
+            <h3 style={{ margin: 0, fontSize: '14.5px', fontWeight: '700' , textAlign: 'left'}}>
               Recent orders
             </h3>
             <div style={{ fontSize: '12px', color: '#7a8090', marginTop: '2px' }}>
