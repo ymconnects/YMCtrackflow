@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from auth import check_login, create_session, verify_session, get_user_role, get_user_tab
-from backend.scheduler import start_scheduler
+from scheduler import start_scheduler
 from main import process_all_tabs, process_single_tab, retry_failed_orders
 from sheets import get_all_orders, get_all_pending_orders, refresh_cache
 from logger import log_system_start
