@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react'
 import useOrders from '../hooks/useOrders'
 import OrdersTable from '../components/OrdersTable'
 import ToastContainer from '../components/ToastContainer'
-import { RefreshCw, RotateCcw } from 'lucide-react'
+import { Bot, RefreshCw, RotateCcw } from 'lucide-react'
 
 const Orders = ({ role, onPageChange, onOrdersLoad }) => {
 
@@ -66,6 +66,15 @@ const Orders = ({ role, onPageChange, onOrdersLoad }) => {
     ToastContainer.addToast(`Retrying ${order.customer_name}...`, 'info')
   }
 
+  // handle run now
+  const handleRun = async () => {
+    const result = await handleRunNow()
+    if (result.success) {
+      ToastContainer.addToast(result.message, 'success')
+    } else {
+      ToastContainer.addToast(result.message, 'error')
+    }
+  }
   // handle retry all failed
   const handleRetryAll = async () => {
     const result = await handleRetryFailed()
@@ -144,6 +153,7 @@ const Orders = ({ role, onPageChange, onOrdersLoad }) => {
 
           {/* retry failed - admin and manager only */}
           {(role === 'admin' || role === 'manager') && (
+            <>
             <button
               onClick={handleRetryAll}
               disabled={running}
@@ -159,6 +169,24 @@ const Orders = ({ role, onPageChange, onOrdersLoad }) => {
             >
               <RotateCcw size={14} /> Retry failed
             </button>
+            
+            <button
+              onClick={handleRun}
+              disabled={running}
+              style={{
+                  height: '36px', padding: '0 14px',
+                  background: running ? '#7a8090' : '#128C7E',
+                  border: 'none',
+                  borderRadius: '8px', fontWeight: '600',
+                  fontSize: '13px', cursor: running ? 'not-allowed' : 'pointer',
+                  display: 'flex', alignItems: 'center',
+                  gap: '6px', fontFamily: 'inherit', color: '#ffffff'
+                }}
+>
+                ▶ Run now
+              </button>
+              </>
+ 
           )}
         </div>
       </div>
