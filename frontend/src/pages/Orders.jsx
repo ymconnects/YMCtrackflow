@@ -145,7 +145,7 @@ const Orders = ({ role, onPageChange, onOrdersLoad }) => {
             onMouseLeave={() => setSyncHover(false)}
             style={{
               height: '36px', padding: '0 14px',
-              background: syncHover ? '#398914' : 'transparent',
+              background: syncHover ? '#8bae7b' : 'transparent',
               border: syncHover ? '1px solid #c0c4ce' : '1px solid #e6e8ee',
               borderRadius: '8px', fontWeight: '600',
               fontSize: '13px', cursor: 'pointer',
