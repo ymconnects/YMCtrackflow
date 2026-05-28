@@ -123,7 +123,7 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry }) => {
                 <td style={{ padding: '12px 16px' }}>
                   <div style={{ display: 'flex', gap: '6px' }}>
 {/* send button - only for NO */}
-                    {order.msg_sent === 'NO' && (
+                    {order.msg_sent?.toUpperCase() === 'NO' && (
                       <button
                         onClick={() => onSend(order)}
                         style={{
@@ -140,7 +140,7 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry }) => {
                     )}
 
                     {/* retry button - only for FAILED */}
-                    {order.msg_sent === 'FAILED' && (
+                    {order.msg_sent?.toUpperCase() === 'FAILED' && (
                       <button
                         onClick={() => onRetry(order)}
                         style={{
