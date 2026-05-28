@@ -3,8 +3,9 @@ from whatsapp import send_whatsapp_message
 from logger import log_success, log_failure, log_system_start
 from config import load_config
 import time
+
 def should_send_message(order):
-    if order["msg_sent"] == "YES":
+    if order["msg_sent"].upper() == "YES":
         return False
     if not order["phone"]:
         return False
@@ -14,7 +15,7 @@ def should_send_message(order):
 
 def process_single_tab(tab_name):
     all_orders = get_all_orders()
-    orders = [o for o in all_orders if o["tab_name"] == tab_name and o["msg_sent"] != "YES"]
+    orders = [o for o in all_orders if o["tab_name"] == tab_name and o["msg_sent"].upper() != "YES"]
     print(f"Processing {tab_name}: {len(orders)} pending orders")
     
     # collect all updates here
@@ -45,6 +46,11 @@ def process_single_tab(tab_name):
         
 def process_all_tabs():
     print("Starting to process all tabs...")
+    from sheets import get_all_orders
+    all_orders = get_all_orders()
+    print(f"Total orders in cache: {len(all_orders)}")
+    pending = [o for o in all_orders if o['msg_sent'].upper() == 'NO']
+    print(f"Total pending: {len(pending)}")
     process_single_tab("Anjani")
     process_single_tab("DTDC")
     process_single_tab("MARUTI")
