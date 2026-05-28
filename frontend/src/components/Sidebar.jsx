@@ -124,19 +124,21 @@ const Sidebar = ({ user, role, onLogout, currentPage, isAllowed, ordersCount }) 
                   marginBottom: '2px'
                 }}
               >
-                <span>{item.icon}</span>
+                <span style={{ width: '20px', display: 'flex', justifyContent: 'center' }}>{item.icon}</span>
                 <span style={{ flex: 1 }}>{item.label}</span>
-                {item.badge && (
-                  <span style={{
-                    fontSize: '10.5px',
-                    background: '#eef0f4',
-                    color: '#4b5160',
-                    padding: '2px 7px',
-                    borderRadius: '6px',
-                    fontWeight: '600',
-                    fontFamily: 'JetBrains Mono, monospace'
-                  }}>{ordersCount}</span>
-                )}
+                <span style={{
+                  fontSize: '10.5px',
+                  background: item.badge ? '#eef0f4' : 'transparent',
+                  color: '#4b5160',
+                  padding: '2px 7px',
+                  borderRadius: '6px',
+                  fontWeight: '600',
+                  fontFamily: 'JetBrains Mono, monospace',
+                  minWidth: '28px',
+                  textAlign: 'center'
+                }}>
+                  {item.badge ? ordersCount : ''}
+                </span>
               </div>
             ))}
           </>
