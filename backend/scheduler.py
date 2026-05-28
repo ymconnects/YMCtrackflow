@@ -1,11 +1,33 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from config import load_config
 from main import process_all_tabs
+import json
+import os
+
+# path to settings file
+SETTINGS_FILE = os.path.join(os.path.dirname(__file__), 'settings.json')
+
+def load_settings():
+    # read settings from file
+    try:
+        with open(SETTINGS_FILE, 'r') as f:
+            return json.load(f)
+    except:
+        # default settings if file not found
+        return {"system_on": True, "auto_message": True}
+
+def save_settings(data):
+    # write settings to file
+    with open(SETTINGS_FILE, 'w') as f:
+        json.dump(data, f)
+
 
 import requests
 scheduler = BackgroundScheduler()
-auto_message_enabled = True
-system_on = True
+# load settings from file on startup
+_settings = load_settings()
+auto_message_enabled = _settings["auto_message"]
+system_on = _settings["system_on"]
 
 def keep_alive():
     try:
@@ -35,6 +57,8 @@ def stop_scheduler():
 def toggle_auto_message(state):
     global auto_message_enabled
     auto_message_enabled = state
+    # save to file so it persists after restart
+    save_settings({"system_on": system_on, "auto_message": state})
     print(f"Auto message: {'ON' if state else 'OFF'}")
 
 def get_auto_message_status():
@@ -45,7 +69,8 @@ def get_system_status():
     return system_on
 
 def toggle_system(state):
-    # set system on or off
     global system_on
     system_on = state
-    print(f"System: {'ON' if state else 'OFF'}")   
+    # save to file so it persists after restart
+    save_settings({"system_on": state, "auto_message": auto_message_enabled})
+    print(f"System: {'ON' if state else 'OFF'}") 
