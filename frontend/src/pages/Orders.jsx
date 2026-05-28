@@ -42,7 +42,8 @@ const Orders = ({ role, onPageChange, onOrdersLoad }) => {
     // search filter
     const matchSearch = search === '' ||
       order.customer_name?.toLowerCase().includes(search.toLowerCase()) ||
-      order.order_id?.toLowerCase().includes(search.toLowerCase())
+      order.order_id?.toLowerCase().includes(search.toLowerCase()) ||
+      order.phone?.includes(search)
 
     // courier filter
     const matchCourier = courierFilter === 'all' ||
