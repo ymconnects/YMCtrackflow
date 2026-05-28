@@ -160,3 +160,24 @@ def get_all_contacts():
         return tab.get_all_records()
     except:
         return []
+    
+def get_settings():
+    # read settings from Google Sheet once
+    config = load_config()
+    client = connect_google_sheets()
+    sheet = client.open_by_key(config["GOOGLE_SHEET_ID"])
+    tab = sheet.worksheet("Settings")
+    row = tab.row_values(2)
+    return {
+        "system_on": row[0].upper() == "TRUE",
+        "auto_message": row[1].upper() == "TRUE"
+    }
+
+def save_settings_to_sheet(system_on, auto_message):
+    # write settings to Google Sheet
+    config = load_config()
+    client = connect_google_sheets()
+    sheet = client.open_by_key(config["GOOGLE_SHEET_ID"])
+    tab = sheet.worksheet("Settings")
+    tab.update_cell(2, 1, str(system_on).upper())
+    tab.update_cell(2, 2, str(auto_message).upper())
