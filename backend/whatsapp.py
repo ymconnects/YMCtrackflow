@@ -48,7 +48,6 @@ def send_whatsapp_message(phone, name, tracking_id, tracking_link, courier_name)
                         {"type": "text", "text": name},
                         {"type": "text", "text": tracking_id},
                         {"type": "text", "text": tracking_link}
-                        
                     ]
                 }
             ]
