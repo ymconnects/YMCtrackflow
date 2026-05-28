@@ -44,8 +44,10 @@ def process_single_tab(tab_name):
     if updates:
         batch_update_orders(updates)
         
+import sys
 def process_all_tabs():
-    print("Starting to process all tabs...")
+    print("Starting to process all tabs...", flush=True)
+    sys.stdout.flush()
     from sheets import get_all_orders
     all_orders = get_all_orders()
     print(f"Total orders in cache: {len(all_orders)}")
