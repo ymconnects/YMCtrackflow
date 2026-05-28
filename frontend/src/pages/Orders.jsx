@@ -141,14 +141,18 @@ const Orders = ({ role, onPageChange, onOrdersLoad }) => {
                 ToastContainer.addToast('Sync failed', 'error')
               }
             }}
+            onMouseEnter={() => setSyncHover(true)}
+            onMouseLeave={() => setSyncHover(false)}
             style={{
               height: '36px', padding: '0 14px',
-              background: 'transparent',
-              border: '1px solid #e6e8ee',
+              background: syncHover ? '#f3f4f7' : 'transparent',
+              border: syncHover ? '1px solid #c0c4ce' : '1px solid #e6e8ee',
               borderRadius: '8px', fontWeight: '600',
               fontSize: '13px', cursor: 'pointer',
               display: 'flex', alignItems: 'center',
-              gap: '6px', fontFamily: 'inherit', color: '#4b5160'
+              gap: '6px', fontFamily: 'inherit', color: '#4b5160',
+              transition: 'all 0.15s ease',
+              transform: syncHover ? 'translateY(-1px)' : 'none'
             }}
           >
             <RefreshCw size={14} /> Sync sheet
