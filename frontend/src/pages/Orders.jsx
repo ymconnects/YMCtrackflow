@@ -145,7 +145,7 @@ const Orders = ({ role, onPageChange, onOrdersLoad }) => {
             onMouseLeave={() => setSyncHover(false)}
             style={{
               height: '36px', padding: '0 14px',
-              background: syncHover ? '#f3f4f7' : 'transparent',
+              background: syncHover ? '#398914' : 'transparent',
               border: syncHover ? '1px solid #c0c4ce' : '1px solid #e6e8ee',
               borderRadius: '8px', fontWeight: '600',
               fontSize: '13px', cursor: 'pointer',
@@ -164,14 +164,18 @@ const Orders = ({ role, onPageChange, onOrdersLoad }) => {
             <button
               onClick={handleRetryAll}
               disabled={running}
+              onMouseEnter={() => setRetryHover(true)}
+              onMouseLeave={() => setRetryHover(false)}
               style={{
                 height: '36px', padding: '0 14px',
-                background: 'rgba(220,38,38,0.08)',
+                background: retryHover ? 'rgba(220,38,38,0.16)' : 'rgba(220,38,38,0.08)',
                 border: '1px solid rgba(220,38,38,0.25)',
                 borderRadius: '8px', fontWeight: '600',
                 fontSize: '13px', cursor: 'pointer',
                 display: 'flex', alignItems: 'center',
-                gap: '6px', fontFamily: 'inherit', color: '#dc2626'
+                gap: '6px', fontFamily: 'inherit', color: '#dc2626',
+                transition: 'all 0.15s ease',
+                transform: retryHover ? 'translateY(-1px)' : 'none'
               }}
             >
               <RotateCcw size={14} /> Retry failed
@@ -180,17 +184,22 @@ const Orders = ({ role, onPageChange, onOrdersLoad }) => {
             <button
               onClick={handleRun}
               disabled={running}
+              onMouseEnter={() => setRunHover(true)}
+              onMouseLeave={() => setRunHover(false)}
               style={{
-                  height: '36px', padding: '0 14px',
-                  background: running ? '#7a8090' : '#128C7E',
-                  border: 'none',
-                  borderRadius: '8px', fontWeight: '600',
-                  fontSize: '13px', cursor: running ? 'not-allowed' : 'pointer',
-                  display: 'flex', alignItems: 'center',
-                  gap: '6px', fontFamily: 'inherit', color: '#ffffff'
-                }}
+                height: '36px', padding: '0 14px',
+                background: running ? '#7a8090' : runHover ? '#0e7268' : '#128C7E',
+                border: 'none',
+                borderRadius: '8px', fontWeight: '600',
+                fontSize: '13px', cursor: running ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center',
+                gap: '6px', fontFamily: 'inherit', color: '#ffffff',
+                transition: 'all 0.15s ease',
+                transform: !running && runHover ? 'translateY(-1px)' : 'none'
+              }}
+                  
 >
-                ▶ Run now
+              ▶ Run now
               </button>
               </>
  
