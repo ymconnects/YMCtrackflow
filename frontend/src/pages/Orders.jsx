@@ -26,6 +26,9 @@ const Orders = ({ role, onPageChange, onOrdersLoad }) => {
   const [search, setSearch] = useState('')
   const [courierFilter, setCourierFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [syncHover, setSyncHover] = useState(false)
+  const [retryHover, setRetryHover] = useState(false) 
+  const [runHover, setRunHover] = useState(false)
 
   // tell App.jsx we are on orders page
   useEffect(() => {
