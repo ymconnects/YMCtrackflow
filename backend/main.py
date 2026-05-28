@@ -3,6 +3,15 @@ from whatsapp import send_whatsapp_message
 from logger import log_success, log_failure, log_system_start
 from config import load_config
 import time
+import sys
+import builtins
+
+# force all print to flush immediately
+_original_print = print
+def print(*args, **kwargs):
+    kwargs['flush'] = True
+    _original_print(*args, **kwargs)
+builtins.print = print
 
 def should_send_message(order):
     if order["msg_sent"].upper() == "YES":
@@ -44,10 +53,8 @@ def process_single_tab(tab_name):
     if updates:
         batch_update_orders(updates)
         
-import sys
 def process_all_tabs():
-    print("Starting to process all tabs...", flush=True)
-    sys.stdout.flush()
+    print("Starting to process all tabs...")
     from sheets import get_all_orders
     all_orders = get_all_orders()
     print(f"Total orders in cache: {len(all_orders)}")
