@@ -140,15 +140,13 @@ def toggle_system_endpoint():
     data = request.json
     action = data.get("action")
     
-    from scheduler import scheduler, start_scheduler, stop_scheduler
+    from scheduler import toggle_system
     
     if action == "start":
-        if not scheduler.running:
-            start_scheduler()
+        toggle_system(True)
         return jsonify({"success": True, "system": "started"})
     elif action == "stop":
-        if scheduler.running:
-            stop_scheduler()
+        toggle_system(False)
         return jsonify({"success": True, "system": "stopped"})
     else:
         return jsonify({"success": False, "message": "Invalid action"}), 400
