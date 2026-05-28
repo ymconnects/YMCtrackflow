@@ -284,5 +284,5 @@ if __name__ == "__main__":
     log_system_start()
     # auto start scheduler on boot
     start_scheduler()
-    app.run(host='0.0.0.0', port=config["FLASK_PORT"], debug=True)
+    app.run(host='0.0.0.0', port=config["FLASK_PORT"], debug=True, use_reloader=False)
 
