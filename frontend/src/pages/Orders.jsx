@@ -26,6 +26,8 @@ const Orders = ({ role, onPageChange, onOrdersLoad }) => {
   const [search, setSearch] = useState('')
   const [courierFilter, setCourierFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [currentPage, setCurrentPage] = useState(1)
+  const ordersPerPage = 20
   const [syncHover, setSyncHover] = useState(false)
   const [retryHover, setRetryHover] = useState(false) 
   const [runHover, setRunHover] = useState(false)
@@ -58,6 +60,10 @@ const Orders = ({ role, onPageChange, onOrdersLoad }) => {
 
     return matchSearch && matchCourier && matchStatus
   })
+  // pagination logic
+  const totalPages = Math.ceil(filteredOrders.length / ordersPerPage)
+  const startIndex = (currentPage - 1) * ordersPerPage
+  const paginatedOrders = filteredOrders.slice(startIndex, startIndex + ordersPerPage)
 
   // handle send single order
   const handleSend = async (order) => {
@@ -286,12 +292,34 @@ const Orders = ({ role, onPageChange, onOrdersLoad }) => {
       </div>
       {/* orders table */}
       <OrdersTable
-        orders={filteredOrders}
+        orders={paginatedOrders}
         showActions={role === 'admin' || role === 'manager'}
         onSend={handleSend}
         onRetry={handleRetry}
       />
-
+    {/* pagination */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px', marginTop: '16px' }}>
+        <span style={{ fontSize: '12.5px', color: '#7a8090' }}>
+          Page {currentPage} of {totalPages}
+        </span>
+        <button
+          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+          disabled={currentPage === 1}
+          style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #e6e8ee', background: '#fff', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', color: '#4b5160' }}
+        >‹</button>
+        {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map(page => (
+          <button
+            key={page}
+            onClick={() => setCurrentPage(page)}
+            style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #e6e8ee', background: currentPage === page ? '#128C7E' : '#fff', color: currentPage === page ? '#fff' : '#4b5160', cursor: 'pointer', fontWeight: '600', fontSize: '13px' }}
+          >{page}</button>
+        ))}
+        <button
+          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+          disabled={currentPage === totalPages}
+          style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #e6e8ee', background: '#fff', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', color: '#4b5160' }}
+        >›</button>
+      </div> 
     </div>
   )
 }
