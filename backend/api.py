@@ -75,8 +75,12 @@ def run_now():
         return jsonify({"success": False, "message": "Not logged in"}), 401
     if payload["role"] not in ["admin", "manager"]:
         return jsonify({"success": False, "message": "Access denied"}), 403
-    process_all_tabs()
-    return jsonify({"success": True, "message": "Processing started"})
+    try:
+        process_all_tabs()
+        return jsonify({"success": True, "message": "Processing started"})
+    except Exception as e:
+        print(f"Error in run-now: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route("/orders", methods=["GET"])
 def orders():
