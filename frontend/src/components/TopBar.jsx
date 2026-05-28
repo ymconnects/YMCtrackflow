@@ -45,7 +45,7 @@
 
         {/* system on/off pill */}
         <div
-          onClick={onToggleSystem}
+          
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -57,7 +57,7 @@
             color: systemOn ? '#128C7E' : '#b8770b',
             fontSize: '12px',
             fontWeight: '600',
-            cursor: 'pointer'
+            cursor: 'default'
           }}
         >
           <span style={{
@@ -69,6 +69,30 @@
           {systemOn ? 'System ON' : 'System OFF'}
         </div>
 
+        {/* auto message indicator */}
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '7px',
+            padding: '5px 12px',
+            borderRadius: '999px',
+            background: autoMsg ? 'rgba(37,99,235,0.10)' : 'rgba(220,38,38,0.10)',
+            border: autoMsg ? '1px solid rgba(37,99,235,0.22)' : '1px solid rgba(220,38,38,0.22)',
+            color: autoMsg ? '#2563eb' : '#dc2626',
+            fontSize: '12px',
+            fontWeight: '600',
+            cursor: 'default'
+          }}
+        >
+          <span style={{
+            width: '7px',
+            height: '7px',
+            borderRadius: '50%',
+            background: autoMsg ? '#2563eb' : '#dc2626'
+          }}></span>
+          {autoMsg ? 'Auto MSG ON' : 'Auto MSG OFF'}
+        </div>
         
       </div>
     </header>
