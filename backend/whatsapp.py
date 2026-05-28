@@ -40,7 +40,7 @@ def send_whatsapp_message(phone, name, tracking_id, tracking_link, courier_name)
         "type": "template",
         "template": {
             "name": template_name,
-            "language": {"code": "en"},
+            "language": {"code": "en_US"},
             "components": [
                 {
                     "type": "body",
