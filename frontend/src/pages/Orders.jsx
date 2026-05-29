@@ -77,7 +77,6 @@ const Orders = ({ role, onPageChange, onOrdersLoad }) => {
       ToastContainer.addToast(`Failed: ${result.data.message}`, 'error')
     }
   }
-  }
 
   // handle retry single order
   const handleRetry = async (order) => {
