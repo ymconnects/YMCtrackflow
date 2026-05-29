@@ -69,6 +69,14 @@ const Orders = ({ role, onPageChange, onOrdersLoad }) => {
   // handle send single order
   const handleSend = async (order) => {
     ToastContainer.addToast(`Sending to ${order.customer_name}...`, 'info')
+    const result = await retrySingle(order)
+    if (result.data.success) {
+      ToastContainer.addToast(`Sent to ${order.customer_name} ✓`, 'success')
+      fetchOrders()
+    } else {
+      ToastContainer.addToast(`Failed: ${result.data.message}`, 'error')
+    }
+  }
   }
 
   // handle retry single order
