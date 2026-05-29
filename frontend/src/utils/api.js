@@ -53,6 +53,10 @@ export const retryFailed = () => {
   return api.post('/retry-failed')
 }
 
+export const retrySingle = (order) => {
+  return api.post('/retry-single', order)
+}
+
 export const toggleAutoMessage = (enabled) => {
   return api.post('/toggle-auto-message', { enabled })
 }
