@@ -8,6 +8,7 @@ import useOrders from '../hooks/useOrders'
 import OrdersTable from '../components/OrdersTable'
 import ToastContainer from '../components/ToastContainer'
 import { Bot, RefreshCw, RotateCcw } from 'lucide-react'
+import { getOrders, runNow, retryFailed, syncOrders, retrySingle } from '../utils/api'
 
 const Orders = ({ role, onPageChange, onOrdersLoad }) => {
 
@@ -73,6 +74,13 @@ const Orders = ({ role, onPageChange, onOrdersLoad }) => {
   // handle retry single order
   const handleRetry = async (order) => {
     ToastContainer.addToast(`Retrying ${order.customer_name}...`, 'info')
+    const result = await retrySingle(order)
+    if (result.data.success) {
+      ToastContainer.addToast(`Sent to ${order.customer_name} ✓`, 'success')
+      fetchOrders()
+    } else {
+      ToastContainer.addToast(`Failed: ${result.data.message}`, 'error')
+    }
   }
 
   // handle run now

@@ -105,6 +105,45 @@ def retry_failed():
     retry_failed_orders()
     return jsonify({"success": True, "message": "Retry started"})
 
+@app.route("/retry-single", methods=["POST"])
+def retry_single():
+    token = get_token_from_request()
+    payload = verify_session(token)
+    if not payload:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    if payload["role"] not in ["admin", "manager"]:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+    
+    data = request.json
+    tab_name = data.get("tab_name")
+    row_number = data.get("row_number")
+    phone = data.get("phone")
+    name = data.get("customer_name")
+    tracking_id = data.get("tracking_id")
+    tracking_link = data.get("tracking_link")
+    
+    from whatsapp import send_whatsapp_message
+    from sheets import batch_update_orders
+    from logger import log_success, log_failure
+    
+    success, message = send_whatsapp_message(
+        phone=phone,
+        name=name,
+        tracking_id=tracking_id,
+        tracking_link=tracking_link,
+        courier_name=tab_name
+    )
+    
+    status = "YES" if success else "FAILED"
+    batch_update_orders([{"tab_name": tab_name, "row_number": row_number, "status": status}])
+    
+    if success:
+        log_success(phone, name, tab_name)
+        return jsonify({"success": True, "message": "Message sent"})
+    else:
+        log_failure(phone, name, tab_name, message)
+        return jsonify({"success": False, "message": message})
+    
 @app.route("/toggle-auto-message", methods=["POST"])
 def toggle_auto_message_endpoint():
     token = get_token_from_request()
