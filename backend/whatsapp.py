@@ -43,6 +43,7 @@ def send_whatsapp_message(phone, name, tracking_id, tracking_link, courier_name)
             "language": {"code": "en_US"},
             "components": [
                 {
+                    "type": "body",
                     "parameters": [
                                     {"type": "text", "text": name},
                                     {"type": "text", "text": courier_name},
