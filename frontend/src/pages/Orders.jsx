@@ -57,7 +57,7 @@ const Orders = ({ role, onPageChange, onOrdersLoad }) => {
 
     // status filter
     const matchStatus = statusFilter === 'all' ||
-      order.msg_sent === statusFilter
+      order.msg_sent?.toUpperCase() === statusFilter.toUpperCase()
 
     return matchSearch && matchCourier && matchStatus
   })
