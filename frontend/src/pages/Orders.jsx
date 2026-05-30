@@ -274,9 +274,9 @@ const Orders = ({ role, onPageChange, onOrdersLoad }) => {
           }}
         >
           <option value='all'>All couriers</option>
-          <option value='Anjani'>Anjani</option>
-          <option value='DTDC'>DTDC</option>
-          <option value='Maruti'>Maruti</option>
+          <option value='Shree Anjani Couriers'>Shree Anjani Couriers</option>
+          <option value='DTDC Couriers'>DTDC Couriers</option>
+          <option value='Shree Maruti Couriers'>Shree Maruti Couriers</option>
           <option value='Others'>Others</option>
         </select>
 
