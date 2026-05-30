@@ -10,6 +10,14 @@ def get_template_for_courier(courier_name):
     }
     return templates.get(courier_name, config["META_TEMPLATE_OTHERS"])
 
+def build_tracking_link(courier_name, tracking_id, tracking_link):
+    if courier_name == "DTDC Couriers":
+        return f"https://www.dtdc.com/track-your-shipment/?awb={tracking_id}"
+    elif courier_name == "Shree Anjani Couriers":
+        return f"https://shreeanjani.co.in/tracking?awb={tracking_id}"
+    else:
+        return tracking_link  # Shree Maruti and Others use sheet URL
+
 def format_phone_number(phone):
     phone = str(phone).strip()
     if not phone.startswith("91"):
@@ -26,6 +34,8 @@ def send_whatsapp_message(phone, name, tracking_id, tracking_link, courier_name)
         return False, "Invalid phone number"
 
     config = load_config()
+    final_link = build_tracking_link(courier_name, tracking_id, tracking_link)
+
     url = f"https://graph.facebook.com/v18.0/{config['META_PHONE_NUMBER_ID']}/messages"
     headers = {
         "Authorization": f"Bearer {config['META_ACCESS_TOKEN']}",
@@ -52,12 +62,11 @@ def send_whatsapp_message(phone, name, tracking_id, tracking_link, courier_name)
                     "sub_type": "url",
                     "index": "0",
                     "parameters": [
-                        {"type": "text", "text": tracking_link}
+                        {"type": "text", "text": final_link}
                     ]
                 }
             ]
         }
     }
-
     response = requests.post(url, headers=headers, json=data)
     return (True, "Message sent successfully") if response.status_code == 200 else (False, response.text)
