@@ -121,6 +121,7 @@ def retry_single():
     name = data.get("customer_name")
     tracking_id = data.get("tracking_id")
     tracking_link = data.get("tracking_link")
+    courier = data.get("courier")
     
     from whatsapp import send_whatsapp_message
     from sheets import batch_update_orders
@@ -131,7 +132,7 @@ def retry_single():
         name=name,
         tracking_id=tracking_id,
         tracking_link=tracking_link,
-        courier_name=tab_name
+        courier_name=courier
     )
     
     status = "YES" if success else "FAILED"
