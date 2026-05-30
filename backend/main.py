@@ -6,7 +6,6 @@ import time
 import sys
 import builtins
 
-# force all print to flush immediately
 _original_print = print
 def print(*args, **kwargs):
     kwargs['flush'] = True
@@ -27,7 +26,6 @@ def process_single_tab(tab_name):
     orders = [o for o in all_orders if o["tab_name"] == tab_name and o["msg_sent"].upper() != "YES"]
     print(f"Processing {tab_name}: {len(orders)} pending orders")
     
-    # collect all updates here
     updates = []
     
     for order in orders:
@@ -38,7 +36,7 @@ def process_single_tab(tab_name):
             name=order["customer_name"],
             tracking_id=order["tracking_id"],
             tracking_link=order["tracking_link"],
-            courier_name=tab_name
+            courier_name=order["courier"]  # ✅ fixed
         )
         if success:
             updates.append({"tab_name": tab_name, "row_number": order["row_number"], "status": "YES"})
@@ -49,30 +47,27 @@ def process_single_tab(tab_name):
         
         time.sleep(0.5)
     
-    # send all updates in one API call
     if updates:
         batch_update_orders(updates)
         
 def process_all_tabs():
+    config = load_config()
     print("Starting to process all tabs...")
     from sheets import get_all_orders
     all_orders = get_all_orders()
     print(f"Total orders in cache: {len(all_orders)}")
     pending = [o for o in all_orders if o['msg_sent'].upper() == 'NO']
     print(f"Total pending: {len(pending)}")
-    process_single_tab("Anjani")
-    process_single_tab("DTDC")
-    process_single_tab("MARUTI")
-    process_single_tab("Others")
+    process_single_tab(config["SHEET_TAB_1"])  # ✅ Shree Anjani Couriers
+    process_single_tab(config["SHEET_TAB_2"])  # ✅ DTDC Couriers
+    process_single_tab(config["SHEET_TAB_3"])  # ✅ Shree Maruti Couriers
+    process_single_tab(config["SHEET_TAB_4"])  # ✅ Others
     print("All tabs processed.")
-    
-           
 
 def retry_failed_orders():
     failed_orders = get_failed_orders()
     print(f"Retrying {len(failed_orders)} failed orders")
     
-    # collect all updates
     updates = []
     
     for order in failed_orders:
@@ -81,7 +76,7 @@ def retry_failed_orders():
             name=order["customer_name"],
             tracking_id=order["tracking_id"],
             tracking_link=order["tracking_link"],
-            courier_name=order["tab_name"]
+            courier_name=order["courier"]  # ✅ fixed
         )
         if success:
             updates.append({"tab_name": order["tab_name"], "row_number": order["row_number"], "status": "YES"})
@@ -91,6 +86,5 @@ def retry_failed_orders():
             print(f"Retry failed: {order['customer_name']}")
         time.sleep(0.5)
     
-    # send all updates in one API call
     if updates:
         batch_update_orders(updates)
