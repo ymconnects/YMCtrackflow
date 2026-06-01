@@ -35,16 +35,18 @@ def send_whatsapp_message(phone, name, tracking_id, tracking_link, courier_name)
 
     if is_other:
         # Others — 3 variables, no button
-        components = [
-            {
-                "type": "body",
-                "parameters": [
-                    {"type": "text", "text": name},
-                    {"type": "text", "text": tracking_id},
-                    {"type": "text", "text": tracking_link}
-                ]
-            }
-        ]
+        if is_other:
+         components = [
+        {
+            "type": "body",
+            "parameters": [
+                {"type": "text", "text": name},
+                {"type": "text", "text": courier_name},
+                {"type": "text", "text": tracking_id},
+                {"type": "text", "text": tracking_link}
+            ]
+        }
+    ]
     else:
         # Anjani, DTDC, Maruti — 2 variables + button
         components = [
