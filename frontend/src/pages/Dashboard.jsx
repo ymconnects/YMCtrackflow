@@ -141,12 +141,12 @@ const Dashboard = ({ role, onPageChange }) => {
   }
   // calculate courier split from real orders
 const courierColors = {
-  'Anjani': '#25D366',
-  'DTDC': '#2563eb',
-  'MARUTI': '#7c3aed',
+  'Shree Anjani Couriers': '#25D366',
+  'DTDC Couriers': '#2563eb',
+  'Shree Maruti Couriers': '#7c3aed',
   'Others': '#f59e0b'
 }
-const courierCounts = ['Anjani', 'DTDC', 'MARUTI', 'Others'].map(name => ({
+const courierCounts = ['Shree Anjani Couriers', 'DTDC Couriers', 'Shree Maruti Couriers', 'Others'].map(name => ({
   name,
   count: orders.filter(o => o.courier === name).length,
   color: courierColors[name]
@@ -359,7 +359,11 @@ return (
                 fontSize: '13px',
                 marginBottom: '4px'
               }}>
-                <span style={{ fontWeight: '600' }}>{c.name}</span>
+                <span style={{ fontWeight: '600' }}>
+                 {c.name === 'Shree Anjani Couriers' ? 'Anjani' :
+                  c.name === 'DTDC Couriers' ? 'DTDC' :
+                  c.name === 'Shree Maruti Couriers' ? 'Maruti' : 'Others'}
+                </span>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <span style={{ color: '#7a8090', fontFamily: 'JetBrains Mono, monospace', fontSize: '12px' }}>
                     {c.pct}%
