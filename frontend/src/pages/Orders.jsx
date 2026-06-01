@@ -53,7 +53,9 @@ const Orders = ({ role, onPageChange, onOrdersLoad }) => {
 
     // courier filter
     const matchCourier = courierFilter === 'all' ||
-      order.courier?.toUpperCase() === courierFilter.toUpperCase()
+  (courierFilter === 'Others'
+    ? order.is_other === true
+    : order.courier?.toUpperCase() === courierFilter.toUpperCase())
 
     // status filter
     const matchStatus = statusFilter === 'all' ||
