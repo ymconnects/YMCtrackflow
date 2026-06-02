@@ -11,7 +11,8 @@ def get_template_for_courier(courier_name):
 
 def format_phone_number(phone):
     phone = str(phone).strip()
-    if not phone.startswith("91"):
+    phone = phone.replace("+", "").replace(" ", "")
+    if len(phone) == 10:
         phone = "91" + phone
     return phone
 
