@@ -24,10 +24,10 @@ def send_whatsapp_message(phone, name, tracking_id, tracking_link, courier_name)
     phone = format_phone_number(phone)
     if not validate_phone_number(phone):
         return False, "Invalid phone number"
-    
+
     config = load_config()
     is_other = courier_name not in ["Shree Anjani Couriers", "DTDC Couriers", "Shree Maruti Couriers"]
-    
+
     url = f"https://graph.facebook.com/v18.0/{config['META_PHONE_NUMBER_ID']}/messages"
     headers = {
         "Authorization": f"Bearer {config['META_ACCESS_TOKEN']}",
@@ -35,21 +35,18 @@ def send_whatsapp_message(phone, name, tracking_id, tracking_link, courier_name)
     }
 
     if is_other:
-        # Others — 3 variables, no button
-        if is_other:
-         components = [
-        {
-            "type": "body",
-            "parameters": [
-                {"type": "text", "text": name},
-                {"type": "text", "text": courier_name},
-                {"type": "text", "text": tracking_id},
-                {"type": "text", "text": tracking_link}
-            ]
-        }
-    ]
+        components = [
+            {
+                "type": "body",
+                "parameters": [
+                    {"type": "text", "text": name},
+                    {"type": "text", "text": courier_name},
+                    {"type": "text", "text": tracking_id},
+                    {"type": "text", "text": tracking_link}
+                ]
+            }
+        ]
     else:
-        # Anjani, DTDC, Maruti — 2 variables + button
         components = [
             {
                 "type": "body",
@@ -79,6 +76,6 @@ def send_whatsapp_message(phone, name, tracking_id, tracking_link, courier_name)
         }
     }
 
-   response = requests.post(url, headers=headers, json=data)
-print(f"Meta response: {response.status_code} | {response.text}", flush=True)
-return (True, "Message sent successfully") if response.status_code == 200 else (False, response.text)
+    response = requests.post(url, headers=headers, json=data)
+    print(f"Meta response: {response.status_code} | {response.text}", flush=True)
+    return (True, "Message sent successfully") if response.status_code == 200 else (False, response.text)
