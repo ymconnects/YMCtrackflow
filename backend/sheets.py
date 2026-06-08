@@ -6,6 +6,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 from config import load_config
 from datetime import datetime
+import pytz
 import time
 
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
@@ -142,7 +143,8 @@ def batch_update_orders(updates):
     config = load_config()
     client = connect_google_sheets()
     sheet = client.open_by_key(config["GOOGLE_SHEET_ID"])
-    now = str(datetime.now())
+    IST = pytz.timezone('Asia/Kolkata')
+    now = str(datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S'))
 
     tabs = {}
     for update in updates:
