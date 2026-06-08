@@ -79,5 +79,6 @@ def send_whatsapp_message(phone, name, tracking_id, tracking_link, courier_name)
         }
     }
 
-    response = requests.post(url, headers=headers, json=data)
-    return (True, "Message sent successfully") if response.status_code == 200 else (False, response.text)
+   response = requests.post(url, headers=headers, json=data)
+print(f"Meta response: {response.status_code} | {response.text}", flush=True)
+return (True, "Message sent successfully") if response.status_code == 200 else (False, response.text)
