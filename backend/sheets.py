@@ -199,14 +199,6 @@ def save_settings_to_sheet(system_on, auto_message):
 def update_order_status_by_phone(phone, status_type):
     orders = get_all_orders()
     target = None
-    for order in orders:
-        formatted = format_phone(order["phone"])
-        if formatted == phone and order["msg_sent"] not in ["FAILED"]:
-            target = order
-            break
-    
-    if not target:
-        return
     
     status_map = {
         "sent": "SENT",
@@ -217,6 +209,16 @@ def update_order_status_by_phone(phone, status_type):
     
     new_status = status_map.get(status_type)
     if not new_status:
+        return
+
+    for order in orders:
+        formatted = format_phone(order["phone"])
+        if formatted == phone:
+            target = order
+            break
+    
+    if not target:
+        print(f"No order found for phone: {phone}", flush=True)
         return
     
     batch_update_orders([{
