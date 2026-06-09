@@ -240,7 +240,7 @@ def was_message_sent_within_24hrs(phone):
     
     for order in orders:
         formatted = format_phone(order["phone"])
-        if formatted == phone and order["msg_sent"] == "YES":
+        if formatted == phone and order["msg_sent"] in ["YES", "DELIVERED", "READ"]:
             try:
                 last = datetime.strptime(order["last_updated"], "%Y-%m-%d %H:%M:%S")
                 last = IST.localize(last)
