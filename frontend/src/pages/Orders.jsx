@@ -298,6 +298,8 @@ const Orders = ({ role, onPageChange, onOrdersLoad }) => {
         >
           <option value='all'>All statuses</option>
           <option value='YES'>Sent</option>
+          <option value='SENT'>Sent (Accepted)</option>
+          <option value='DELIVERED'>Delivered</option>
           <option value='NO'>Pending</option>
           <option value='FAILED'>Failed</option>
         </select>
