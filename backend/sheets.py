@@ -159,7 +159,7 @@ def batch_update_orders(updates):
         for update in tab_updates:
             row = update["row_number"]
             status = update["status"]
-            print(f"WRITING TO SHEET: tab={tab_name} row={row} status={status}", flush=True)
+           
             tab.update_cell(row, msg_col, status)
             tab.update_cell(row, msg_col, status)
             tab.update_cell(row, date_col, now)
@@ -215,7 +215,6 @@ def update_order_status_by_phone(phone, status_type):
 
     for order in orders:
         formatted = format_phone(order["phone"])
-        print(f"Comparing: {formatted} vs {phone}", flush=True)
         if formatted == phone:
             target = order
             break
