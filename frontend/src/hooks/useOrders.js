@@ -66,8 +66,8 @@ setOrders(res.data.orders)
   
   const getStats = () => {
     const total = orders.length
-    const sent = orders.filter(o => o.msg_sent === 'YES').length
-    const pending = orders.filter(o => o.msg_sent === 'NO').length
+    const sent = orders.filter(o => ['YES', 'SENT', 'DELIVERED', 'READ'].includes(o.msg_sent)).length
+const pending = orders.filter(o => !['YES', 'SENT', 'DELIVERED', 'READ', 'FAILED'].includes(o.msg_sent)).length
     const failed = orders.filter(o => o.msg_sent === 'FAILED').length
     return { total, sent, pending, failed }
   }
