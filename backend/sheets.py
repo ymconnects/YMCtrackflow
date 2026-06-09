@@ -235,14 +235,15 @@ def format_phone(phone):
 def was_message_sent_within_24hrs(phone):
     from datetime import timezone, timedelta
     orders = get_all_orders()
-    now = datetime.now(timezone.utc)
+    IST = pytz.timezone('Asia/Kolkata')
+    now = datetime.now(IST)
     
     for order in orders:
         formatted = format_phone(order["phone"])
         if formatted == phone and order["msg_sent"] == "YES":
             try:
                 last = datetime.strptime(order["last_updated"], "%Y-%m-%d %H:%M:%S")
-                last = last.replace(tzinfo=timezone.utc)
+                last = IST.localize(last)
                 diff = now - last
                 if diff.total_seconds() < 86400:
                     return True
