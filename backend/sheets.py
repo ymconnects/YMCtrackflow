@@ -245,6 +245,7 @@ def was_message_sent_within_24hrs(phone):
                 last = datetime.strptime(order["last_updated"], "%Y-%m-%d %H:%M:%S")
                 last = IST.localize(last)
                 diff = now - last
+                print(f"24hr check: {phone} | last={last} | now={now} | diff={diff.total_seconds()}", flush=True)
                 if diff.total_seconds() < 86400:
                     return True
             except:
