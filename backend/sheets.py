@@ -159,6 +159,8 @@ def batch_update_orders(updates):
         for update in tab_updates:
             row = update["row_number"]
             status = update["status"]
+            print(f"WRITING TO SHEET: tab={tab_name} row={row} status={status}", flush=True)
+            tab.update_cell(row, msg_col, status)
             tab.update_cell(row, msg_col, status)
             tab.update_cell(row, date_col, now)
             if _cache["orders"]:
