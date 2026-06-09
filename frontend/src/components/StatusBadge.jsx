@@ -1,6 +1,9 @@
  const StatusBadge = ({ status }) => {
   const styles = {
     'YES':       { bg: 'rgba(18,140,126,0.1)',  color: '#128C7E' },
+    'SENT':      { bg: 'rgba(37,99,235,0.1)',   color: '#2563eb' },
+    'DELIVERED': { bg: 'rgba(18,140,126,0.1)',  color: '#128C7E' },
+    'READ':      { bg: 'rgba(124,58,237,0.1)',  color: '#7c3aed' },
     'NO':        { bg: 'rgba(245,158,11,0.16)', color: '#b8770b' },
     'FAILED':    { bg: 'rgba(220,38,38,0.1)',   color: '#dc2626' },
     'Sent':      { bg: 'rgba(37,99,235,0.1)',   color: '#2563eb' },
