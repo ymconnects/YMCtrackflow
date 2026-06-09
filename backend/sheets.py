@@ -213,6 +213,7 @@ def update_order_status_by_phone(phone, status_type):
 
     for order in orders:
         formatted = format_phone(order["phone"])
+        print(f"Comparing: {formatted} vs {phone}", flush=True)
         if formatted == phone:
             target = order
             break
