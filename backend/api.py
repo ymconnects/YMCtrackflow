@@ -136,7 +136,7 @@ def retry_single():
         courier_name=courier
     )
     
-    status = "YES" if success else "FAILED"
+    status = "SENT" if success else "FAILED"
     batch_update_orders([{"tab_name": tab_name, "row_number": row_number, "status": status}])
     
     if success:
