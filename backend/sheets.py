@@ -201,7 +201,7 @@ def update_order_status_by_phone(phone, status_type):
     target = None
     for order in orders:
         formatted = format_phone(order["phone"])
-        if formatted == phone and order["msg_sent"] == "YES":
+        if formatted == phone and order["msg_sent"] not in ["FAILED"]:
             target = order
             break
     
@@ -209,10 +209,10 @@ def update_order_status_by_phone(phone, status_type):
         return
     
     status_map = {
+        "sent": "SENT",
         "delivered": "DELIVERED",
-        "read": "READ",
-        "failed": "FAILED",
-        "sent": "YES"
+        "read": "DELIVERED",
+        "failed": "FAILED"
     }
     
     new_status = status_map.get(status_type)
@@ -240,7 +240,7 @@ def was_message_sent_within_24hrs(phone):
     
     for order in orders:
         formatted = format_phone(order["phone"])
-        if formatted == phone and order["msg_sent"] in ["YES", "DELIVERED", "READ"]:
+        if formatted == phone and order["msg_sent"] in ["YES", "SENT", "DELIVERED", "FAILED"]:
             try:
                 last = datetime.strptime(order["last_updated"], "%Y-%m-%d %H:%M:%S")
                 last = IST.localize(last)

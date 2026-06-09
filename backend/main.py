@@ -13,7 +13,7 @@ def print(*args, **kwargs):
 builtins.print = print
 
 def should_send_message(order):
-    if order["msg_sent"].upper() == "YES":
+    if order["msg_sent"].upper() in ["YES", "SENT", "DELIVERED", "READ"]:
         return False
     if not order["phone"]:
         return False
@@ -23,7 +23,7 @@ def should_send_message(order):
 
 def process_single_tab(tab_name):
     all_orders = get_all_orders()
-    orders = [o for o in all_orders if o["tab_name"] == tab_name and o["msg_sent"].upper() != "YES"]
+    orders = [o for o in all_orders if o["tab_name"] == tab_name and o["msg_sent"].upper() not in ["YES", "SENT", "DELIVERED", "READ"]]
     print(f"Processing {tab_name}: {len(orders)} pending orders")
     
     updates = []
@@ -56,7 +56,7 @@ def process_all_tabs():
     from sheets import get_all_orders
     all_orders = get_all_orders()
     print(f"Total orders in cache: {len(all_orders)}")
-    pending = [o for o in all_orders if o['msg_sent'].upper() == 'NO']
+    pending = [o for o in all_orders if o['msg_sent'].upper() not in ['YES', 'SENT', 'DELIVERED', 'READ']]
     print(f"Total pending: {len(pending)}")
     process_single_tab(config["SHEET_TAB_1"])  # ✅ Shree Anjani Couriers
     process_single_tab(config["SHEET_TAB_2"])  # ✅ DTDC Couriers
