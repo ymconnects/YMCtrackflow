@@ -10,6 +10,7 @@ from campaigns.bulk_sender import send_campaign, calculate_cost, track_progress
 from campaigns.audience_filter import estimate_audience_count
 from campaigns.campaign_scheduler import schedule_campaign, cancel_scheduled_campaign, get_scheduled_campaigns
 from config import load_config
+import os 
 
 app = Flask(__name__)
 CORS(app, origins="*")
