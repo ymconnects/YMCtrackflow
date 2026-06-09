@@ -1,5 +1,6 @@
 import requests
 from config import load_config
+
 def get_template_for_courier(courier_name):
     config = load_config()
     templates = {
@@ -24,16 +25,13 @@ def send_whatsapp_message(phone, name, tracking_id, tracking_link, courier_name)
     phone = format_phone_number(phone)
     if not validate_phone_number(phone):
         return False, "Invalid phone number"
-
     config = load_config()
     is_other = courier_name not in ["Shree Anjani Couriers", "DTDC Couriers", "Shree Maruti Couriers"]
-
     url = f"https://graph.facebook.com/v18.0/{config['META_PHONE_NUMBER_ID']}/messages"
     headers = {
         "Authorization": f"Bearer {config['META_ACCESS_TOKEN']}",
         "Content-Type": "application/json"
     }
-
     if is_other:
         components = [
             {
@@ -64,7 +62,6 @@ def send_whatsapp_message(phone, name, tracking_id, tracking_link, courier_name)
                 ]
             }
         ]
-
     data = {
         "messaging_product": "whatsapp",
         "to": phone,
@@ -75,20 +72,17 @@ def send_whatsapp_message(phone, name, tracking_id, tracking_link, courier_name)
             "components": components
         }
     }
-
     response = requests.post(url, headers=headers, json=data)
     print(f"Meta response: {response.status_code} | {response.text}", flush=True)
     return (True, "Message sent successfully") if response.status_code == 200 else (False, response.text)
 
-    def send_fixed_reply(phone):
+def send_fixed_reply(phone):
     config = load_config()
-    
     url = f"https://graph.facebook.com/v18.0/{config['META_PHONE_NUMBER_ID']}/messages"
     headers = {
         "Authorization": f"Bearer {config['META_ACCESS_TOKEN']}",
         "Content-Type": "application/json"
     }
-    
     data = {
         "messaging_product": "whatsapp",
         "to": phone,
@@ -97,7 +91,6 @@ def send_whatsapp_message(phone, name, tracking_id, tracking_link, courier_name)
             "body": "Thank you for contacting Yashvant Mangal Classes.\n\nFor any queries, please contact us:\n\nFor Dispatch/Courier Related Query : 8955122355\nFor Activation Related Query : 7425055442\nFor Software Related Technical Assistance : 7425055442\nFor Products Purchase Related Query : 8690270442 , 9216812400\nIf your books are not delivered within 7 working days, please contact : 8955122355\n\nTeam Yashvant Mangal Classes"
         }
     }
-    
     response = requests.post(url, headers=headers, json=data)
     print(f"Auto reply sent to {phone}: {response.status_code}", flush=True)
     return response.status_code == 200
