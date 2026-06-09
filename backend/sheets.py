@@ -195,3 +195,57 @@ def save_settings_to_sheet(system_on, auto_message):
     tab = sheet.worksheet("Settings")
     tab.update_cell(2, 1, str(system_on).upper())
     tab.update_cell(2, 2, str(auto_message).upper())
+
+def update_order_status_by_phone(phone, status_type):
+    orders = get_all_orders()
+    target = None
+    for order in orders:
+        formatted = format_phone(order["phone"])
+        if formatted == phone and order["msg_sent"] == "YES":
+            target = order
+            break
+    
+    if not target:
+        return
+    
+    status_map = {
+        "delivered": "DELIVERED",
+        "read": "READ",
+        "failed": "FAILED",
+        "sent": "YES"
+    }
+    
+    new_status = status_map.get(status_type)
+    if not new_status:
+        return
+    
+    batch_update_orders([{
+        "tab_name": target["tab_name"],
+        "row_number": target["row_number"],
+        "status": new_status
+    }])
+    print(f"Status updated: {phone} → {new_status}", flush=True)
+
+def format_phone(phone):
+    phone = str(phone).strip().replace("+", "").replace(" ", "")
+    if len(phone) == 10:
+        phone = "91" + phone
+    return phone
+
+def was_message_sent_within_24hrs(phone):
+    from datetime import timezone, timedelta
+    orders = get_all_orders()
+    now = datetime.now(timezone.utc)
+    
+    for order in orders:
+        formatted = format_phone(order["phone"])
+        if formatted == phone and order["msg_sent"] == "YES":
+            try:
+                last = datetime.strptime(order["last_updated"], "%Y-%m-%d %H:%M:%S")
+                last = last.replace(tzinfo=timezone.utc)
+                diff = now - last
+                if diff.total_seconds() < 86400:
+                    return True
+            except:
+                pass
+    return False
