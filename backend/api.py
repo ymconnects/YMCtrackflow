@@ -136,8 +136,20 @@ def retry_single():
         courier_name=courier
     )
     
+    import time
     status = "SENT" if success else "FAILED"
-    batch_update_orders([{"tab_name": tab_name, "row_number": row_number, "status": status}])
+    time.sleep(2)
+
+    if status == "SENT":
+        from sheets import get_all_orders
+        current_orders = get_all_orders()
+        current = next((o for o in current_orders if o["tab_name"] == tab_name and o["row_number"] == row_number), None)
+        if current and current["msg_sent"] == "FAILED":
+            pass
+        else:
+            batch_update_orders([{"tab_name": tab_name, "row_number": row_number, "status": status}])
+    else:
+        batch_update_orders([{"tab_name": tab_name, "row_number": row_number, "status": status}])
     
     if success:
         log_success(phone, name, tab_name)
