@@ -1,27 +1,23 @@
- const StatusBadge = ({ status }) => {
-  const styles = {
-    'YES':       { bg: 'rgba(18,140,126,0.1)',  color: '#128C7E' },
-    'SENT':      { bg: 'rgba(37,99,235,0.1)',   color: '#2563eb' },
-    'DELIVERED': { bg: 'rgba(18,140,126,0.1)',  color: '#128C7E' },
-    'READ':      { bg: 'rgba(124,58,237,0.1)',  color: '#7c3aed' },
-    'NO':        { bg: 'rgba(245,158,11,0.16)', color: '#b8770b' },
-    'FAILED':    { bg: 'rgba(220,38,38,0.1)',   color: '#dc2626' },
-    'Sent':      { bg: 'rgba(37,99,235,0.1)',   color: '#2563eb' },
-    'Pending':   { bg: 'rgba(245,158,11,0.16)', color: '#b8770b' },
-    'Delivered': { bg: 'rgba(18,140,126,0.1)',  color: '#128C7E' },
-    'Running':   { bg: 'rgba(18,140,126,0.1)',  color: '#128C7E' },
-    'Scheduled': { bg: 'rgba(37,99,235,0.1)',   color: '#2563eb' },
-    'Completed': { bg: 'rgba(148,163,184,0.2)', color: '#4b5160' },
-    'Paused':    { bg: 'rgba(245,158,11,0.16)', color: '#b8770b' },
-    'SUCCESS':   { bg: 'rgba(18,140,126,0.1)',  color: '#128C7E' },
-    'SYSTEM':    { bg: 'rgba(37,99,235,0.1)',   color: '#2563eb' },
-    'CAMPAIGN':  { bg: 'rgba(124,58,237,0.1)',  color: '#7c3aed' },
+const StatusBadge = ({ status }) => {
+  const map = {
+    'YES':       { label: 'Sent',      bg: 'rgba(18,140,126,0.1)',  color: '#128C7E' },
+    'SENT':      { label: 'Sent',      bg: 'rgba(18,140,126,0.1)',  color: '#128C7E' },
+    'DELIVERED': { label: 'Delivered', bg: 'rgba(37,99,235,0.1)',   color: '#2563eb' },
+    'NO':        { label: 'Pending',   bg: 'rgba(245,158,11,0.16)', color: '#b8770b' },
+    'FAILED':    { label: 'Failed',    bg: 'rgba(220,38,38,0.1)',   color: '#dc2626' },
+    'Sent':      { label: 'Sent',      bg: 'rgba(18,140,126,0.1)',  color: '#128C7E' },
+    'Pending':   { label: 'Pending',   bg: 'rgba(245,158,11,0.16)', color: '#b8770b' },
+    'Delivered': { label: 'Delivered', bg: 'rgba(37,99,235,0.1)',   color: '#2563eb' },
+    'Running':   { label: 'Running',   bg: 'rgba(18,140,126,0.1)',  color: '#128C7E' },
+    'Scheduled': { label: 'Scheduled', bg: 'rgba(37,99,235,0.1)',   color: '#2563eb' },
+    'Completed': { label: 'Completed', bg: 'rgba(148,163,184,0.2)', color: '#4b5160' },
+    'Paused':    { label: 'Paused',    bg: 'rgba(245,158,11,0.16)', color: '#b8770b' },
+    'SUCCESS':   { label: 'Success',   bg: 'rgba(18,140,126,0.1)',  color: '#128C7E' },
+    'SYSTEM':    { label: 'System',    bg: 'rgba(37,99,235,0.1)',   color: '#2563eb' },
+    'CAMPAIGN':  { label: 'Campaign',  bg: 'rgba(124,58,237,0.1)',  color: '#7c3aed' },
   }
 
-  const s = styles[status] || { 
-    bg: 'rgba(148,163,184,0.2)', 
-    color: '#4b5160' 
-  }
+  const s = map[status] || { label: status, bg: 'rgba(148,163,184,0.2)', color: '#4b5160' }
 
   return (
     <span style={{
@@ -42,7 +38,7 @@
         background: s.color,
         flexShrink: 0
       }}></span>
-      {status}
+      {s.label}
     </span>
   )
 }
