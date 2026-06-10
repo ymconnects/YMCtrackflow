@@ -72,24 +72,31 @@ def process_all_tabs():
 def retry_failed_orders():
     failed_orders = get_failed_orders()
     print(f"Retrying {len(failed_orders)} failed orders")
-    
-    updates = []
-    
+
+    if not failed_orders:
+        return
+
+    # step 1: mark all as SENT first
+    sent_updates = [{"tab_name": o["tab_name"], "row_number": o["row_number"], "status": "SENT"} for o in failed_orders]
+    batch_update_orders(sent_updates)
+
+    # step 2: send messages
+    fail_updates = []
     for order in failed_orders:
         success, message = send_whatsapp_message(
             phone=order["phone"],
             name=order["customer_name"],
             tracking_id=order["tracking_id"],
             tracking_link=order["tracking_link"],
-            courier_name=order["courier"]  # ✅ fixed
+            courier_name=order["courier"]
         )
         if success:
-            updates.append({"tab_name": order["tab_name"], "row_number": order["row_number"], "status": "YES"})
             print(f"Retry success: {order['customer_name']}")
         else:
-            updates.append({"tab_name": order["tab_name"], "row_number": order["row_number"], "status": "FAILED"})
+            fail_updates.append({"tab_name": order["tab_name"], "row_number": order["row_number"], "status": "FAILED"})
             print(f"Retry failed: {order['customer_name']}")
         time.sleep(0.5)
-    
-    if updates:
-        batch_update_orders(updates)
+
+    # step 3: mark only api-failed ones
+    if fail_updates:
+        batch_update_orders(fail_updates)

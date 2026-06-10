@@ -151,3 +151,4 @@
 [2026-05-28 14:33:17.868562] [SYSTEM] YMCTrackFlow started.
 [2026-06-10 10:49:59.154757] [SYSTEM] YMCTrackFlow started.
 [2026-06-10 10:50:27.822184] [SYSTEM] YMCTrackFlow started.
+[2026-06-10 12:50:44.420077] [FAILED] dhula kaka  | 9672838805 | DTDC Couriers | {"error":{"message":"Unsupported post request. Object with ID 'messages' does not exist, cannot be loaded due to missing permissions, or does not support this operation. Please read the Graph API documentation at https:\/\/developers.facebook.com\/docs\/graph-api","type":"GraphMethodException","code":100,"error_subcode":33,"fbtrace_id":"AF4bqC_rlHWP9ap2w5iCtKK"}}
