@@ -62,6 +62,8 @@ const Orders = ({ role, onPageChange, onOrdersLoad }) => {
     const matchStatus = statusFilter === 'all' ||
   (statusFilter === 'SENT'
     ? ['YES', 'SENT'].includes(order.msg_sent?.toUpperCase())
+    : statusFilter === 'DELIVERED'
+    ? ['DELIVERED', 'YES', 'SENT'].includes(order.msg_sent?.toUpperCase())
     : order.msg_sent?.toUpperCase() === statusFilter.toUpperCase())
 
     return matchSearch && matchCourier && matchStatus
