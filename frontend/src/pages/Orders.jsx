@@ -69,20 +69,30 @@ const Orders = ({ role, onPageChange, onOrdersLoad }) => {
     return matchSearch && matchCourier && matchStatus
   })
   // pagination logic
-  const sortedOrders = [...filteredOrders].sort((a, b) => {
+  const parseDate = (d) => {
+  if (!d) return 0
+  return new Date(d.replace(' ', 'T')).getTime()
+}
+
+const sortedOrders = [...filteredOrders].sort((a, b) => {
   if (sortBy === 'pending_first') {
-    const pendingStatuses = ['NO', 'FAILED']
-    const aIsPending = pendingStatuses.includes(a.msg_sent?.toUpperCase())
-    const bIsPending = pendingStatuses.includes(b.msg_sent?.toUpperCase())
-    if (aIsPending && !bIsPending) return -1
-    if (!aIsPending && bIsPending) return 1
-    return 0
+    const getWeight = (status) => {
+      const s = status?.toUpperCase()
+      if (s === 'FAILED') return 0
+      if (s === 'NO' || !s) return 1
+      if (s === 'SENT') return 2
+      return 3
+    }
+    const aWeight = getWeight(a.msg_sent)
+    const bWeight = getWeight(b.msg_sent)
+    if (aWeight !== bWeight) return aWeight - bWeight
+    return parseDate(b.last_updated) - parseDate(a.last_updated)
   }
   if (sortBy === 'newest') {
-    return new Date(b.last_updated) - new Date(a.last_updated)
+    return parseDate(b.last_updated) - parseDate(a.last_updated)
   }
   if (sortBy === 'oldest') {
-    return new Date(a.last_updated) - new Date(b.last_updated)
+    return parseDate(a.last_updated) - parseDate(b.last_updated)
   }
   return 0
 })
