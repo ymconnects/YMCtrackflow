@@ -234,11 +234,7 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry }) => {
             {/* msg status */}
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', fontSize: '13.5px' }}>
               <span style={{ color: '#7a8090', fontWeight: '500' }}>Message Status</span>
-              <StatusBadge status={
-                viewOrder.msg_sent === 'YES' ? 'Sent' :
-                viewOrder.msg_sent === 'FAILED' ? 'Failed' :
-                'Pending'
-              } />
+              <StatusBadge status={viewOrder.msg_sent} />
             </div>
 
           </div>
