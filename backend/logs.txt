@@ -149,3 +149,5 @@
 [2026-05-27 18:19:01.166191] [FAILED] YMC Ishi | 9216894400 | Anjani | {"error":{"message":"Unsupported post request. Object with ID 'messages' does not exist, cannot be loaded due to missing permissions, or does not support this operation. Please read the Graph API documentation at https:\/\/developers.facebook.com\/docs\/graph-api","type":"GraphMethodException","code":100,"error_subcode":33,"fbtrace_id":"A6Vwi1nENuMSOzUJFG7y4a2"}}
 [2026-05-27 18:19:01.183300] [FAILED] YMC Ishi | 9216894400 | Anjani | {"error":{"message":"Unsupported post request. Object with ID 'messages' does not exist, cannot be loaded due to missing permissions, or does not support this operation. Please read the Graph API documentation at https:\/\/developers.facebook.com\/docs\/graph-api","type":"GraphMethodException","code":100,"error_subcode":33,"fbtrace_id":"Awe9Y9YhnDL3qxFnapJ6dsx"}}
 [2026-05-28 14:33:17.868562] [SYSTEM] YMCTrackFlow started.
+[2026-06-10 10:49:59.154757] [SYSTEM] YMCTrackFlow started.
+[2026-06-10 10:50:27.822184] [SYSTEM] YMCTrackFlow started.
