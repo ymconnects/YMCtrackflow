@@ -25,30 +25,35 @@ def process_single_tab(tab_name):
     all_orders = get_all_orders()
     orders = [o for o in all_orders if o["tab_name"] == tab_name and o["msg_sent"].upper() not in ["YES", "SENT", "DELIVERED", "READ"]]
     print(f"Processing {tab_name}: {len(orders)} pending orders")
-    
-    updates = []
-    
-    for order in orders:
-        if not should_send_message(order):
-            continue
+
+    # only orders we will actually send
+    to_send = [o for o in orders if should_send_message(o)]
+
+    # step 1: mark all as SENT first in one batch
+    sent_updates = [{"tab_name": tab_name, "row_number": o["row_number"], "status": "SENT"} for o in to_send]
+    if sent_updates:
+        batch_update_orders(sent_updates)
+
+    # step 2: send messages, only mark FAILED if api call itself fails
+    fail_updates = []
+    for order in to_send:
         success, message = send_whatsapp_message(
             phone=order["phone"],
             name=order["customer_name"],
             tracking_id=order["tracking_id"],
             tracking_link=order["tracking_link"],
-            courier_name=order["courier"]  # ✅ fixed
+            courier_name=order["courier"]
         )
         if success:
-            updates.append({"tab_name": tab_name, "row_number": order["row_number"], "status": "YES"})
             log_success(order["phone"], order["customer_name"], tab_name)
         else:
-            updates.append({"tab_name": tab_name, "row_number": order["row_number"], "status": "FAILED"})
+            fail_updates.append({"tab_name": tab_name, "row_number": order["row_number"], "status": "FAILED"})
             log_failure(order["phone"], order["customer_name"], tab_name, message)
-        
         time.sleep(0.5)
-    
-    if updates:
-        batch_update_orders(updates)
+
+    # step 3: mark only the api-failed ones
+    if fail_updates:
+        batch_update_orders(fail_updates)
         
 def process_all_tabs():
     config = load_config()
