@@ -127,7 +127,7 @@ def mark_as_sent(tab_name, row_number):
     sheet = client.open_by_key(config["GOOGLE_SHEET_ID"])
     tab = sheet.worksheet(tab_name)
     msg_col, date_col = _get_status_columns(tab_name)
-    tab.update_cell(row_number, msg_col, "YES")
+    tab.update_cell(row_number, msg_col, "DELIVERED")
     tab.update_cell(row_number, date_col, str(datetime.now()))
 
 def mark_as_failed(tab_name, row_number):
