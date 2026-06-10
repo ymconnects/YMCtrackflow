@@ -27,6 +27,7 @@ const Orders = ({ role, onPageChange, onOrdersLoad }) => {
   const [search, setSearch] = useState('')
   const [courierFilter, setCourierFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [sortBy, setSortBy] = useState('pending_first')
   const [currentPage, setCurrentPage] = useState(1)
   const ordersPerPage = 20
   const [syncHover, setSyncHover] = useState(false)
@@ -59,14 +60,35 @@ const Orders = ({ role, onPageChange, onOrdersLoad }) => {
 
     // status filter
     const matchStatus = statusFilter === 'all' ||
-      order.msg_sent?.toUpperCase() === statusFilter.toUpperCase()
+  (statusFilter === 'SENT'
+    ? ['YES', 'SENT'].includes(order.msg_sent?.toUpperCase())
+    : order.msg_sent?.toUpperCase() === statusFilter.toUpperCase())
 
     return matchSearch && matchCourier && matchStatus
   })
   // pagination logic
-  const totalPages = Math.ceil(filteredOrders.length / ordersPerPage)
-  const startIndex = (currentPage - 1) * ordersPerPage
-  const paginatedOrders = filteredOrders.slice(startIndex, startIndex + ordersPerPage)
+  const sortedOrders = [...filteredOrders].sort((a, b) => {
+  if (sortBy === 'pending_first') {
+    const pendingStatuses = ['NO', 'FAILED']
+    const aIsPending = pendingStatuses.includes(a.msg_sent?.toUpperCase())
+    const bIsPending = pendingStatuses.includes(b.msg_sent?.toUpperCase())
+    if (aIsPending && !bIsPending) return -1
+    if (!aIsPending && bIsPending) return 1
+    return 0
+  }
+  if (sortBy === 'newest') {
+    return new Date(b.last_updated) - new Date(a.last_updated)
+  }
+  if (sortBy === 'oldest') {
+    return new Date(a.last_updated) - new Date(b.last_updated)
+  }
+  return 0
+})
+
+const totalPages = Math.ceil(sortedOrders.length / ordersPerPage)
+const startIndex = (currentPage - 1) * ordersPerPage
+const paginatedOrders = sortedOrders.slice(startIndex, startIndex + ordersPerPage)
+
 
   // handle send single order
   const handleSend = async (order) => {
@@ -297,11 +319,28 @@ const Orders = ({ role, onPageChange, onOrdersLoad }) => {
           }}
         >
           <option value='all'>All statuses</option>
-          <option value='YES'>Sent</option>
-          <option value='SENT'>Sent (Accepted)</option>
+          <option value='SENT'>Sent</option>
           <option value='DELIVERED'>Delivered</option>
           <option value='NO'>Pending</option>
           <option value='FAILED'>Failed</option>
+        </select>
+
+        <select
+          value={sortBy}
+          onChange={e => setSortBy(e.target.value)}
+          style={{
+            height: '38px', padding: '0 12px',
+            border: '1px solid #e6e8ee',
+            background: '#ffffff',
+            borderRadius: '10px', color: '#0f1117',
+            fontFamily: 'inherit', fontSize: '13px',
+            cursor: 'pointer', outline: 'none',
+            flexShrink: 0
+          }}
+        >
+          <option value='pending_first'>Pending First</option>
+          <option value='newest'>Newest First</option>
+          <option value='oldest'>Oldest First</option>
         </select>
 
         {/* order count */}
