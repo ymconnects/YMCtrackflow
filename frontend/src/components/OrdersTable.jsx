@@ -110,11 +110,7 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry }) => {
 
               {/* message sent status badge */}
               <td style={{ padding: '12px 16px' }}>
-                <StatusBadge status={
-                  order.msg_sent === 'YES' ? 'Sent' :
-                  order.msg_sent === 'FAILED' ? 'Failed' :
-                  'Pending'
-                } />
+               <StatusBadge status={order.msg_sent} />
               </td>
 
               {/* action buttons - only if showActions true */}
