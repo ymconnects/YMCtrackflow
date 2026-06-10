@@ -71,7 +71,14 @@ const Orders = ({ role, onPageChange, onOrdersLoad }) => {
   // pagination logic
   const parseDate = (d) => {
   if (!d) return 0
-  return new Date(d.replace(' ', 'T')).getTime()
+  try {
+    const parts = d.trim().split(' ')
+    const datePart = parts[0]
+    const timePart = parts[1] ? parts[1].padStart(8, '0') : '00:00:00'
+    return new Date(`${datePart}T${timePart}`).getTime()
+  } catch {
+    return 0
+  }
 }
 
 const sortedOrders = [...filteredOrders].sort((a, b) => {
