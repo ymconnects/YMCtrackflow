@@ -88,7 +88,7 @@ def send_fixed_reply(phone):
         "to": phone,
         "type": "text",
         "text": {
-            "body": "Thank you for contacting Yashvant Mangal Classes.\n\nFor any queries, please contact us:\n\nFor Dispatch/Courier Related Query : 8955122355\nFor Activation Related Query : 7425055442\nFor Software Related Technical Assistance : 7425055442\nFor Products Purchase Related Query : 8690270442 , 9216812400\nIf your books are not delivered within 7 working days, please contact : 8955122355\n\nTeam Yashvant Mangal Classes"
+            "body": "Thank you for contacting Yashvant Mangal Classes.\n\nFor any queries, please contact us:\n\nFor Dispatch/Courier Related Query : 8955122355\nFor Activation Related Query : 7425055442\nFor Lectures Link Related Query : 7073699442\nFor Software Related Technical Assistance : 7425055442\nFor Products Purchase Related Query : 8690270442 , 9216812400\nIf your books are not delivered within 7 working days, please contact : 8955122355\n\nTeam Yashvant Mangal Classes"
         }
     }
     response = requests.post(url, headers=headers, json=data)
