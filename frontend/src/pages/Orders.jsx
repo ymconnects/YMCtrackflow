@@ -33,6 +33,9 @@ const Orders = ({ role, onPageChange, onOrdersLoad }) => {
   const [syncHover, setSyncHover] = useState(false)
   const [retryHover, setRetryHover] = useState(false) 
   const [runHover, setRunHover] = useState(false)
+  const [syncing, setSyncing] = useState(false)
+  const [retrying, setRetrying] = useState(false)
+  const [runningNow, setRunningNow] = useState(false)
 
   // tell App.jsx we are on orders page
   useEffect(() => {
@@ -133,24 +136,7 @@ const paginatedOrders = sortedOrders.slice(startIndex, startIndex + ordersPerPag
     }
   }
 
-  // handle run now
-  const handleRun = async () => {
-    const result = await handleRunNow()
-    if (result.success) {
-      ToastContainer.addToast(result.message, 'success')
-    } else {
-      ToastContainer.addToast(result.message, 'error')
-    }
-  }
-  // handle retry all failed
-  const handleRetryAll = async () => {
-    const result = await handleRetryFailed()
-    if (result.success) {
-      ToastContainer.addToast(result.message, 'success')
-    } else {
-      ToastContainer.addToast(result.message, 'error')
-    }
-  }
+  
   // loading state
   if (loading) {
     return (
@@ -198,13 +184,16 @@ const paginatedOrders = sortedOrders.slice(startIndex, startIndex + ordersPerPag
         <div style={{ display: 'flex', gap: '8px' }}>
           <button
             onClick={async () => {
-              const result = await handleSync()
-              if (result.success) {
-                ToastContainer.addToast('Sheet synced ✓', 'success')
-              } else {
-                ToastContainer.addToast('Sync failed', 'error')
-              }
-            }}
+  setSyncing(true)
+  const result = await handleSync()
+  setSyncing(false)
+  if (result.success) {
+    ToastContainer.addToast('Sheet synced ✓', 'success')
+  } else {
+    ToastContainer.addToast('Sync failed', 'error')
+  }
+}}
+            disabled={syncing || retrying || runningNow}
             onMouseEnter={() => setSyncHover(true)}
             onMouseLeave={() => setSyncHover(false)}
             style={{
@@ -219,15 +208,24 @@ const paginatedOrders = sortedOrders.slice(startIndex, startIndex + ordersPerPag
               transform: syncHover ? 'translateY(-1px)' : 'none'
             }}
           >
-            <RefreshCw size={14} /> Sync sheet
+            <RefreshCw size={14} /> {syncing ? 'Syncing...' : 'Sync sheet'}
           </button>
 
           {/* retry failed - admin and manager only */}
           {(role === 'admin' || role === 'manager') && (
             <>
             <button
-              onClick={handleRetryAll}
-              disabled={running}
+              onClick={async () => {
+                          setRetrying(true)
+                          const result = await handleRetryFailed()
+                          setRetrying(false)
+                          if (result.success) {
+                            ToastContainer.addToast(result.message, 'success')
+                          } else {
+                            ToastContainer.addToast(result.message, 'error')
+                          }
+                        }}
+              disabled={syncing || retrying || runningNow}
               onMouseEnter={() => setRetryHover(true)}
               onMouseLeave={() => setRetryHover(false)}
               style={{
@@ -242,20 +240,29 @@ const paginatedOrders = sortedOrders.slice(startIndex, startIndex + ordersPerPag
                 transform: retryHover ? 'translateY(-1px)' : 'none'
               }}
             >
-              <RotateCcw size={14} /> Retry failed
+              <RotateCcw size={14} /> {retrying ? 'Retrying...' : 'Retry failed'}
             </button>
             
             <button
-              onClick={handleRun}
-              disabled={running}
+              onClick={async () => {
+                  setRunningNow(true)
+                  const result = await handleRunNow()
+                  setRunningNow(false)
+                  if (result.success) {
+                    ToastContainer.addToast(result.message, 'success')
+                  } else {
+                    ToastContainer.addToast(result.message, 'error')
+                  }
+                }}
+              disabled={syncing || retrying || runningNow}
               onMouseEnter={() => setRunHover(true)}
               onMouseLeave={() => setRunHover(false)}
               style={{
                 height: '36px', padding: '0 14px',
-                background: running ? '#7a8090' : runHover ? '#0e7268' : '#128C7E',
+                background: (syncing || retrying || runningNow) ? '#7a8090' : runHover ? '#0e7268' : '#128C7E',
                 border: 'none',
                 borderRadius: '8px', fontWeight: '600',
-                fontSize: '13px', cursor: running ? 'not-allowed' : 'pointer',
+                fontSize: '13px', cursor: (syncing || retrying || runningNow) ? 'not-allowed' : 'pointer',
                 display: 'flex', alignItems: 'center',
                 gap: '6px', fontFamily: 'inherit', color: '#ffffff',
                 transition: 'all 0.15s ease',
@@ -263,7 +270,7 @@ const paginatedOrders = sortedOrders.slice(startIndex, startIndex + ordersPerPag
               }}
                   
 >
-              ▶ Run now
+              {runningNow ? 'Running...' : '▶ Run now'}
               </button>
               </>
  
