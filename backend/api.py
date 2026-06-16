@@ -10,6 +10,7 @@ from campaigns.bulk_sender import send_campaign, calculate_cost, track_progress
 from campaigns.audience_filter import estimate_audience_count
 from campaigns.campaign_scheduler import schedule_campaign, cancel_scheduled_campaign, get_scheduled_campaigns
 from config import load_config
+from whatsapp import get_all_templates, delete_template, create_template
 import os 
 
 app = Flask(__name__)
@@ -56,6 +57,53 @@ def me():
         "role": payload["role"],
         "tab": payload["tab"]
     })
+
+@app.route("/templates", methods=["GET"])
+def templates():
+    token = get_token_from_request()
+    payload = verify_session(token)
+    if not payload:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    if payload["role"] not in ["admin", "campaigner"]:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+    success, data = get_all_templates()
+    if success:
+        return jsonify({"success": True, "templates": data})
+    return jsonify({"success": False, "message": data}), 500
+
+
+@app.route("/templates/delete", methods=["DELETE"])
+def template_delete():
+    token = get_token_from_request()
+    payload = verify_session(token)
+    if not payload:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    if payload["role"] not in ["admin", "campaigner"]:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+    name = request.args.get("name")
+    if not name:
+        return jsonify({"success": False, "message": "Template name required"}), 400
+    success, msg = delete_template(name)
+    if success:
+        return jsonify({"success": True, "message": f"{name} deleted"})
+    return jsonify({"success": False, "message": msg}), 500
+
+
+@app.route("/templates/create", methods=["POST"])
+def template_create():
+    token = get_token_from_request()
+    payload = verify_session(token)
+    if not payload:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    if payload["role"] not in ["admin", "campaigner"]:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+    data = request.json
+    if not data:
+        return jsonify({"success": False, "message": "No data provided"}), 400
+    success, result = create_template(data)
+    if success:
+        return jsonify({"success": True, "result": result})
+    return jsonify({"success": False, "message": result}), 500
 
 @app.route("/status", methods=["GET"])
 def status():

@@ -111,4 +111,15 @@ export const removeToken = () => {
   localStorage.removeItem('token')
 }
 
+export const getTemplates = () => {
+  return api.get('/templates')
+}
+
+export const deleteTemplate = (name) => {
+  return api.delete(`/templates/delete?name=${name}`)
+}
+
+export const createTemplate = (data) => {
+  return api.post('/templates/create', data)
+}
 export default api

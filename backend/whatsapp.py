@@ -94,3 +94,45 @@ def send_fixed_reply(phone):
     response = requests.post(url, headers=headers, json=data)
     print(f"Auto reply sent to {phone}: {response.status_code}", flush=True)
     return response.status_code == 200
+
+def get_all_templates():
+    config = load_config()
+    url = f"https://graph.facebook.com/v18.0/{config['META_WABA_ID']}/message_templates"
+    headers = {
+        "Authorization": f"Bearer {config['META_ACCESS_TOKEN']}"
+    }
+    params = {
+        "fields": "name,status,category,language,components",
+        "limit": 100
+    }
+    response = requests.get(url, headers=headers, params=params)
+    print(f"Get templates: {response.status_code}", flush=True)
+    if response.status_code == 200:
+        return True, response.json().get("data", [])
+    return False, response.text
+
+
+def delete_template(name):
+    config = load_config()
+    url = f"https://graph.facebook.com/v18.0/{config['META_WABA_ID']}/message_templates"
+    headers = {
+        "Authorization": f"Bearer {config['META_ACCESS_TOKEN']}"
+    }
+    params = {"name": name}
+    response = requests.delete(url, headers=headers, params=params)
+    print(f"Delete template {name}: {response.status_code}", flush=True)
+    return response.status_code == 200, response.text
+
+
+def create_template(payload):
+    config = load_config()
+    url = f"https://graph.facebook.com/v18.0/{config['META_WABA_ID']}/message_templates"
+    headers = {
+        "Authorization": f"Bearer {config['META_ACCESS_TOKEN']}",
+        "Content-Type": "application/json"
+    }
+    response = requests.post(url, headers=headers, json=payload)
+    print(f"Create template: {response.status_code} | {response.text}", flush=True)
+    if response.status_code == 200:
+        return True, response.json()
+    return False, response.text
