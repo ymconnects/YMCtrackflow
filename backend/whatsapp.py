@@ -135,4 +135,4 @@ def create_template(payload):
     print(f"Create template: {response.status_code} | {response.text}", flush=True)
     if response.status_code == 200:
         return True, response.json()
-    return False, response.text
+    return False, response.text 
