@@ -97,7 +97,6 @@ def send_fixed_reply(phone):
 
 def get_all_templates():
     config = load_config()
-    url = f"https://graph.facebook.com/v18.0/{config['META_WABA_ID']}/message_templates"
     headers = {
         "Authorization": f"Bearer {config['META_ACCESS_TOKEN']}"
     }
@@ -105,13 +104,20 @@ def get_all_templates():
         "fields": "name,status,category,language,components",
         "limit": 100
     }
-    response = requests.get(url, headers=headers, params=params)
-    print(f"Get templates: {response.status_code}", flush=True)
-    if response.status_code == 200:
-      full = response.json()
-      print(f"Template response: {full}", flush=True)
-      return True, full.get("data", [])
-    return False, response.text
+    all_templates = []
+    url = f"https://graph.facebook.com/v18.0/{config['META_WABA_ID']}/message_templates"
+    while url:
+        response = requests.get(url, headers=headers, params=params)
+        print(f"Get templates: {response.status_code}", flush=True)
+        if response.status_code != 200:
+            return False, response.text
+        full = response.json()
+        all_templates.extend(full.get("data", []))
+        next_url = full.get("paging", {}).get("next")
+        url = next_url
+        params = {}
+    print(f"Total templates fetched: {len(all_templates)}", flush=True)
+    return True, all_templates
 
 
 def delete_template(name):
