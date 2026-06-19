@@ -116,7 +116,6 @@ def get_all_templates():
         next_url = full.get("paging", {}).get("next")
         url = next_url
         params = {}
-    print(f"Total templates fetched: {len(all_templates)}", flush=True)
     return True, all_templates
 
 
