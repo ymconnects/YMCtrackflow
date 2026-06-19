@@ -108,7 +108,9 @@ def get_all_templates():
     response = requests.get(url, headers=headers, params=params)
     print(f"Get templates: {response.status_code}", flush=True)
     if response.status_code == 200:
-        return True, response.json().get("data", [])
+      full = response.json()
+      print(f"Template response: {full}", flush=True)
+      return True, full.get("data", [])
     return False, response.text
 
 
