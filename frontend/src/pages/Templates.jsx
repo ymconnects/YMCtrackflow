@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react'
 import { getTemplates, deleteTemplate } from '../utils/api'
 import { RefreshCw, Plus, Trash2, Copy } from 'lucide-react'
+import TemplateForm from '../components/TemplateForm'
 
 const Templates = ({ role, onPageChange }) => {
 
@@ -14,6 +15,8 @@ const Templates = ({ role, onPageChange }) => {
   const [search, setSearch] = useState('')
   const [deleting, setDeleting] = useState(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [showForm, setShowForm] = useState(false)
+  const [copyData, setCopyData] = useState(null)
 
   useEffect(() => {
     onPageChange('templates')
@@ -79,6 +82,28 @@ const Templates = ({ role, onPageChange }) => {
         borderRadius: '999px', fontWeight: '600'
       }}>{status}</span>
     )
+  }
+
+  const handleCopy = (t) => {
+    const components = t.components || []
+    const headerComp = components.find(c => c.type === 'HEADER')
+    const bodyComp = components.find(c => c.type === 'BODY')
+    const footerComp = components.find(c => c.type === 'FOOTER')
+    const buttonsComp = components.find(c => c.type === 'BUTTONS')
+    setCopyData({
+      name: t.name + '_copy',
+      category: t.category,
+      headerType: headerComp ? headerComp.format : 'NONE',
+      headerText: headerComp?.format === 'TEXT' ? headerComp.text : '',
+      body: bodyComp?.text || '',
+      footer: footerComp?.text || '',
+      buttons: buttonsComp?.buttons?.map(b => ({
+        type: b.type === 'URL' ? 'Visit website' : b.type === 'PHONE_NUMBER' ? 'Call Phone Number' : b.type === 'COPY_CODE' ? 'Copy offer code' : 'Custom',
+        text: b.text || '',
+        value: b.url || b.phone_number || b.example || ''
+      })) || []
+    })
+    setShowForm(true)
   }
 
   const tabs = ['all', 'draft', 'pending', 'approved']
@@ -158,6 +183,7 @@ const Templates = ({ role, onPageChange }) => {
         </button>
 
         <button
+          onClick={() => { setCopyData(null); setShowForm(true) }}
           style={{
             height: '36px', padding: '0 14px',
             background: '#128C7E', border: 'none',
@@ -241,6 +267,7 @@ const Templates = ({ role, onPageChange }) => {
                     <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                       <button
                         title='Copy template'
+                        onClick={() => handleCopy(t)}
                         style={{
                           width: '32px', height: '32px', padding: 0,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -271,6 +298,51 @@ const Templates = ({ role, onPageChange }) => {
           </tbody>
         </table>
       </div>
+
+      {/* template form modal */}
+      {showForm && (
+        <div style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(0,0,0,0.4)',
+          zIndex: 1000,
+          display: 'flex', alignItems: 'flex-start',
+          justifyContent: 'center',
+          overflowY: 'auto',
+          padding: '40px 20px'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            padding: '28px',
+            width: '100%',
+            maxWidth: '900px',
+            position: 'relative'
+          }}>
+            <div style={{
+              display: 'flex', alignItems: 'center',
+              justifyContent: 'space-between', marginBottom: '24px'
+            }}>
+              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '700' }}>
+                {copyData ? 'Copy template' : 'New template'}
+              </h2>
+              <button
+                onClick={() => { setShowForm(false); setCopyData(null) }}
+                style={{
+                  width: '32px', height: '32px', padding: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  border: '1px solid #e6e8ee', borderRadius: '8px',
+                  background: 'transparent', cursor: 'pointer', fontSize: '18px', color: '#4b5160'
+                }}
+              >✕</button>
+            </div>
+            <TemplateForm
+              initialData={copyData}
+              onClose={() => { setShowForm(false); setCopyData(null) }}
+              onCreated={() => { setShowForm(false); setCopyData(null); fetchTemplates() }}
+            />
+          </div>
+        </div>
+      )}
 
     </div>
   )
