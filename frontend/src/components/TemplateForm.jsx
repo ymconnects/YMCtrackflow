@@ -25,7 +25,7 @@ const inputStyle = {
 }
 
 const TemplateForm = ({ initialData, onClose, onCreated }) => {
-  const [step, setStep] = useState(1)
+  const [step, setStep] = useState(initialData ? 2 : 1)
   const [category, setCategory] = useState(initialData?.category || 'UTILITY')
   const [name, setName] = useState(initialData?.name || '')
   const [varFormat, setVarFormat] = useState('number')
