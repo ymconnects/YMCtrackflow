@@ -231,23 +231,6 @@ const TemplateForm = ({ initialData, onClose, onCreated }) => {
               </select>
             </div>
 
-           {/* header */}
-             <div style={card}>
-               <div style={{ fontSize: '13.5px', fontWeight: '600', marginBottom: '10px' }}>
-                 Header <span style={{ fontWeight: '400', color: '#7a8090', fontSize: '12px' }}>· optional · text only</span>
-               </div>
-               <input value={headerText} onChange={e => setHeaderText(e.target.value)} maxLength={60} placeholder='Order Update' style={inputStyle} />
-               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
-                 <button onClick={addHeaderVar} style={{ fontSize: '11.5px', padding: '3px 8px', color: GREEN, background: '#fff', border: '1px solid #e6e8ee', borderRadius: '6px', cursor: 'pointer' }}>
-                   <Plus size={12} style={{ verticalAlign: '-1px' }} /> Add variable
-                 </button>
-                 <span style={{ fontSize: '11px', color: '#7a8090' }}>{headerText.length} / 60</span>
-               </div>
-               {headerVars.length > 0 && (
-                 <input value={headerSample} onChange={e => setHeaderSample(e.target.value)} placeholder='Sample value for header {{1}}' style={{ ...inputStyle, marginTop: '8px' }} />
-               )}
-             </div>
-             
              {/* media */}
              <div style={card}>
                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
@@ -268,6 +251,25 @@ const TemplateForm = ({ initialData, onClose, onCreated }) => {
                  </div>
                )}
              </div>
+
+           {/* header */}
+             <div style={card}>
+               <div style={{ fontSize: '13.5px', fontWeight: '600', marginBottom: '10px' }}>
+                 Header <span style={{ fontWeight: '400', color: '#7a8090', fontSize: '12px' }}>· optional · text only</span>
+               </div>
+               <input value={headerText} onChange={e => setHeaderText(e.target.value)} maxLength={60} placeholder='Order Update' style={inputStyle} />
+               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
+                 <button onClick={addHeaderVar} style={{ fontSize: '11.5px', padding: '3px 8px', color: GREEN, background: '#fff', border: '1px solid #e6e8ee', borderRadius: '6px', cursor: 'pointer' }}>
+                   <Plus size={12} style={{ verticalAlign: '-1px' }} /> Add variable
+                 </button>
+                 <span style={{ fontSize: '11px', color: '#7a8090' }}>{headerText.length} / 60</span>
+               </div>
+               {headerVars.length > 0 && (
+                 <input value={headerSample} onChange={e => setHeaderSample(e.target.value)} placeholder='Sample value for header {{1}}' style={{ ...inputStyle, marginTop: '8px' }} />
+               )}
+             </div>
+             
+             
 
             {/* body */}
             <div style={card}>
