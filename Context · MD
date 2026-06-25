@@ -1,0 +1,114 @@
+# YMCTRACKFLOW — CONTEXT FILE
+# Paste this + MASTER.md at start of every NEW chat
+# Last updated: June 25, 2026
+
+═══════════════════════════════════════════
+QUICK START
+═══════════════════════════════════════════
+
+Project  : YMCTrackFlow
+Live     : https://ymctrackflow.onrender.com (backend)
+           https://ymctrackflow.vercel.app (frontend)
+GitHub   : https://github.com/ymconnects/YMCtrackflow
+Local    : D:\YMCtrackflow
+Python   : py -3.11
+Rules    : Cave man mode. One step at a time. 🦴
+
+WORKFLOW:
+Plan here (Opus) → paste brief into Claude Code (Sonnet) → it builds.
+Claude Code: cd D:\YMCtrackflow → claude
+
+═══════════════════════════════════════════
+WHAT THIS SYSTEM DOES
+═══════════════════════════════════════════
+
+Manager pastes orders → system sends WhatsApp tracking auto.
+Webhook receives delivery updates from Meta.
+Dashboard shows real-time status.
+(Campaigns for bulk offers = being built, Phase 3.)
+
+═══════════════════════════════════════════
+CURRENT SYSTEM STATUS
+═══════════════════════════════════════════
+
+WORKING:
+✅ WhatsApp tracking messages (all 4 couriers)
+✅ Google Sheets connected + syncing
+✅ Deep links auto-generated (Apps Script)
+✅ Server alive 24/7 (cron-job.org + internal ping)
+✅ Webhook: delivery status + auto reply within 24hr
+✅ Status: SENT → DELIVERED / FAILED
+✅ Orders page: filters, sort, badges, button loading states
+✅ Dashboard: courier split, stats
+✅ Frontend on Vercel
+✅ Meta Live + Business Verified
+✅ Quality rating HIGH (80% click rate)
+✅ TEMPLATE MANAGEMENT — full live system (fetch/create/copy/delete,
+   3-step form, live preview)
+
+KNOWN ISSUES (Supabase will fix):
+⚠️ ~30% bulk messages stay at SENT — Google Sheets rate limit (60/min),
+   NOT a webhook bug. Fixed by Supabase migration.
+⚠️ Failure reasons not captured — we see FAILED but not WHY. Phase 2.
+
+PENDING EXTERNAL:
+⏳ OBA (blue tick) — apply when ready
+⏳ Two-step verification — needs boss Facebook email verified
+
+═══════════════════════════════════════════
+THE ROADMAP (where we are)
+═══════════════════════════════════════════
+
+✅ Template Management        — DONE
+▶️ PHASE 1 — Supabase Foundation      ← WE ARE HERE (next)
+   PHASE 2 — Error Capture & Smart Retry
+   PHASE 3 — Campaign System (main milestone)
+   PHASE 4 — Campaign Safety (opt-out, quality monitor)
+   PHASE 5 — Polish (care redirect button, user mgmt UI)
+
+PHASE 1 DECISIONS MADE:
+- Merge 4 courier tabs → ONE orders table + courier column
+- Google Sheets fully replaced (not kept as backup)
+- Everything moves to Supabase (orders, campaigns, users, logs, settings)
+- New columns from day one: status, error_code, error_reason, wamid
+
+═══════════════════════════════════════════
+KEY FACTS TO REMEMBER
+═══════════════════════════════════════════
+
+META_PHONE_NUMBER_ID = 1569335317942266  (SENDING)
+META_WABA_ID = 2813814805677902          (TEMPLATES) — DIFFERENT!
+
+SENDING ORDER: write SENT first → send → webhook wins on final status
+OTHERS TAB: extra Courier Name col, indices shift by 1
+TEMPLATE LANG: en_US not en
+NEVER commit .env (GitHub auto-revokes Google keys)
+Failed messages generally NOT billed (confirm in WhatsApp Manager)
+
+═══════════════════════════════════════════
+COMMON COMMANDS
+═══════════════════════════════════════════
+
+Backend local : cd D:\YMCtrackflow\backend → py -3.11 api.py
+Frontend local: cd D:\YMCtrackflow\frontend → npm run dev
+Compile test  : py -3.11 -m py_compile <file>.py
+Push          : git add . → git commit -m "msg" → git push origin HEAD
+Fix rejection : git pull origin main --no-edit → git commit --no-edit → push
+Backup        : git branch backup-working-version
+Restore       : git checkout backup-working-version
+Claude Code   : cd D:\YMCtrackflow → claude
+
+═══════════════════════════════════════════
+START NEXT CHAT WITH:
+═══════════════════════════════════════════
+
+"Continuing YMCTrackFlow. [what you want to do].
+Cave man mode. 🦴"
+Paste MASTER.md + this CONTEXT.md at start.
+
+CLAUDE CODE FIRST MESSAGE:
+"Read MASTER.md and CONTEXT.md to understand YMCTrackFlow.
+Cave man mode: one small step, explain before coding, wait for my OK,
+compile test before push, push to GitHub after every file change.
+We are starting Phase 1 — Supabase Foundation."
+🦴
