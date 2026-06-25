@@ -146,6 +146,7 @@ def batch_update_orders(updates):
     IST = pytz.timezone('Asia/Kolkata')
     now = str(datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S'))
 
+    # group updates by tab
     tabs = {}
     for update in updates:
         tab_name = update["tab_name"]
@@ -153,22 +154,38 @@ def batch_update_orders(updates):
             tabs[tab_name] = []
         tabs[tab_name].append(update)
 
+    # one batch API call per tab (not per cell)
     for tab_name, tab_updates in tabs.items():
         tab = sheet.worksheet(tab_name)
         msg_col, date_col = _get_status_columns(tab_name)
+
+        # build a list of cell updates for ONE batch call
+        cell_list = []
         for update in tab_updates:
             row = update["row_number"]
             status = update["status"]
-           
-            tab.update_cell(row, msg_col, status)
-            tab.update_cell(row, msg_col, status)
-            tab.update_cell(row, date_col, now)
-            if _cache["orders"]:
+            cell_list.append({
+                "range": gspread.utils.rowcol_to_a1(row, msg_col),
+                "values": [[status]]
+            })
+            cell_list.append({
+                "range": gspread.utils.rowcol_to_a1(row, date_col),
+                "values": [[now]]
+            })
+
+        # single API call for all cells in this tab
+        if cell_list:
+            tab.batch_update(cell_list)
+
+        # update cache in memory
+        if _cache["orders"]:
+            for update in tab_updates:
+                row = update["row_number"]
+                status = update["status"]
                 for order in _cache["orders"]:
                     if order["row_number"] == row and order["tab_name"] == tab_name:
                         order["msg_sent"] = status
                         order["last_updated"] = now
-
 def get_all_contacts():
     config = load_config()
     client = connect_google_sheets()
