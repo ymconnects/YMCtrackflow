@@ -1,6 +1,6 @@
 # YMCTRACKFLOW — MASTER DOCUMENT
-# Version 9.0 — SYSTEM LIVE + WEBHOOK + STATUS FIX
-# Paste this at start of every coding chat
+# Version 10.0 — SUPABASE + CAMPAIGN ROADMAP
+# Paste this + CONTEXT.md at start of every coding chat
 
 ═══════════════════════════════════════════
 SECTION 1 — WHAT WE BUILDING
@@ -9,30 +9,29 @@ SECTION 1 — WHAT WE BUILDING
 Name    : YMCTrackFlow
 What    : WhatsApp order tracking system
           + bulk campaign messaging
-Who     : Small business team — YMC (Yashvant Mangal Classes)
-How     : Manager pastes orders in Google Sheet
-          System sends WhatsApp auto
+Who     : YMC (Yashvant Mangal Classes)
+How     : Manager pastes orders → system sends WhatsApp auto
           Team controls from dashboard
           Webhook updates real delivery status
+          Campaigns send bulk offers to students
 
 ═══════════════════════════════════════════
 SECTION 2 — TECH WE USE
 ═══════════════════════════════════════════
 
 Backend  : Python 3.11 + Flask
-Frontend : React 18 + Tailwind CSS
-Database : Google Sheets
+Frontend : React 18 + Tailwind / inline styles
+Database : Google Sheets (CURRENT) → Supabase (MIGRATING)
 Hosting  : Render (backend, free tier)
-           Vercel (frontend, free forever)
-WhatsApp : Meta Cloud API (direct)
+           Vercel (frontend, free)
+WhatsApp : Meta Cloud API (direct, no middleman)
 Editor   : VS Code
 Saving   : GitHub
 
-NO MIDDLEMEN:
-→ No AiSensy (cancelled)
-→ No Pabbly
-→ No Zapier
-→ Direct Meta API only
+TWO-TOOL WORKFLOW:
+→ claude.ai chat (Opus)  = ARCHITECT — plan, design, decide, write briefs
+→ Claude Code (Sonnet)   = BUILDER  — read files, write code, test, push
+Rule: plan here → paste brief into Claude Code → it builds step by step
 
 ═══════════════════════════════════════════
 SECTION 3 — LIVE URLS
@@ -52,19 +51,19 @@ Frontend : http://localhost:5173
 SECTION 4 — LOGIN CREDENTIALS
 ═══════════════════════════════════════════
 
-admin/admin123
-manager1/mgr123
-campaign1/camp123
-viewer1/view123
+admin/admin123        → full access
+manager1/mgr123       → orders only
+campaign1/camp123     → campaigns + templates only
+viewer1/view123       → read only
 
 ═══════════════════════════════════════════
-SECTION 5 — SECRET KEYS (.env file)
+SECTION 5 — SECRET KEYS (.env)
 ═══════════════════════════════════════════
 
 META:
 META_ACCESS_TOKEN=
-META_PHONE_NUMBER_ID=1141358262394241
-META_WABA_ID=2813814805677902
+META_PHONE_NUMBER_ID=1569335317942266   ← phone number ID (for SENDING)
+META_WABA_ID=2813814805677902           ← WABA ID (for TEMPLATES) - DIFFERENT!
 
 TEMPLATES:
 META_TEMPLATE_ANJANI=ymc_anjani
@@ -75,9 +74,13 @@ META_TEMPLATE_OTHERS=ymc_order_tracking
 WEBHOOK:
 WEBHOOK_VERIFY_TOKEN=ymctrackflow123
 
-GOOGLE SHEETS:
+GOOGLE SHEETS (current):
 GOOGLE_SHEET_ID=
 GOOGLE_CREDENTIALS_FILE=credentials.json
+
+SUPABASE (to add in Phase 1):
+SUPABASE_URL=
+SUPABASE_KEY=
 
 SHEET TAB NAMES:
 SHEET_TAB_1=Shree Anjani Couriers
@@ -89,396 +92,280 @@ SYSTEM:
 FLASK_PORT=5000
 FLASK_SECRET_KEY=
 
+CRITICAL: META_WABA_ID ≠ META_PHONE_NUMBER_ID
+Sending uses PHONE_NUMBER_ID. Templates use WABA_ID. Mixing them = wrong
+templates load. (This bug already cost us once — fixed June 2026.)
+
 ═══════════════════════════════════════════
-SECTION 6 — GOOGLE SHEET STRUCTURE
+SECTION 6 — GOOGLE SHEET STRUCTURE (CURRENT)
 ═══════════════════════════════════════════
 
 ONE MASTER FILE — FIVE TABS
 
-TAB 1: Shree Anjani Couriers
-TAB 2: DTDC Couriers
-TAB 3: Shree Maruti Couriers
-TAB 4: Others (extra Courier Name column)
-TAB 5: Settings (system_on, auto_message)
+COURIER TABS (Anjani / DTDC / Maruti):
+A=Name  B=Phone  C=Tracking ID  D=Tracking Link  E=Message Sent  F=Last Updated
 
-COURIER TABS (1-3) COLUMNS:
-Col A → Name
-Col B → Phone
-Col C → Tracking ID
-Col D → Tracking Link (auto by Apps Script)
-Col E → Message Sent (NO/SENT/DELIVERED/FAILED)
-Col F → Last Updated
-
-OTHERS TAB COLUMNS:
-Col A → Name
-Col B → Phone
-Col C → Courier Name ← EXTRA COLUMN
-Col D → Tracking ID
-Col E → Tracking Link
-Col F → Message Sent
-Col G → Last Updated
+OTHERS TAB (extra Courier Name column):
+A=Name  B=Phone  C=Courier Name  D=Tracking ID  E=Tracking Link
+F=Message Sent  G=Last Updated
 
 SETTINGS TAB:
-Row 2, Col A → system_on (TRUE/FALSE)
-Row 2, Col B → auto_message (TRUE/FALSE)
+Row2 ColA=system_on (TRUE/FALSE)  ColB=auto_message (TRUE/FALSE)
 
-STATUS VALUES (standardised):
-NO        → Not sent yet (Pending)
-SENT      → Accepted by Meta
-DELIVERED → Reached student phone
-FAILED    → Failed (wrong number etc)
-NOTE: OLD "YES" status replaced with DELIVERED in sheet
+STATUS VALUES:
+NO=pending  SENT=accepted by Meta  DELIVERED=reached phone  FAILED=failed
 
 ═══════════════════════════════════════════
-SECTION 7 — WHATSAPP TEMPLATES
+SECTION 7 — WHATSAPP TEMPLATES (ALL APPROVED)
 ═══════════════════════════════════════════
 
-PHONE NUMBER: +91 63500 44328
-WABA ID: 2813814805677902
+PHONE: +91 63500 44328   WABA: 2813814805677902
 
-4 TEMPLATES — ALL APPROVED:
+ymc_anjani  (Utility) → {{1}}=Name {{2}}=TrackingID, Button awb={{1}}
+ymc_dtdc    (Utility) → {{1}}=Name {{2}}=TrackingID, Button awb={{1}}
+ymc_maruti  (Utility) → {{1}}=Name {{2}}=TrackingID, Button awb={{1}}
+ymc_order_tracking (Utility) → {{1}}=Name {{2}}=Courier {{3}}=TrackingID
+                               {{4}}=Link, no button (link in body)
 
-ymc_anjani (Utility, en_US):
-→ Body: Dear {{1}}, Thank you... Courier: Shree Anjani... Tracking ID: {{2}}... contacts...
-→ Button: Track Order → https://shreeanjani.co.in/tracking?awb={{1}}
-→ Variables: {{1}}=Name, {{2}}=Tracking ID, Button {{1}}=Tracking ID
+DEEP LINKS (Apps Script auto-generates):
+DTDC   : dtdc.com/track-your-shipment/?awb=ID
+Anjani : shreeanjani.co.in/tracking?awb=ID
+Maruti : shreemaruti.com/track-shipment/?awb=ID
 
-ymc_dtdc (Utility, en_US):
-→ Body: Dear {{1}}, Thank you... Courier: DTDC... Tracking ID: {{2}}... contacts...
-→ Button: Track Order → https://www.dtdc.com/track-your-shipment/?awb={{1}}
-→ Variables: {{1}}=Name, {{2}}=Tracking ID, Button {{1}}=Tracking ID
-
-ymc_maruti (Utility, en_US):
-→ Body: Dear {{1}}, Thank you... Courier: Shree Maruti... Tracking ID: {{2}}... contacts...
-→ Button: Track Order → https://shreemaruti.com/track-shipment/?awb={{1}}
-→ Variables: {{1}}=Name, {{2}}=Tracking ID, Button {{1}}=Tracking ID
-
-ymc_order_tracking (Utility, en_US) — FOR OTHERS:
-→ Body: Dear {{1}}, Thank you... Courier: {{2}}... Tracking ID: {{3}}... Track: {{4}}... contacts...
-→ No button (link in body)
-→ Variables: {{1}}=Name, {{2}}=Courier Name, {{3}}=Tracking ID, {{4}}=Tracking Link
-
-SOCIAL LINKS IN ALL TEMPLATES:
-YouTube, Instagram, LinkedIn, Telegram CA Final, Telegram CA Inter
-
-DEEP LINK FORMATS (Apps Script auto-generates):
-DTDC    : https://www.dtdc.com/track-your-shipment/?awb=TRACKINGID
-Anjani  : https://shreeanjani.co.in/tracking?awb=TRACKINGID
-Maruti  : https://shreemaruti.com/track-shipment/?awb=TRACKINGID
-India Post : https://www.indiapost.gov.in/ (fixed, if courier name = india post)
-Others  : No auto link (Apps Script skips unknown couriers)
+TEMPLATE MANAGEMENT UI — ✅ DONE (June 2026):
+→ Live fetch from Meta (handles pagination)
+→ Search + tabs (All/Draft/Pending/Approved)
+→ Table: Name, Category, Status, Type, Copy + Delete
+→ Create form: 3-step (Setup → Edit → Submit)
+→ Setup = category pick (Utility/Marketing); Copy skips Setup (pre-filled)
+→ Edit = name/lang, variable format, header (text), media (Image/Video/
+  Document/Location), body (required), footer, buttons (max 3), live preview
+→ Submit = review + send to Meta
+→ Files: pages/Templates.jsx + components/TemplateForm.jsx
+→ Backend: whatsapp.py (get_all_templates, create_template, delete_template)
+           api.py (/templates GET, /templates/create, /templates/delete)
+           api.js (getTemplates, createTemplate, deleteTemplate)
+→ NOTE: media upload at SEND time, not creation (declare type only)
+→ Draft tab = UI ready, storage wired up later with Supabase
 
 ═══════════════════════════════════════════
 SECTION 8 — WEBHOOK SYSTEM
 ═══════════════════════════════════════════
 
-WEBHOOK URL: https://ymctrackflow.onrender.com/webhook
-VERIFY TOKEN: ymctrackflow123 (also in Render env vars)
+URL: https://ymctrackflow.onrender.com/webhook
+TOKEN: ymctrackflow123
 
-WHAT WEBHOOK DOES:
-1. Delivery status updates:
-   Meta sends → sent/delivered/read/failed
-   We update Google Sheet accordingly
-   Status map: sent→SENT, delivered→DELIVERED, read→DELIVERED, failed→FAILED
+DOES:
+1. Delivery status: sent→SENT delivered→DELIVERED read→DELIVERED failed→FAILED
+2. Auto reply to incoming (within 24hr free window) — fixed business reply
 
-2. Auto reply to incoming messages:
-   Student messages our number
-   We check — did we send them a message in last 24 hours?
-   Yes → send fixed reply (free, within 24hr window)
-   No → ignore (avoid charges)
+META ERROR DATA (Phase 2 — capture this):
+Errors live in: entry.changes.value.errors[]
+            and entry.changes.value.messages.errors[]
+Each has: code + details. Build logic on CODE, not subcode.
 
-AUTO REPLY MESSAGE:
-Thank you for contacting Yashvant Mangal Classes.
-For any queries contact:
-For Dispatch/Courier Related Query : 8955122355
-For Activation Related Query : 7425055442
-For Software Related Technical Assistance : 7425055442
-For Products Purchase Related Query : 8690270442, 9216812400
-If books not delivered in 7 days contact : 8955122355
-Team Yashvant Mangal Classes
+KEY ERROR CODES:
+131026 = not on WhatsApp / old version  → permanent, skip
+131047 = 24hr window passed             → send template
+131048 = spam restriction on number     → QUALITY WARNING, slow down
+131049 = ecosystem throttle             → QUALITY WARNING, pause
+130403 = you blocked the user           → permanent, skip
+131050 = user opted out of marketing    → permanent, suppress
+131000/131016/130429 = temporary        → retry OK
 
-META APP STATUS: Published (Live mode) ✅
-META BUSINESS: Verified (May 29, 2026) ✅
-OBA STATUS: Pending (apply again after 2 weeks from verification)
+META STATUS: Live ✅  Business Verified (May 29 2026) ✅
+QUALITY RATING: HIGH ✅ (80% button click rate on tracking)
 
 ═══════════════════════════════════════════
-SECTION 9 — HOW SENDING WORKS
+SECTION 9 — SENDING ORDER (critical)
 ═══════════════════════════════════════════
 
-CORRECT ORDER (to avoid status overwrite):
+1. Get pending orders
+2. Mark ALL as SENT in batch FIRST (before sending)
+3. Send one by one (0.5s delay)
+4. API call fails → mark FAILED immediately
+5. Webhook fires later → DELIVERED or FAILED
+6. Webhook always writes last → webhook wins
 
-1. System gets pending orders
-2. Marks ALL as SENT in one batch FIRST (before sending)
-3. Sends messages one by one (0.5s delay between each)
-4. If API call itself fails → marks FAILED immediately
-5. Webhook fires later → updates DELIVERED or FAILED
-6. Webhook always writes last → correct status stays
-
-WHY THIS ORDER MATTERS:
-Old problem: System marked YES after sending → overwrote webhook FAILED
-New system: SENT written first → webhook fires after → webhook wins
-
-ALL SENDING PATHS FIXED:
-→ Run Now (Dashboard) → process_all_tabs → ✅ fixed
-→ Run Now (Orders) → process_all_tabs → ✅ fixed
-→ Auto scheduler (every 30 min) → process_all_tabs → ✅ fixed
-→ Retry Failed → retry_failed_orders → ✅ fixed
-→ Per-row Send button → retry_single → ✅ fixed
+WHY: write SENT first so webhook (which fires after) wins on final status.
 
 ═══════════════════════════════════════════
 SECTION 10 — USER ROLES
 ═══════════════════════════════════════════
 
-ADMIN → full access, settings, campaigns
-MANAGER → orders only, can send/retry, no settings
-CAMPAIGNER → campaigns only, no orders
-VIEWER → read only, no actions
-
-PAGE          ADMIN    MANAGER   CAMPAIGNER   VIEWER
-Dashboard     ALL      ALL       NO           ALL
-Orders        ALL      ALL       NO           ALL (RO)
-Campaigns     YES      NO        YES          NO
-Logs          ALL      ORDERS    CAMPAIGNS    ORDERS (RO)
-Settings      YES      NO        NO           NO
+ADMIN      → full access, settings, campaigns, templates
+MANAGER    → orders only, send/retry, no settings
+CAMPAIGNER → campaigns + templates only
+VIEWER     → read only
 
 ═══════════════════════════════════════════
-SECTION 11 — ORDERS PAGE FEATURES
+SECTION 11 — FOLDER STRUCTURE
 ═══════════════════════════════════════════
 
-FILTERS:
-→ Search by name, order ID, phone
-→ Courier filter: All / Anjani / DTDC / Maruti / Others
-→ Status filter: All / Pending / Sent / Delivered / Failed
-→ Sort: Pending First (default) / Newest First / Oldest First
-
-STATUS DISPLAY:
-NO       → Pending (amber)
-SENT     → Sent (green)
-DELIVERED → Delivered (blue)
-FAILED   → Failed (red)
-
-ACTION BUTTONS PER ROW:
-→ Send (✉) — shows for NO and SENT orders
-→ Retry (↺) — shows for FAILED orders
-→ View (👁) — always shows, opens order detail modal
-
-SORT LOGIC (Pending First):
-1. FAILED → top
-2. NO/Pending → next
-3. SENT → next
-4. DELIVERED → bottom
-Within each group → newest Last Updated first
+backend/
+  api.py        ← Flask endpoints + webhook
+  main.py       ← process_all_tabs, retry logic
+  sheets.py     ← Google Sheets read/write + cache
+  whatsapp.py   ← send messages, auto reply, template mgmt
+  scheduler.py  ← auto scheduler + keep alive
+  auth.py       ← login, sessions, roles
+  config.py     ← load env
+  logger.py     ← logs
+  supabase_db.py ← (Phase 1 — new)
+  campaigns/    ← campaign_manager, audience_filter, bulk_sender,
+                  campaign_scheduler, campaign_logger
+frontend/src/
+  App.jsx
+  pages/        ← Login, Dashboard, Orders, Campaigns, Templates, Settings
+  components/   ← OrdersTable, StatusBadge, StatCard, Sidebar,
+                  ToastContainer, TemplateForm
+  hooks/        ← useOrders, useStatus
+  utils/        ← api.js, formatters.js
 
 ═══════════════════════════════════════════
-SECTION 12 — APPS SCRIPT
+SECTION 12 — THE ROADMAP (5 PHASES)
 ═══════════════════════════════════════════
 
-TWO FUNCTIONS:
+──────────────────────────────────────────
+PHASE 1 — SUPABASE FOUNDATION
+──────────────────────────────────────────
+Goal: move everything off Google Sheets onto a real database.
+- Create Supabase project + tables (see Section 13)
+- Add supabase_db.py, connect backend
+- Migrate order read/write Sheets → Supabase
+- Update webhook to write Supabase (fixes bulk rate-limit problem)
+- New columns: status, error_code, error_reason, wamid
+- Keep tracking working end-to-end
+- DECISION MADE: merge 4 courier tabs → ONE orders table + courier column
+- DECISION MADE: Google Sheets fully replaced (not kept as backup)
 
-onEdit(e):
-→ Fires when single cell edited
-→ Auto-generates tracking link for that row
+──────────────────────────────────────────
+PHASE 2 — ERROR CAPTURE & SMART RETRY
+──────────────────────────────────────────
+Goal: make failures visible and actionable.
+- Capture error code + reason at SEND time (whatsapp.py)
+- Capture error code + reason in WEBHOOK (api.py)
+- Store wamid when sending; match webhook by wamid (precise row match)
+- Smart retry: skip permanent (131026,130403,131050), retry temporary
+- Show failure reason in Orders page
 
-generateAllLinks():
-→ Loops through ALL rows in all 4 tabs
-→ Generates links for all at once
-→ Use after bulk paste
+──────────────────────────────────────────
+PHASE 3 — CAMPAIGN SYSTEM (main milestone)
+──────────────────────────────────────────
+Goal: bulk offer messaging like AiSensy.
+- Pick approved template
+- Upload audience CSV (name, phone + extra columns)
+- Map each variable {{n}} → a column OR a fixed value
+- Bulk sender with pacing (spread sends, not all at once)
+- Per-recipient status (sent/delivered/read/failed)
+- Campaign analytics dashboard
 
-HOW TO USE AFTER BULK PASTE:
-1. Paste all orders in sheet
-2. Click YMC Tools menu at top
-3. Click Generate All Links
-4. All rows get tracking links
+──────────────────────────────────────────
+PHASE 4 — CAMPAIGN SAFETY (protect HIGH rating)
+──────────────────────────────────────────
+Goal: don't let campaigns drag down quality rating.
+- Opt-out / STOP handling + suppression list (never message opted-out)
+- "Reply STOP to opt out" in marketing templates
+- Quality rating monitor + alert on 131048/131049
+- Frequency capping (track last-contacted, don't over-message)
+- Quick-reply buttons to boost reply rate (2026 rule: ignored msgs hurt)
 
-═══════════════════════════════════════════
-SECTION 13 — KEEP ALIVE
-═══════════════════════════════════════════
+──────────────────────────────────────────
+PHASE 5 — POLISH
+──────────────────────────────────────────
+- Customer care redirect button (wa.me/91XXXXXXXXXX link in dashboard)
+- User management UI (add/remove users, currently hardcoded in auth.py)
+- Final cleanup
 
-Internal : Scheduler pings /status every 10 min
-External : cron-job.org pings /status every 5 min
-(Render free tier sleeps after 15 min inactivity)
-
-═══════════════════════════════════════════
-SECTION 14 — BACKUP
-═══════════════════════════════════════════
-
-Git backup branch: backup-working-version
-→ On GitHub: https://github.com/ymconnects/YMCtrackflow
-→ To restore: git checkout backup-working-version
-
-Desktop folder backup also kept locally.
-
-TO RESTORE IF THINGS BREAK:
-git checkout backup-working-version
-git push origin HEAD --force
-
-═══════════════════════════════════════════
-SECTION 15 — FOLDER STRUCTURE
-═══════════════════════════════════════════
-
-YMCtrackflow/
-├── backend/
-│   ├── api.py          ← Flask endpoints + webhook
-│   ├── main.py         ← process_all_tabs, retry logic
-│   ├── sheets.py       ← Google Sheets read/write + cache
-│   ├── whatsapp.py     ← send messages + auto reply
-│   ├── scheduler.py    ← auto scheduler + keep alive
-│   ├── auth.py         ← login, sessions, roles
-│   ├── config.py       ← load env variables
-│   ├── logger.py       ← log success/failure
-│   ├── requirements.txt
-│   ├── .env
-│   └── campaigns/
-│       ├── campaign_manager.py
-│       ├── audience_filter.py
-│       ├── bulk_sender.py
-│       ├── campaign_scheduler.py
-│       └── campaign_logger.py
-│
-└── frontend/
-    └── src/
-        ├── App.jsx
-        ├── pages/
-        │   ├── Login.jsx
-        │   ├── Dashboard.jsx
-        │   ├── Orders.jsx
-        │   ├── Campaigns.jsx
-        │   └── Settings.jsx
-        ├── components/
-        │   ├── OrdersTable.jsx
-        │   ├── StatusBadge.jsx
-        │   ├── StatCard.jsx
-        │   ├── Sidebar.jsx
-        │   └── ToastContainer.jsx
-        ├── hooks/
-        │   ├── useOrders.js
-        │   └── useStatus.js
-        └── utils/
-            ├── api.js  ← BASE_URL = https://ymctrackflow.onrender.com
-            └── formatters.js
+DEFERRED (maybe never):
+- Full chat board / team inbox → replaced by simple wa.me redirect button
+- OBA (blue tick) → apply when ready, Meta decides on brand recognition
+- Two-step verification → needs boss Facebook email verified first
 
 ═══════════════════════════════════════════
-SECTION 16 — API ENDPOINTS
+SECTION 13 — SUPABASE SCHEMA (draft — finalize in Phase 1 planning)
 ═══════════════════════════════════════════
 
-POST /login
-POST /logout
-GET  /me
-GET  /status
-GET  /orders
-POST /run-now
-POST /retry-failed
-POST /retry-single
-POST /toggle-auto-message
-POST /toggle-system
-GET  /auto-message-status
-POST /sync
-GET  /logs
-GET  /webhook  ← Meta verification
-POST /webhook  ← Meta delivery updates + incoming messages
-GET  /campaigns
-POST /campaigns/create
-GET  /campaigns/<id>/status
-POST /campaigns/<id>/send
-POST /campaigns/<id>/cancel
-GET  /campaigns/<id>/report
-POST /audience/estimate
+orders
+  id, customer_name, phone, courier, tracking_id, tracking_link,
+  status (NO/SENT/DELIVERED/FAILED), error_code, error_reason,
+  wamid, created_at, last_updated
+
+campaigns
+  id, name, template_name, status, audience_count,
+  sent, delivered, failed, created_at, created_by
+
+campaign_recipients
+  id, campaign_id, name, phone, variables (json), status,
+  error_code, error_reason, wamid, last_updated
+
+users
+  id, username, password_hash, role, created_at
+
+suppression_list
+  id, phone, reason (STOP / opted_out / 131050), created_at
+
+logs
+  id, type, message, created_at
+
+settings
+  key, value   (system_on, auto_message, etc.)
+
+messages (for future chat board — table ready, UI deferred)
+  id, phone, direction (in/out), body, wamid, created_at
+
+NOTE: exact columns finalized when we plan Phase 1 in detail.
 
 ═══════════════════════════════════════════
-SECTION 17 — KEY LEARNINGS
+SECTION 14 — KEY LEARNINGS
 ═══════════════════════════════════════════
 
-1. WEBHOOK TIMING IS CRITICAL
-   Always write SENT before sending messages
-   Webhook fires after → webhook wins → correct status
-
-2. GOOGLE SHEETS RATE LIMITS
-   Use batch updates not individual writes
-   Cache orders in memory (10 min TTL)
-
-3. SAME PHONE NUMBER IN MULTIPLE ROWS
-   Webhook matches by phone → updates first match only
-   Fix planned: Message ID (wamid) column — deferred
-   Tracking ID is unique — can use as alternative key
-
-4. DATE FORMAT IN SHEET
-   Times like 5:52:36 (single digit hour) break JS Date parsing
-   Fix: pad with leading zero → 05:52:36
-
-5. FLASK SCHEDULER
-   use_reloader=False to prevent double execution
-
-6. REACT COMPONENT SCOPE
-   Define sub-components outside parent function
-   Else causes input focus loss
-
-7. OTHERS TAB
-   Has extra Courier Name column (Col C)
-   All column indices shift by 1
-   sheets.py _get_status_columns() handles this
-
-8. TEMPLATE LANGUAGE CODE
-   Must be en_US not en
-
-9. CREDENTIALS SECURITY
-   Never commit .env to GitHub
-   GitHub scanner auto-revokes exposed Google keys
+1. WEBHOOK TIMING — write SENT before sending; webhook fires after → wins
+2. GOOGLE SHEETS RATE LIMITS — 60 req/min. Bulk webhooks exceed it → some
+   rows stuck at SENT. ROOT CAUSE of "30% stay SENT". Supabase fixes this.
+3. WABA ID ≠ PHONE NUMBER ID — distinct creds, distinct purposes
+4. DATE FORMAT — pad single-digit hours (5:52 → 05:52) for JS parsing
+5. FLASK SCHEDULER — use_reloader=False
+6. REACT COMPONENT SCOPE — define sub-components at module level (else
+   input focus loss). TemplateForm is a separate file for this reason.
+7. OTHERS TAB — extra Courier Name col, indices shift by 1
+8. TEMPLATE LANGUAGE — en_US not en
+9. CREDENTIALS — never commit .env; GitHub scanner auto-revokes Google keys
+10. TEMPLATE FETCH — Meta paginates; loop paging.next to get all
+11. MESSAGES STAYING AT SENT — usually delivered but receipts off, OR
+    bulk rate-limit. NOT a webhook bug. Supabase migration resolves bulk case.
+12. FAILED MESSAGES — generally NOT billed (only delivered billed) but
+    confirm in WhatsApp Manager billing view
+13. QUALITY 2026 — limits now per Business PORTFOLIO not per number; one bad
+    campaign can drag whole portfolio. Ignored messages now hurt rating.
 
 ═══════════════════════════════════════════
-SECTION 18 — COSTS
+SECTION 15 — COSTS
 ═══════════════════════════════════════════
 
-Per tracking message : ₹0.125
-Per campaign message : ₹0.88
-Auto reply (24hr)    : FREE (within window)
-Auto reply (after)   : ₹0.125
-AiSensy saving       : ₹999/month
-Yearly saving        : ₹11,988
+Tracking message : ₹0.125   Campaign message : ₹0.88
+Auto reply (24hr): FREE      AiSensy saving   : ₹999/mo (₹11,988/yr)
+Failed messages  : generally NOT charged (confirm in WhatsApp Manager)
+Message limit    : 2,000/day currently
 
 ═══════════════════════════════════════════
-SECTION 19 — PENDING TASKS
+SECTION 16 — RULES FOR EVERY CHAT
 ═══════════════════════════════════════════
 
-HIGH PRIORITY:
-→ ymc_anjani, ymc_dtdc, ymc_maruti templates
-  approval pending from Meta
-
-MEDIUM PRIORITY:
-→ Message ID (wamid) column in sheet
-  Fixes same-phone-number webhook issue
-  Add Col G (courier tabs) / Col H (Others)
-  Save wamid when sending, match by wamid in webhook
-
-→ Template management UI in dashboard
-  So manager doesn't need to visit WhatsApp Manager
-
-FUTURE / PHASE 8:
-→ Campaign major update
-→ Supabase database (replace Google Sheets)
-→ User management UI
-→ Two-step verification for WhatsApp number
-  (needs boss personal Facebook account email verified first)
-→ OBA (Official Business Account) — recheck after mid-June 2026
-
-═══════════════════════════════════════════
-SECTION 20 — RULES FOR EVERY CHAT
-═══════════════════════════════════════════
-
-→ Cave man mode: short, direct, one step at a time
-→ py -3.11 for all Python commands
-→ Compile test before every push: py -3.11 -m py_compile <file>
-→ Push to GitHub after every file change
-→ Git push: git push origin HEAD
+→ Cave man mode: short, direct, one step at a time, confirm each step
+→ Explain before coding; no code without agreement
+→ py -3.11 for all Python
+→ Compile test before push: py -3.11 -m py_compile <file>
+→ Push after every file change: git push origin HEAD
 → Fix conflicts: git pull origin main --no-edit → git commit --no-edit
-→ Fix functional issues before polish
-→ Confirm at each step before moving on
-→ Test locally before pushing when possible
-→ Always backup before big changes: git branch backup-working-version
+→ Test locally before live when possible
+→ Backup before big changes: git branch backup-working-version
+→ Plan in chat (Opus) → build in Claude Code (Sonnet)
+→ Start each Claude Code session: read MASTER.md + CONTEXT.md first
 
 ═══════════════════════════════════════════
-STATUS   : LIVE ✅ WEBHOOK WORKING ✅
-VERSION  : 9.0
-REPO     : github.com/ymconnects/YMCtrackflow
-RULE     : Push to GitHub after every file
+STATUS  : LIVE ✅  TEMPLATE MGMT ✅  QUALITY HIGH ✅
+NEXT    : Phase 1 — Supabase Foundation
+VERSION : 10.0
 🦴
 ═══════════════════════════════════════════
