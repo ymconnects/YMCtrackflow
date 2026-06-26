@@ -142,4 +142,44 @@ def create_template(payload):
     print(f"Create template: {response.status_code} | {response.text}", flush=True)
     if response.status_code == 200:
         return True, response.json()
-    return False, response.text 
+    return False, response.text
+
+
+def send_template_message(phone, template_name, variables):
+    phone = format_phone_number(phone)
+    if not validate_phone_number(phone):
+        return False, "Invalid phone"
+    config = load_config()
+    url = f"https://graph.facebook.com/v18.0/{config['META_PHONE_NUMBER_ID']}/messages"
+    headers = {
+        "Authorization": f"Bearer {config['META_ACCESS_TOKEN']}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "messaging_product": "whatsapp",
+        "to": phone,
+        "type": "template",
+        "template": {
+            "name": template_name,
+            "language": {"code": "en_US"},
+            "components": [
+                {
+                    "type": "body",
+                    "parameters": [{"type": "text", "text": str(v)} for v in variables]
+                }
+            ]
+        }
+    }
+    response = requests.post(url, headers=headers, json=data)
+    print(f"Campaign send: {phone} | {response.status_code}", flush=True)
+    if response.status_code == 200:
+        try:
+            wamid = response.json()["messages"][0]["id"]
+        except Exception:
+            wamid = "unknown"
+        return True, wamid
+    try:
+        error_code = str(response.json().get("error", {}).get("code", response.status_code))
+    except Exception:
+        error_code = str(response.status_code)
+    return False, error_code
