@@ -246,6 +246,21 @@ def toggle_system_endpoint():
     else:
         return jsonify({"success": False, "message": "Invalid action"}), 400
     
+@app.route("/campaigns/books/<book_id>/columns", methods=["GET"])
+def get_book_columns(book_id):
+    token = get_token_from_request()
+    payload = verify_session(token)
+    if not payload:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    if payload["role"] not in ["admin", "campaigner"]:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+    result = supabase.table("contacts").select("extra_data") \
+        .eq("book_id", book_id).limit(1).execute()
+    extra = (result.data[0].get("extra_data") or {}) if result.data else {}
+    columns = ["name", "phone"] + list(extra.keys())
+    return jsonify({"success": True, "columns": columns})
+
+
 @app.route("/campaigns/upload", methods=["POST"])
 def campaign_upload():
     token = get_token_from_request()

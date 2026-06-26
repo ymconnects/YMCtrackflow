@@ -5,6 +5,7 @@ from campaigns.campaign_manager import get_campaign
 from whatsapp import send_template_message
 
 STATUS_RANK = {"NO": 0, "SENT": 1, "FAILED": 2, "DELIVERED": 3}
+DAILY_LIMIT = 1900
 
 
 def update_recipient_status(recipient_id, status, wamid=None, error_code=None):
@@ -43,6 +44,16 @@ def send_campaign(campaign_id):
     failed_count = 0
 
     for recipient in recipients:
+        # SAFETY 2 — daily limit guard
+        if sent_count >= DAILY_LIMIT:
+            print(f"Daily safety limit reached, paused at {sent_count} sent.", flush=True)
+            supabase.table("campaigns").update({
+                "status": "PAUSED",
+                "sent": sent_count,
+                "failed": failed_count
+            }).eq("id", campaign_id).execute()
+            return False, f"Daily safety limit reached, paused at {sent_count} sent."
+
         variables = recipient.get("variables") or []
         success, result = send_template_message(
             recipient["phone"],
