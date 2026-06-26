@@ -12,7 +12,8 @@ from campaigns.audience_filter import parse_csv, save_contact_book
 from supabase_db import supabase
 from config import load_config
 from whatsapp import get_all_templates, delete_template, create_template
-import os 
+import os
+import threading
 
 app = Flask(__name__)
 CORS(app, origins="*")
@@ -326,10 +327,28 @@ def campaign_send(campaign_id):
     if payload["role"] not in ["admin", "campaigner"]:
         return jsonify({"success": False, "message": "Access denied"}), 403
 
-    success, result = send_campaign(campaign_id)
-    if not success:
-        return jsonify({"success": False, "message": result}), 500
-    return jsonify({"success": True, **result})
+    thread = threading.Thread(target=send_campaign, args=(campaign_id,))
+    thread.daemon = True
+    thread.start()
+    return jsonify({"success": True, "status": "started", "campaign_id": campaign_id})
+
+
+@app.route("/campaigns/status/<campaign_id>", methods=["GET"])
+def campaign_status_endpoint(campaign_id):
+    token = get_token_from_request()
+    payload = verify_session(token)
+    if not payload:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    if payload["role"] not in ["admin", "campaigner"]:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+
+    result = supabase.table("campaigns").select("status,sent,failed,total") \
+        .eq("id", campaign_id).single().execute()
+    if not result.data:
+        return jsonify({"success": False, "message": "Campaign not found"}), 404
+    d = result.data
+    return jsonify({"success": True, "status": d["status"],
+                    "sent": d["sent"], "failed": d["failed"], "total": d["total"]})
 
 @app.route("/campaigns/books", methods=["GET"])
 def get_contact_books():
