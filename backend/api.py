@@ -5,10 +5,11 @@ from scheduler import start_scheduler
 from main import process_all_tabs, process_single_tab, retry_failed_orders
 from sheets import get_all_orders, get_all_pending_orders, refresh_cache
 from logger import log_system_start
-from campaigns.campaign_manager import create_campaign, get_all_campaigns, get_campaign_status, update_campaign_status, delete_campaign
-from campaigns.bulk_sender import send_campaign, calculate_cost, track_progress
-from campaigns.audience_filter import estimate_audience_count
-from campaigns.campaign_scheduler import schedule_campaign, cancel_scheduled_campaign, get_scheduled_campaigns
+import tempfile
+from campaigns.campaign_manager import create_campaign, get_campaign, get_contacts_by_book
+from campaigns.bulk_sender import send_campaign
+from campaigns.audience_filter import parse_csv, save_contact_book
+from supabase_db import supabase
 from config import load_config
 from whatsapp import get_all_templates, delete_template, create_template
 import os 
@@ -244,17 +245,34 @@ def toggle_system_endpoint():
     else:
         return jsonify({"success": False, "message": "Invalid action"}), 400
     
-@app.route("/campaigns", methods=["GET"])
-def list_campaigns():
+@app.route("/campaigns/upload", methods=["POST"])
+def campaign_upload():
     token = get_token_from_request()
     payload = verify_session(token)
     if not payload:
         return jsonify({"success": False, "message": "Not logged in"}), 401
     if payload["role"] not in ["admin", "campaigner"]:
         return jsonify({"success": False, "message": "Access denied"}), 403
-    
-    campaigns = get_all_campaigns()
-    return jsonify({"success": True, "campaigns": campaigns})
+
+    if "file" not in request.files:
+        return jsonify({"success": False, "message": "No file uploaded"}), 400
+
+    file = request.files["file"]
+    book_name = request.form.get("book_name", "Untitled")
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".csv", mode="wb") as tmp:
+        file.save(tmp)
+        tmp_path = tmp.name
+
+    try:
+        contacts = parse_csv(tmp_path)
+        book_id = save_contact_book(book_name, contacts)
+        return jsonify({"success": True, "book_id": book_id, "book_name": book_name, "total_contacts": len(contacts)})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        os.remove(tmp_path)
+
 
 @app.route("/campaigns/create", methods=["POST"])
 def create_new_campaign():
@@ -264,87 +282,54 @@ def create_new_campaign():
         return jsonify({"success": False, "message": "Not logged in"}), 401
     if payload["role"] not in ["admin", "campaigner"]:
         return jsonify({"success": False, "message": "Access denied"}), 403
-    
+
     data = request.json
     name = data.get("name")
-    template = data.get("template")
-    audience = data.get("audience", [])
-    
-    campaign_id = create_campaign(name, template, audience)
-    return jsonify({"success": True, "campaign_id": campaign_id})
+    template_name = data.get("template_name")
+    book_id = data.get("book_id")
+    variables = data.get("variables", {})  # e.g. {"1": "name", "2": "phone"}
 
-@app.route("/campaigns/<campaign_id>/status", methods=["GET"])
-def campaign_status(campaign_id):
+    campaign_id = create_campaign(name, template_name, book_id)
+    contacts = get_contacts_by_book(book_id)
+
+    rows = []
+    for contact in contacts:
+        extra = contact.get("extra_data") or {}
+        resolved = []
+        for key in sorted(variables.keys(), key=lambda x: int(x)):
+            col = variables[key]
+            if col in ("name", "phone"):
+                resolved.append(contact.get(col, ""))
+            else:
+                resolved.append(extra.get(col, ""))
+        rows.append({
+            "campaign_id": campaign_id,
+            "name": contact["name"],
+            "phone": contact["phone"],
+            "variables": resolved,
+            "status": "NO",
+            "status_rank": 0
+        })
+
+    supabase.table("campaign_recipients").insert(rows).execute()
+    supabase.table("campaigns").update({"total": len(rows)}).eq("id", campaign_id).execute()
+
+    return jsonify({"success": True, "campaign_id": campaign_id, "total": len(rows)})
+
+
+@app.route("/campaigns/send/<campaign_id>", methods=["POST"])
+def campaign_send(campaign_id):
     token = get_token_from_request()
     payload = verify_session(token)
     if not payload:
         return jsonify({"success": False, "message": "Not logged in"}), 401
     if payload["role"] not in ["admin", "campaigner"]:
         return jsonify({"success": False, "message": "Access denied"}), 403
-    
-    campaign = get_campaign_status(campaign_id)
-    if not campaign:
-        return jsonify({"success": False, "message": "Campaign not found"}), 404
-    return jsonify({"success": True, "campaign": campaign})
 
-@app.route("/campaigns/<campaign_id>/send", methods=["POST"])
-def send_campaign_endpoint(campaign_id):
-    token = get_token_from_request()
-    payload = verify_session(token)
-    if not payload:
-        return jsonify({"success": False, "message": "Not logged in"}), 401
-    if payload["role"] not in ["admin", "campaigner"]:
-        return jsonify({"success": False, "message": "Access denied"}), 403
-    
     success, result = send_campaign(campaign_id)
-    return jsonify({"success": success, "result": result})
-
-@app.route("/campaigns/<campaign_id>/cancel", methods=["POST"])
-def cancel_campaign_endpoint(campaign_id):
-    token = get_token_from_request()
-    payload = verify_session(token)
-    if not payload:
-        return jsonify({"success": False, "message": "Not logged in"}), 401
-    if payload["role"] not in ["admin", "campaigner"]:
-        return jsonify({"success": False, "message": "Access denied"}), 403
-    
-    success = cancel_scheduled_campaign(campaign_id)
-    return jsonify({"success": success})
-
-@app.route("/campaigns/<campaign_id>/report", methods=["GET"])
-def campaign_report(campaign_id):
-    token = get_token_from_request()
-    payload = verify_session(token)
-    if not payload:
-        return jsonify({"success": False, "message": "Not logged in"}), 401
-    if payload["role"] not in ["admin", "campaigner"]:
-        return jsonify({"success": False, "message": "Access denied"}), 403
-    
-    progress = track_progress(campaign_id)
-    if not progress:
-        return jsonify({"success": False, "message": "Campaign not found"}), 404
-    return jsonify({"success": True, "report": progress})
-
-@app.route("/audience/estimate", methods=["POST"])
-def audience_estimate():
-    token = get_token_from_request()
-    payload = verify_session(token)
-    if not payload:
-        return jsonify({"success": False, "message": "Not logged in"}), 401
-    if payload["role"] not in ["admin", "campaigner"]:
-        return jsonify({"success": False, "message": "Access denied"}), 403
-    
-    data = request.json
-    filters = data.get("filters", {})
-    
-    count = estimate_audience_count(filters)
-    cost = calculate_cost(count, "campaign")
-    
-    return jsonify({
-        "success": True,
-        "count": count,
-        "estimated_cost": cost
-    })
+    if not success:
+        return jsonify({"success": False, "message": result}), 500
+    return jsonify({"success": True, **result})
 
 @app.route("/logs", methods=["GET"])
 def get_logs():
