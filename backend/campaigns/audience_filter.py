@@ -1,89 +1,47 @@
-import gspread
-from google.oauth2.service_account import Credentials
-from config import load_config
+import csv
+from supabase_db import supabase
 from datetime import datetime
 
-SCOPES = [
-    "https://www.googleapis.com/auth/spreadsheets"
-]
+def parse_csv(file_path):
+    contacts = []
+    with open(file_path, newline="", encoding="utf-8-sig") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            phone = row.get("phone") or row.get("Phone") or ""
+            name  = row.get("name")  or row.get("Name")  or ""
 
-def connect_contacts_sheet():
-    config = load_config()
-    creds = Credentials.from_service_account_file(
-        config["GOOGLE_CREDENTIALS_FILE"],
-        scopes=SCOPES
-    )
-    client = gspread.authorize(creds)
-    sheet = client.open_by_key(config["GOOGLE_SHEET_ID"])
-    return sheet.worksheet("Contacts")
+            phone = phone.strip()
+            if not phone:
+                continue
 
-def get_all_customers():
-    sheet = connect_contacts_sheet()
-    return sheet.get_all_records()
+            phone = "".join(c for c in phone if c.isdigit())
 
-def filter_by_date_range(start, end):
-    customers = get_all_customers()
-    filtered = []
-    
-    start_date = datetime.strptime(start, "%Y-%m-%d")
-    end_date = datetime.strptime(end, "%Y-%m-%d")
-    
-    for customer in customers:
-        try:
-            order_date = datetime.strptime(customer["Last Order Date"], "%Y-%m-%d")
-            if start_date <= order_date <= end_date:
-                filtered.append(customer)
-        except:
-            continue
-    return filtered
+            extra = {k: v for k, v in row.items()
+                     if k.lower() not in ("name", "phone")}
 
-def filter_by_status(status):
-    customers = get_all_customers()
-    filtered = []
-    for customer in customers:
-        if customer.get("Status") == status:
-            filtered.append(customer)
-    return filtered
+            contacts.append({
+                "name": name.strip(),
+                "phone": phone,
+                "extra_data": extra if extra else {}
+            })
+    return contacts
 
-def filter_by_city(city):
-    customers = get_all_customers()
-    filtered = []
-    for customer in customers:
-        if customer.get("City", "").lower() == city.lower():
-            filtered.append(customer)
-    return filtered
 
-def filter_by_tags(tags):
-    customers = get_all_customers()
-    filtered = []
-    for customer in customers:
-        customer_tags = customer.get("Tags", "").split(",")
-        customer_tags = [t.strip().lower() for t in customer_tags]
-        
-        for tag in tags:
-            if tag.lower() in customer_tags:
-                filtered.append(customer)
-                break
-    return filtered
+def save_contact_book(book_name, contacts_list):
+    book_result = supabase.table("contact_books").insert({
+        "name": book_name,
+        "total": len(contacts_list),
+        "created_at": datetime.utcnow().isoformat()
+    }).execute()
+    book_id = book_result.data[0]["id"]
 
-def filter_opted_in_only():
-    customers = get_all_customers()
-    filtered = []
-    for customer in customers:
-        if customer.get("Opted In", "").upper() == "YES":
-            filtered.append(customer)
-    return filtered
+    rows = [{
+        "book_id": book_id,
+        "name": c["name"],
+        "phone": c["phone"],
+        "extra_data": c["extra_data"],
+        "created_at": datetime.utcnow().isoformat()
+    } for c in contacts_list]
 
-def estimate_audience_count(filters):
-    customers = get_all_customers()
-    count = len(customers)
-    
-    if filters.get("opted_in_only"):
-        customers = filter_opted_in_only()
-        count = len(customers)
-    
-    if filters.get("city"):
-        customers = [c for c in customers if c.get("City", "").lower() == filters["city"].lower()]
-        count = len(customers)
-    
-    return count
+    supabase.table("contacts").insert(rows).execute()
+    return book_id
