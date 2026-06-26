@@ -71,8 +71,14 @@ export const getAutoMessageStatus = () => {
   return api.get('/auto-message-status')
 }
 
-export const getCampaigns = () => {
-  return api.get('/campaigns')
+export const uploadContacts = (formData) => {
+  return api.post('/campaigns/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}
+
+export const getContactBooks = () => {
+  return api.get('/campaigns/books')
 }
 
 export const createCampaign = (data) => {
@@ -80,19 +86,7 @@ export const createCampaign = (data) => {
 }
 
 export const sendCampaign = (campaignId) => {
-  return api.post(`/campaigns/${campaignId}/send`)
-}
-
-export const cancelCampaign = (campaignId) => {
-  return api.post(`/campaigns/${campaignId}/cancel`)
-}
-
-export const getCampaignReport = (campaignId) => {
-  return api.get(`/campaigns/${campaignId}/report`)
-}
-
-export const estimateAudience = (filters) => {
-  return api.post('/audience/estimate', filters)
+  return api.post(`/campaigns/send/${campaignId}`)
 }
 
 export const getLogs = () => {

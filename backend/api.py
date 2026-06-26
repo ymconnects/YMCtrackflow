@@ -331,6 +331,18 @@ def campaign_send(campaign_id):
         return jsonify({"success": False, "message": result}), 500
     return jsonify({"success": True, **result})
 
+@app.route("/campaigns/books", methods=["GET"])
+def get_contact_books():
+    token = get_token_from_request()
+    payload = verify_session(token)
+    if not payload:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    if payload["role"] not in ["admin", "campaigner"]:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+    result = supabase.table("contact_books").select("*").order("created_at", desc=True).execute()
+    return jsonify({"success": True, "books": result.data})
+
+
 @app.route("/logs", methods=["GET"])
 def get_logs():
     token = get_token_from_request()
