@@ -6,43 +6,66 @@ def parse_csv(file_path):
     contacts = []
     with open(file_path, newline="", encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
+
+        # drop empty/trailing-comma ghost headers
+        headers = [h for h in (reader.fieldnames or []) if h.strip()]
+
+        # name: contains "name" but exclude "username" / "user name" / "file" false matches
+        name_col = next(
+            (h for h in headers
+             if "name" in h.lower()
+             and "username" not in h.lower()
+             and "user name" not in h.lower()
+             and "file" not in h.lower()),
+            None
+        )
+
+        # phone priority 1: contains "phone" or "mobile"
+        phone_col = next(
+            (h for h in headers if "phone" in h.lower() or "mobile" in h.lower()),
+            None
+        )
+        # phone priority 2: fallback — "contact number" or "whatsapp" (avoids bare "number")
+        if not phone_col:
+            phone_col = next(
+                (h for h in headers
+                 if "contact number" in h.lower() or "whatsapp" in h.lower()),
+                None
+            )
+
+        if not name_col or not phone_col:
+            missing = []
+            if not name_col:  missing.append("name")
+            if not phone_col: missing.append("phone/mobile")
+            raise ValueError(f"Could not find {' and '.join(missing)} column in CSV")
+
         for row in reader:
-            # flexible name detection: exact → common aliases → any col containing "name"
-            name = (
-                row.get("name") or row.get("Name") or
-                row.get("Billing Name") or row.get("Customer Name") or
-                row.get("Full Name") or row.get("Contact Name") or
-                next((v for k, v in row.items() if k.strip() and "name" in k.lower()), "")
-            ) or ""
+            # skip fully empty rows
+            if not any((v or "").strip() for v in row.values()):
+                continue
 
-            # flexible phone detection: exact → common aliases → any col containing "phone"/"mobile"
-            phone = (
-                row.get("phone") or row.get("Phone") or
-                row.get("Billing Phone") or row.get("Mobile") or
-                row.get("mobile") or row.get("Phone Number") or
-                row.get("Mobile Number") or
-                next((v for k, v in row.items()
-                      if k.strip() and ("phone" in k.lower() or "mobile" in k.lower())), "")
-            ) or ""
+            name  = (row.get(name_col)  or "").strip()
+            phone = (row.get(phone_col) or "").strip()
 
-            phone = phone.strip()
             if not phone:
                 continue
             phone = "".join(c for c in phone if c.isdigit())
             if not phone:
                 continue
 
-            # extra_data: skip name-like cols, phone-like cols, and empty keys (trailing commas)
-            name_keys  = {k for k in row if k.strip() and "name"   in k.lower()}
-            phone_keys = {k for k in row if k.strip() and ("phone" in k.lower() or "mobile" in k.lower())}
-            skip_keys  = name_keys | phone_keys | {""}
-            extra = {k: v for k, v in row.items() if k not in skip_keys}
+            # extra_data: all other non-empty headers, values trimmed
+            extra = {
+                k: (v or "").strip()
+                for k, v in row.items()
+                if k and k.strip() and k not in (name_col, phone_col)
+            }
 
             contacts.append({
-                "name": name.strip(),
+                "name": name,
                 "phone": phone,
                 "extra_data": extra if extra else {}
             })
+
     return contacts
 
 
