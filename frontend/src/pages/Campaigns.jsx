@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react'
-import { uploadContacts, getContactBooks, createCampaign, sendCampaign } from '../utils/api'
+import { useState, useEffect, useRef } from 'react'
+import { uploadContacts, getContactBooks, getBookColumns, getTemplates, createCampaign, sendCampaign, getCampaignStatus } from '../utils/api'
 
 const Campaigns = ({ role, onPageChange }) => {
   useEffect(() => { onPageChange('campaigns') }, [onPageChange])
+
+  const pollIntervalRef = useRef(null)
 
   // section 1 — upload
   const [bookName, setBookName]   = useState('')
@@ -10,18 +12,26 @@ const Campaigns = ({ role, onPageChange }) => {
   const [uploading, setUploading] = useState(false)
   const [uploadMsg, setUploadMsg] = useState(null)
 
-  // section 2 — create
-  const [books, setBooks]               = useState([])
-  const [selectedBook, setSelectedBook] = useState('')
-  const [campName, setCampName]         = useState('')
-  const [templateName, setTemplateName] = useState('')
-  const [creating, setCreating]         = useState(false)
-  const [createMsg, setCreateMsg]       = useState(null)
+  // section 2 — create & send
+  const [books, setBooks]                     = useState([])
+  const [selectedBookId, setSelectedBookId]   = useState('')
+  const [columns, setColumns]                 = useState([])
+  const [campName, setCampName]               = useState('')
+  const [allTemplates, setAllTemplates]       = useState([])
+  const [selectedTemplateName, setSelectedTemplateName] = useState('')
+  const [templateVars, setTemplateVars]       = useState([])
+  const [variableMap, setVariableMap]         = useState({})
+  const [creating, setCreating]               = useState(false)
+  const [polling, setPolling]                 = useState(false)
+  const [pollProgress, setPollProgress]       = useState(null)
+  const [errorMsg, setErrorMsg]               = useState(null)
 
-  // section 3 — send
-  const [campaignId, setCampaignId] = useState('')
-  const [sending, setSending]       = useState(false)
-  const [sendResult, setSendResult] = useState(null)
+  // load books + templates on mount; clean up interval on unmount
+  useEffect(() => {
+    loadBooks()
+    loadTemplates()
+    return () => { if (pollIntervalRef.current) clearInterval(pollIntervalRef.current) }
+  }, [])
 
   const loadBooks = () => {
     getContactBooks()
@@ -29,7 +39,39 @@ const Campaigns = ({ role, onPageChange }) => {
       .catch(() => {})
   }
 
-  useEffect(() => { loadBooks() }, [])
+  const loadTemplates = () => {
+    getTemplates()
+      .then(res => {
+        if (res.data.success)
+          setAllTemplates(res.data.templates.filter(t => t.status === 'APPROVED'))
+      })
+      .catch(() => {})
+  }
+
+  // fetch columns when book changes
+  useEffect(() => {
+    if (!selectedBookId) { setColumns([]); return }
+    getBookColumns(selectedBookId)
+      .then(res => { if (res.data.success) setColumns(res.data.columns) })
+      .catch(() => setColumns(['name', 'phone']))
+  }, [selectedBookId])
+
+  // extract {{N}} variables when template changes
+  useEffect(() => {
+    if (!selectedTemplateName) {
+      setTemplateVars([])
+      setVariableMap({})
+      return
+    }
+    const t = allTemplates.find(t => t.name === selectedTemplateName)
+    if (!t) { setTemplateVars([]); setVariableMap({}); return }
+    const body = (t.components || []).find(c => c.type === 'BODY')
+    const bodyText = body?.text || ''
+    const matches = [...bodyText.matchAll(/\{\{(\d+)\}\}/g)]
+    const vars = [...new Set(matches.map(m => m[1]))].sort((a, b) => +a - +b)
+    setTemplateVars(vars)
+    setVariableMap({})
+  }, [selectedTemplateName, allTemplates])
 
   const handleUpload = async () => {
     if (!bookName || !csvFile) return
@@ -54,49 +96,53 @@ const Campaigns = ({ role, onPageChange }) => {
     setUploading(false)
   }
 
-  const handleCreate = async () => {
-    if (!selectedBook || !campName || !templateName) return
+  const handleCreateAndSend = async () => {
     setCreating(true)
-    setCreateMsg(null)
+    setErrorMsg(null)
+    setPollProgress(null)
     try {
-      const res = await createCampaign({
+      const createRes = await createCampaign({
         name: campName,
-        template_name: templateName,
-        book_id: selectedBook,
-        variables: {}
+        template_name: selectedTemplateName,
+        book_id: selectedBookId,
+        variables: variableMap
       })
-      if (res.data.success) {
-        setCreateMsg(`Campaign created — ID: ${res.data.campaign_id} · ${res.data.total} recipients`)
-        setCampaignId(res.data.campaign_id)
-        setCampName('')
-        setTemplateName('')
-        setSelectedBook('')
-      } else {
-        setCreateMsg(`Error: ${res.data.message}`)
+      if (!createRes.data.success) {
+        setErrorMsg(createRes.data.message || 'Create failed')
+        setCreating(false)
+        return
       }
+      const cid = createRes.data.campaign_id
+      await sendCampaign(cid)
+      setCreating(false)
+      setPolling(true)
+      pollIntervalRef.current = setInterval(async () => {
+        try {
+          const statusRes = await getCampaignStatus(cid)
+          if (statusRes.data.success) {
+            const d = statusRes.data
+            setPollProgress({ status: d.status, sent: d.sent, failed: d.failed, total: d.total })
+            if (d.status === 'DONE' || d.status === 'PAUSED') {
+              clearInterval(pollIntervalRef.current)
+              setPolling(false)
+            }
+          }
+        } catch {
+          clearInterval(pollIntervalRef.current)
+          setPolling(false)
+          setErrorMsg('Status polling failed')
+        }
+      }, 3000)
     } catch {
-      setCreateMsg('Create failed')
+      setErrorMsg('Failed to start campaign')
+      setCreating(false)
     }
-    setCreating(false)
   }
 
-  const handleSend = async () => {
-    if (!campaignId) return
-    setSending(true)
-    setSendResult(null)
-    try {
-      const res = await sendCampaign(campaignId)
-      if (res.data.success) {
-        setSendResult(res.data)
-      } else {
-        setSendResult({ error: res.data.message })
-      }
-    } catch {
-      setSendResult({ error: 'Send failed' })
-    }
-    setSending(false)
-  }
+  const isReadyToSend = selectedBookId && campName && selectedTemplateName &&
+    templateVars.every(v => variableMap[v])
 
+  // shared styles
   const card = {
     background: '#ffffff',
     border: '1px solid #e6e8ee',
@@ -206,17 +252,19 @@ const Campaigns = ({ role, onPageChange }) => {
         )}
       </div>
 
-      {/* section 2 — create campaign */}
+      {/* section 2 — create & send campaign */}
       <div style={card}>
         <h3 style={{ margin: '0 0 16px', fontSize: '14.5px', fontWeight: '700' }}>
-          Create Campaign
+          Create &amp; Send Campaign
         </h3>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: '160px' }}>
+
+        {/* row 1 — book + campaign name */}
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: '180px' }}>
             <label style={lbl}>Contact Book</label>
             <select
-              value={selectedBook}
-              onChange={e => setSelectedBook(e.target.value)}
+              value={selectedBookId}
+              onChange={e => { setSelectedBookId(e.target.value); setVariableMap({}) }}
               style={{ ...inputStyle, cursor: 'pointer' }}
             >
               <option value="">Select a book...</option>
@@ -225,7 +273,7 @@ const Campaigns = ({ role, onPageChange }) => {
               ))}
             </select>
           </div>
-          <div style={{ flex: 1, minWidth: '160px' }}>
+          <div style={{ flex: 1, minWidth: '180px' }}>
             <label style={lbl}>Campaign Name</label>
             <input
               value={campName}
@@ -236,72 +284,108 @@ const Campaigns = ({ role, onPageChange }) => {
               onBlur={e => e.target.style.borderColor = '#e6e8ee'}
             />
           </div>
-          <div style={{ flex: 1, minWidth: '160px' }}>
-            <label style={lbl}>Template Name</label>
-            <input
-              value={templateName}
-              onChange={e => setTemplateName(e.target.value)}
-              placeholder="e.g. ymc_anjani"
-              style={inputStyle}
-              onFocus={e => e.target.style.borderColor = '#128C7E'}
-              onBlur={e => e.target.style.borderColor = '#e6e8ee'}
-            />
-          </div>
-          <button
-            onClick={handleCreate}
-            disabled={creating || !selectedBook || !campName || !templateName}
-            style={primaryBtn(creating || !selectedBook || !campName || !templateName)}
-          >
-            {creating ? 'Creating...' : 'Create Campaign'}
-          </button>
         </div>
-        {createMsg && (
-          <div style={notice(createMsg.startsWith('Error'))}>
-            {createMsg}
-          </div>
-        )}
-      </div>
 
-      {/* section 3 — send campaign */}
-      <div style={card}>
-        <h3 style={{ margin: '0 0 16px', fontSize: '14.5px', fontWeight: '700' }}>
-          Send Campaign
-        </h3>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
-          <div style={{ flex: 1 }}>
-            <label style={lbl}>Campaign ID</label>
-            <input
-              value={campaignId}
-              onChange={e => setCampaignId(e.target.value)}
-              placeholder="Paste campaign ID — or it fills automatically after Create"
-              style={inputStyle}
-              onFocus={e => e.target.style.borderColor = '#128C7E'}
-              onBlur={e => e.target.style.borderColor = '#e6e8ee'}
-            />
-          </div>
-          <button
-            onClick={handleSend}
-            disabled={sending || !campaignId}
-            style={primaryBtn(sending || !campaignId)}
+        {/* row 2 — template */}
+        <div style={{ marginBottom: '12px' }}>
+          <label style={lbl}>Template (Approved only)</label>
+          <select
+            value={selectedTemplateName}
+            onChange={e => setSelectedTemplateName(e.target.value)}
+            style={{ ...inputStyle, cursor: 'pointer' }}
           >
-            {sending ? 'Sending...' : 'Send Now'}
-          </button>
+            <option value="">Select a template...</option>
+            {allTemplates.map(t => (
+              <option key={t.name} value={t.name}>{t.name}</option>
+            ))}
+          </select>
         </div>
-        {sending && (
-          <div style={{ marginTop: '12px', fontSize: '13px', color: '#7a8090' }}>
-            Sending messages one by one — this may take a while...
+
+        {/* variable mapping — shown when template has variables */}
+        {templateVars.length > 0 && (
+          <div style={{
+            background: '#f6f7f9',
+            border: '1px solid #e6e8ee',
+            borderRadius: '10px',
+            padding: '14px 16px',
+            marginBottom: '16px'
+          }}>
+            <div style={{ fontSize: '12.5px', fontWeight: '600', color: '#4b5160', marginBottom: '12px' }}>
+              Variable Mapping — map each template variable to a CSV column
+            </div>
+            {templateVars.map(v => (
+              <div key={v} style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                <span style={{
+                  fontFamily: 'JetBrains Mono, monospace',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  color: '#128C7E',
+                  background: 'rgba(18,140,126,0.08)',
+                  border: '1px solid rgba(18,140,126,0.2)',
+                  borderRadius: '6px',
+                  padding: '4px 10px',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {`{{${v}}}`}
+                </span>
+                <span style={{ color: '#7a8090', fontSize: '13px' }}>→</span>
+                <select
+                  value={variableMap[v] || ''}
+                  onChange={e => setVariableMap(prev => ({ ...prev, [v]: e.target.value }))}
+                  style={{ ...inputStyle, flex: 1, cursor: 'pointer' }}
+                >
+                  <option value="">Pick a column...</option>
+                  {columns.map(col => (
+                    <option key={col} value={col}>{col}</option>
+                  ))}
+                </select>
+              </div>
+            ))}
           </div>
         )}
-        {sendResult && !sendResult.error && (
-          <div style={notice(false)}>
-            Done — Sent: {sendResult.sent} · Failed: {sendResult.failed} · Total: {sendResult.total}
+
+        {/* create & send button */}
+        <button
+          onClick={handleCreateAndSend}
+          disabled={creating || polling || !isReadyToSend}
+          style={primaryBtn(creating || polling || !isReadyToSend)}
+        >
+          {creating ? 'Creating...' : polling ? 'Sending...' : 'Create & Send'}
+        </button>
+
+        {/* error */}
+        {errorMsg && (
+          <div style={notice(true)}>{errorMsg}</div>
+        )}
+
+        {/* live progress while polling */}
+        {polling && pollProgress && (
+          <div style={{
+            marginTop: '12px',
+            padding: '12px 16px',
+            borderRadius: '8px',
+            background: 'rgba(18,140,126,0.06)',
+            border: '1px solid rgba(18,140,126,0.15)'
+          }}>
+            <div style={{ fontSize: '13px', fontWeight: '600', color: '#128C7E', marginBottom: '6px' }}>
+              Sending...
+            </div>
+            <div style={{ fontSize: '13px', color: '#0f1117', fontFamily: 'JetBrains Mono, monospace' }}>
+              Sent: {pollProgress.sent}&nbsp;&nbsp;Failed: {pollProgress.failed}&nbsp;&nbsp;/&nbsp;&nbsp;Total: {pollProgress.total}
+            </div>
           </div>
         )}
-        {sendResult?.error && (
-          <div style={notice(true)}>
-            Error: {sendResult.error}
+
+        {/* final result — done or paused */}
+        {!polling && pollProgress && (
+          <div style={notice(pollProgress.status === 'PAUSED')}>
+            {pollProgress.status === 'PAUSED'
+              ? `Paused — Daily limit reached. Sent: ${pollProgress.sent} · Failed: ${pollProgress.failed} · Total: ${pollProgress.total}`
+              : `Done — Sent: ${pollProgress.sent} · Failed: ${pollProgress.failed} · Total: ${pollProgress.total}`
+            }
           </div>
         )}
+
       </div>
 
     </div>

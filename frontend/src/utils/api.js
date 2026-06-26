@@ -89,6 +89,14 @@ export const sendCampaign = (campaignId) => {
   return api.post(`/campaigns/send/${campaignId}`)
 }
 
+export const getBookColumns = (bookId) => {
+  return api.get(`/campaigns/books/${bookId}/columns`)
+}
+
+export const getCampaignStatus = (campaignId) => {
+  return api.get(`/campaigns/status/${campaignId}`)
+}
+
 export const getLogs = () => {
   return api.get('/logs')
 }
