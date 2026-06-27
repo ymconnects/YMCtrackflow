@@ -15,9 +15,12 @@ from whatsapp import get_all_templates, delete_template, create_template
 import os
 import threading
 import time
+import queue
 
 app = Flask(__name__)
 CORS(app, origins="*")
+
+campaign_webhook_queue = queue.Queue()
 
 def get_token_from_request():
     auth_header = request.headers.get("Authorization")
@@ -503,23 +506,11 @@ def webhook_receive():
                 from sheets import update_order_status_by_phone
                 update_order_status_by_phone(phone, status_type)
 
-                # campaign_recipients — update delivery status by wamid
+                # campaign_recipients — queue for background processing
                 STATUS_MAP = {"sent": "SENT", "delivered": "DELIVERED", "read": "DELIVERED", "failed": "FAILED"}
                 mapped = STATUS_MAP.get(status_type)
                 if mapped:
-                    from campaigns.bulk_sender import update_recipient_status
-                    for attempt in range(3):
-                        try:
-                            row = supabase.table("campaign_recipients") \
-                                .select("id").eq("wamid", msg_id).limit(1).execute()
-                            if row.data:
-                                update_recipient_status(row.data[0]["id"], mapped)
-                            break
-                        except Exception as ce:
-                            if attempt < 2:
-                                time.sleep(1)
-                            else:
-                                print(f"Campaign webhook update error after 3 attempts: {ce}", flush=True)
+                    campaign_webhook_queue.put({"wamid": msg_id, "status": mapped})
         
         # handle incoming messages
         if "messages" in value:
@@ -539,10 +530,34 @@ def webhook_receive():
     
     return jsonify({"status": "ok"}), 200
 
+def process_campaign_webhook_queue():
+    from campaigns.bulk_sender import update_recipient_status
+    while True:
+        try:
+            items = []
+            while not campaign_webhook_queue.empty():
+                try:
+                    items.append(campaign_webhook_queue.get_nowait())
+                except queue.Empty:
+                    break
+            for item in items:
+                try:
+                    row = supabase.table("campaign_recipients") \
+                        .select("id").eq("wamid", item["wamid"]).limit(1).execute()
+                    if row.data:
+                        update_recipient_status(row.data[0]["id"], item["status"])
+                except Exception as e:
+                    print(f"Campaign queue item error: {e}", flush=True)
+        except Exception as e:
+            print(f"Campaign queue processor error: {e}", flush=True)
+        time.sleep(10)
+
+
 if __name__ == "__main__":
     config = load_config()
     log_system_start()
     # auto start scheduler on boot
     start_scheduler()
+    threading.Thread(target=process_campaign_webhook_queue, daemon=True).start()
     app.run(host='0.0.0.0', port=config["FLASK_PORT"], debug=True, use_reloader=False)
 
