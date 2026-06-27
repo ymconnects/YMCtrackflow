@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { uploadContacts, getContactBooks, getBookColumns, getTemplates, createCampaign, sendCampaign, getCampaignStatus, getBookContacts, getCampaignRecipients, deleteContactBook } from '../utils/api'
+import { uploadContacts, getContactBooks, getBookColumns, getTemplates, createCampaign, sendCampaign, getCampaignStatus, getBookContacts, getCampaignRecipients, deleteContactBook, getCampaignHistory, deleteCampaign } from '../utils/api'
 
 function getErrorLabel(code) {
   const labels = {
@@ -56,10 +56,19 @@ const Campaigns = ({ role, onPageChange }) => {
   const [recipientFilter, setRecipientFilter]         = useState('All')
   const [loadingRecipients, setLoadingRecipients]     = useState(false)
 
-  // load books + templates on mount; clean up interval on unmount
+  // campaign history
+  const [history, setHistory]                       = useState([])
+  const [loadingHistory, setLoadingHistory]         = useState(false)
+  const [histViewId, setHistViewId]                 = useState(null)
+  const [histRecipients, setHistRecipients]         = useState([])
+  const [histLoadingRecipients, setHistLoadingRecipients] = useState(false)
+  const [histFilter, setHistFilter]                 = useState('All')
+
+  // load books + templates + history on mount; clean up interval on unmount
   useEffect(() => {
     loadBooks()
     loadTemplates()
+    loadHistory()
     return () => { if (pollIntervalRef.current) clearInterval(pollIntervalRef.current) }
   }, [])
 
@@ -76,6 +85,42 @@ const Campaigns = ({ role, onPageChange }) => {
           setAllTemplates(res.data.templates.filter(t => t.status === 'APPROVED'))
       })
       .catch(() => {})
+  }
+
+  const loadHistory = () => {
+    setLoadingHistory(true)
+    getCampaignHistory()
+      .then(res => { if (res.data.success) setHistory(res.data.campaigns) })
+      .catch(() => {})
+      .finally(() => setLoadingHistory(false))
+  }
+
+  const handleViewHistoryCampaign = async (c) => {
+    if (histViewId === c.id) {
+      setHistViewId(null)
+      setHistRecipients([])
+      return
+    }
+    setHistViewId(c.id)
+    setHistFilter('All')
+    setHistLoadingRecipients(true)
+    setHistRecipients([])
+    try {
+      const res = await getCampaignRecipients(c.id)
+      if (res.data.success) setHistRecipients(res.data.recipients)
+    } catch {}
+    setHistLoadingRecipients(false)
+  }
+
+  const handleDeleteCampaign = async (c) => {
+    if (!window.confirm(`Delete campaign "${c.name}" and all its recipients?`)) return
+    try {
+      const res = await deleteCampaign(c.id)
+      if (res.data.success) {
+        setHistory(prev => prev.filter(h => h.id !== c.id))
+        if (histViewId === c.id) { setHistViewId(null); setHistRecipients([]) }
+      }
+    } catch {}
   }
 
   // fetch columns when book changes
@@ -307,6 +352,22 @@ const Campaigns = ({ role, onPageChange }) => {
     borderBottom: '1px solid #f0f1f4'
   }
 
+  const campaignStatusBadge = (status) => {
+    const colors = {
+      DRAFT:   { bg: 'rgba(122,128,144,0.10)', color: '#7a8090', border: 'rgba(122,128,144,0.25)' },
+      SENDING: { bg: 'rgba(37,99,235,0.10)',   color: '#2563eb', border: 'rgba(37,99,235,0.25)' },
+      DONE:    { bg: 'rgba(18,140,126,0.10)',  color: '#128C7E', border: 'rgba(18,140,126,0.25)' },
+      FAILED:  { bg: 'rgba(220,38,38,0.10)',   color: '#dc2626', border: 'rgba(220,38,38,0.25)' },
+      PAUSED:  { bg: 'rgba(234,88,12,0.10)',   color: '#ea580c', border: 'rgba(234,88,12,0.25)' },
+    }
+    const c = colors[status] || colors.DRAFT
+    return {
+      display: 'inline-block', padding: '2px 9px', borderRadius: '20px',
+      fontSize: '11.5px', fontWeight: '700',
+      background: c.bg, color: c.color, border: `1px solid ${c.border}`
+    }
+  }
+
   const statusBadge = (status) => {
     const colors = {
       SENT:      { bg: 'rgba(18,140,126,0.10)', color: '#128C7E', border: 'rgba(18,140,126,0.25)' },
@@ -357,6 +418,140 @@ const Campaigns = ({ role, onPageChange }) => {
         <div style={{ color: '#4b5160', fontSize: '13.5px', marginTop: '2px' }}>
           Upload contacts, create campaigns, and send bulk WhatsApp messages.
         </div>
+      </div>
+
+      {/* campaign history */}
+      <div style={card}>
+        <h3 style={{ margin: '0 0 16px', fontSize: '14.5px', fontWeight: '700' }}>
+          Campaign History
+        </h3>
+        {loadingHistory ? (
+          <div style={{ fontSize: '13px', color: '#4b5160' }}>Loading...</div>
+        ) : history.length === 0 ? (
+          <div style={{ fontSize: '13px', color: '#4b5160' }}>No campaigns yet.</div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+              <thead>
+                <tr style={tblHeader}>
+                  <th style={th}>Campaign Name</th>
+                  <th style={th}>Template</th>
+                  <th style={th}>Total</th>
+                  <th style={th}>Sent</th>
+                  <th style={th}>Failed</th>
+                  <th style={th}>Status</th>
+                  <th style={th}>Date</th>
+                  <th style={th}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map(c => (
+                  <>
+                    <tr key={c.id}>
+                      <td style={{ ...td, fontWeight: '600' }}>{c.name}</td>
+                      <td style={td}>{c.template_name}</td>
+                      <td style={td}>{c.total}</td>
+                      <td style={td}>{c.sent}</td>
+                      <td style={td}>{c.failed}</td>
+                      <td style={td}><span style={campaignStatusBadge(c.status)}>{c.status}</span></td>
+                      <td style={{ ...td, color: '#4b5160' }}>{formatDate(c.created_at)}</td>
+                      <td style={{ ...td, textAlign: 'right' }}>
+                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                          <button
+                            onClick={() => handleViewHistoryCampaign(c)}
+                            style={{
+                              height: '28px', padding: '0 12px',
+                              background: histViewId === c.id ? '#128C7E' : '#f6f7f9',
+                              border: `1px solid ${histViewId === c.id ? '#128C7E' : '#e6e8ee'}`,
+                              borderRadius: '6px', fontSize: '12px', fontWeight: '600',
+                              color: histViewId === c.id ? '#ffffff' : '#4b5160',
+                              cursor: 'pointer', fontFamily: 'inherit'
+                            }}
+                          >
+                            {histViewId === c.id ? 'Close' : 'View'}
+                          </button>
+                          {role === 'admin' && (
+                            <button
+                              onClick={() => handleDeleteCampaign(c)}
+                              style={{
+                                height: '28px', padding: '0 12px',
+                                background: 'rgba(220,38,38,0.08)',
+                                border: '1px solid rgba(220,38,38,0.25)',
+                                borderRadius: '6px', fontSize: '12px', fontWeight: '600',
+                                color: '#dc2626', cursor: 'pointer', fontFamily: 'inherit'
+                              }}
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                    {histViewId === c.id && (
+                      <tr key={`${c.id}-recipients`}>
+                        <td colSpan={8} style={{ padding: '0 0 12px 0', borderBottom: '1px solid #f0f1f4' }}>
+                          <div style={{
+                            margin: '0 0 0 16px', background: '#f6f7f9',
+                            border: '1px solid #e6e8ee', borderRadius: '10px', overflow: 'hidden'
+                          }}>
+                            {histLoadingRecipients ? (
+                              <div style={{ padding: '16px', fontSize: '13px', color: '#4b5160' }}>
+                                Loading recipients...
+                              </div>
+                            ) : (
+                              <>
+                                <div style={{
+                                  padding: '10px 14px', display: 'flex', gap: '6px',
+                                  alignItems: 'center', borderBottom: '1px solid #e6e8ee'
+                                }}>
+                                  {['All', 'Sent', 'Failed'].map(f => (
+                                    <button key={f} onClick={() => setHistFilter(f)} style={filterBtn(histFilter === f)}>
+                                      {f}
+                                      {f === 'All' && ` (${histRecipients.length})`}
+                                      {f === 'Sent' && ` (${histRecipients.filter(r => r.status === 'SENT').length})`}
+                                      {f === 'Failed' && ` (${histRecipients.filter(r => r.status === 'FAILED').length})`}
+                                    </button>
+                                  ))}
+                                </div>
+                                <div style={{ maxHeight: '260px', overflowY: 'auto' }}>
+                                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                    <thead>
+                                      <tr>
+                                        <th style={{ ...th, background: '#eff0f3' }}>#</th>
+                                        <th style={{ ...th, background: '#eff0f3' }}>Name</th>
+                                        <th style={{ ...th, background: '#eff0f3' }}>Phone</th>
+                                        <th style={{ ...th, background: '#eff0f3' }}>Status</th>
+                                        <th style={{ ...th, background: '#eff0f3' }}>Error</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {histRecipients
+                                        .filter(r => histFilter === 'All' || r.status === histFilter.toUpperCase())
+                                        .map((r, i) => (
+                                          <tr key={i}>
+                                            <td style={{ ...td, color: '#7a8090', width: '48px' }}>{i + 1}</td>
+                                            <td style={td}>{r.name || '—'}</td>
+                                            <td style={{ ...td, fontFamily: 'JetBrains Mono, monospace', fontSize: '12.5px' }}>{r.phone}</td>
+                                            <td style={td}><span style={statusBadge(r.status)}>{r.status}</span></td>
+                                            <td style={{ ...td, color: '#7a8090', fontSize: '12px' }}>{getErrorLabel(r.error_code)}</td>
+                                          </tr>
+                                        ))
+                                      }
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* section 1 — upload contacts */}

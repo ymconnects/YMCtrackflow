@@ -104,6 +104,12 @@ export const getBookContacts = (bookId) => {
 export const deleteContactBook = (bookId) =>
   api.delete(`/campaigns/books/${bookId}`)
 
+export const getCampaignHistory = () =>
+  api.get('/campaigns/history')
+
+export const deleteCampaign = (campaignId) =>
+  api.delete(`/campaigns/${campaignId}`)
+
 export const getCampaignRecipients = (campaignId) => {
   return api.get(`/campaigns/${campaignId}/recipients`)
 }
