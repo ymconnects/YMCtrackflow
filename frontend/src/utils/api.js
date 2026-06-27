@@ -97,6 +97,14 @@ export const getCampaignStatus = (campaignId) => {
   return api.get(`/campaigns/status/${campaignId}`)
 }
 
+export const getBookContacts = (bookId) => {
+  return api.get(`/campaigns/books/${bookId}/contacts`)
+}
+
+export const getCampaignRecipients = (campaignId) => {
+  return api.get(`/campaigns/${campaignId}/recipients`)
+}
+
 export const getLogs = () => {
   return api.get('/logs')
 }
