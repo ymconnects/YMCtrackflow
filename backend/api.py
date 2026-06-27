@@ -377,6 +377,18 @@ def get_contact_books():
     return jsonify({"success": True, "books": result.data})
 
 
+@app.route("/campaigns/books/<book_id>", methods=["DELETE"])
+def delete_contact_book(book_id):
+    token = get_token_from_request()
+    payload = verify_session(token)
+    if not payload:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    if payload["role"] != "admin":
+        return jsonify({"success": False, "message": "Access denied"}), 403
+    supabase.table("contact_books").delete().eq("id", book_id).execute()
+    return jsonify({"success": True})
+
+
 @app.route("/campaigns/books/<book_id>/contacts", methods=["GET"])
 def get_book_contacts(book_id):
     token = get_token_from_request()

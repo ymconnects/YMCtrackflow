@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { uploadContacts, getContactBooks, getBookColumns, getTemplates, createCampaign, sendCampaign, getCampaignStatus, getBookContacts, getCampaignRecipients } from '../utils/api'
+import { uploadContacts, getContactBooks, getBookColumns, getTemplates, createCampaign, sendCampaign, getCampaignStatus, getBookContacts, getCampaignRecipients, deleteContactBook } from '../utils/api'
 
 const Campaigns = ({ role, onPageChange }) => {
   useEffect(() => { onPageChange('campaigns') }, [onPageChange])
@@ -123,6 +123,17 @@ const Campaigns = ({ role, onPageChange }) => {
       if (res.data.success) setBookContacts(res.data.contacts)
     } catch {}
     setLoadingContacts(false)
+  }
+
+  const handleDeleteBook = async (book) => {
+    if (!window.confirm('Delete this book and all its contacts?')) return
+    try {
+      const res = await deleteContactBook(book.id)
+      if (res.data.success) {
+        setBooks(prev => prev.filter(b => b.id !== book.id))
+        if (viewingBookId === book.id) { setViewingBookId(null); setBookContacts([]) }
+      }
+    } catch {}
   }
 
   const handleCreateAndSend = async () => {
@@ -395,23 +406,44 @@ const Campaigns = ({ role, onPageChange }) => {
                       <td style={td}>{b.total}</td>
                       <td style={{ ...td, color: '#4b5160' }}>{formatDate(b.created_at)}</td>
                       <td style={{ ...td, textAlign: 'right' }}>
-                        <button
-                          onClick={() => handleViewBook(b)}
-                          style={{
-                            height: '28px',
-                            padding: '0 12px',
-                            background: viewingBookId === b.id ? '#128C7E' : '#f6f7f9',
-                            border: `1px solid ${viewingBookId === b.id ? '#128C7E' : '#e6e8ee'}`,
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            fontWeight: '600',
-                            color: viewingBookId === b.id ? '#ffffff' : '#4b5160',
-                            cursor: 'pointer',
-                            fontFamily: 'inherit'
-                          }}
-                        >
-                          {viewingBookId === b.id ? 'Close' : 'View'}
-                        </button>
+                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                          <button
+                            onClick={() => handleViewBook(b)}
+                            style={{
+                              height: '28px',
+                              padding: '0 12px',
+                              background: viewingBookId === b.id ? '#128C7E' : '#f6f7f9',
+                              border: `1px solid ${viewingBookId === b.id ? '#128C7E' : '#e6e8ee'}`,
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              color: viewingBookId === b.id ? '#ffffff' : '#4b5160',
+                              cursor: 'pointer',
+                              fontFamily: 'inherit'
+                            }}
+                          >
+                            {viewingBookId === b.id ? 'Close' : 'View'}
+                          </button>
+                          {role === 'admin' && (
+                            <button
+                              onClick={() => handleDeleteBook(b)}
+                              style={{
+                                height: '28px',
+                                padding: '0 12px',
+                                background: 'rgba(220,38,38,0.08)',
+                                border: '1px solid rgba(220,38,38,0.25)',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                color: '#dc2626',
+                                cursor: 'pointer',
+                                fontFamily: 'inherit'
+                              }}
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                     {viewingBookId === b.id && (
