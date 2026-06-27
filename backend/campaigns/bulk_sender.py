@@ -37,49 +37,78 @@ def update_recipient_status(recipient_id, status, wamid=None, error_code=None):
 
 
 def send_campaign(campaign_id):
+    from supabase import create_client
+    import os
+    db = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
+
     campaign = get_campaign(campaign_id)
     if not campaign:
         return False, "Campaign not found"
 
-    recipients = supabase.table("campaign_recipients") \
-        .select("*").eq("campaign_id", campaign_id).eq("status", "NO").execute().data
-
-    supabase.table("campaigns").update({"status": "SENDING"}).eq("id", campaign_id).execute()
+    db.table("campaigns").update({"status": "SENDING"}).eq("id", campaign_id).execute()
 
     sent_count = 0
     failed_count = 0
+    paused = False
 
-    for recipient in recipients:
-        # SAFETY 2 — daily limit guard
-        if sent_count >= DAILY_LIMIT:
-            print(f"Daily safety limit reached, paused at {sent_count} sent.", flush=True)
-            supabase.table("campaigns").update({
+    try:
+        while True:
+            batch = db.table("campaign_recipients") \
+                .select("*").eq("campaign_id", campaign_id).eq("status", "NO") \
+                .limit(5).execute().data
+
+            if not batch:
+                break
+
+            for recipient in batch:
+                if sent_count >= DAILY_LIMIT:
+                    paused = True
+                    break
+
+                variables = recipient.get("variables") or []
+                success, result = send_template_message(
+                    recipient["phone"],
+                    campaign["template_name"],
+                    variables
+                )
+
+                if success:
+                    update_recipient_status(recipient["id"], "SENT", wamid=result)
+                    sent_count += 1
+                else:
+                    update_recipient_status(recipient["id"], "FAILED", error_code=str(result))
+                    failed_count += 1
+
+                time.sleep(1)
+
+            if paused:
+                break
+
+    except Exception as e:
+        print(f"Campaign {campaign_id} crashed: {e}", flush=True)
+        try:
+            db.table("campaigns").update({
                 "status": "PAUSED",
                 "sent": sent_count,
                 "failed": failed_count
             }).eq("id", campaign_id).execute()
-            return False, f"Daily safety limit reached, paused at {sent_count} sent."
+        except Exception:
+            pass
+        return False, str(e)
 
-        variables = recipient.get("variables") or []
-        success, result = send_template_message(
-            recipient["phone"],
-            campaign["template_name"],
-            variables
-        )
+    if paused:
+        print(f"Daily safety limit reached, paused at {sent_count} sent.", flush=True)
+        db.table("campaigns").update({
+            "status": "PAUSED",
+            "sent": sent_count,
+            "failed": failed_count
+        }).eq("id", campaign_id).execute()
+        return False, f"Daily safety limit reached, paused at {sent_count} sent."
 
-        if success:
-            update_recipient_status(recipient["id"], "SENT", wamid=result)
-            sent_count += 1
-        else:
-            update_recipient_status(recipient["id"], "FAILED", error_code=str(result))
-            failed_count += 1
-
-        time.sleep(1)
-
-    supabase.table("campaigns").update({
+    db.table("campaigns").update({
         "status": "DONE",
         "sent": sent_count,
         "failed": failed_count
     }).eq("id", campaign_id).execute()
 
-    return True, {"sent": sent_count, "failed": failed_count, "total": len(recipients)}
+    return True, {"sent": sent_count, "failed": failed_count}
