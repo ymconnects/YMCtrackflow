@@ -501,6 +501,19 @@ def webhook_receive():
                 print(f"Status update: {phone} | {status_type}", flush=True)
                 from sheets import update_order_status_by_phone
                 update_order_status_by_phone(phone, status_type)
+
+                # campaign_recipients — update delivery status by wamid
+                STATUS_MAP = {"sent": "SENT", "delivered": "DELIVERED", "read": "DELIVERED", "failed": "FAILED"}
+                mapped = STATUS_MAP.get(status_type)
+                if mapped:
+                    try:
+                        from campaigns.bulk_sender import update_recipient_status
+                        row = supabase.table("campaign_recipients") \
+                            .select("id").eq("wamid", msg_id).limit(1).execute()
+                        if row.data:
+                            update_recipient_status(row.data[0]["id"], mapped)
+                    except Exception as ce:
+                        print(f"Campaign webhook update error: {ce}", flush=True)
         
         # handle incoming messages
         if "messages" in value:
