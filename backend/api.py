@@ -385,8 +385,13 @@ def delete_contact_book(book_id):
         return jsonify({"success": False, "message": "Not logged in"}), 401
     if payload["role"] != "admin":
         return jsonify({"success": False, "message": "Access denied"}), 403
-    supabase.table("contact_books").delete().eq("id", book_id).execute()
-    return jsonify({"success": True})
+    try:
+        # Detach campaigns referencing this book so any FK on campaigns.book_id doesn't block the delete
+        supabase.table("campaigns").update({"book_id": None}).eq("book_id", book_id).execute()
+        supabase.table("contact_books").delete().eq("id", book_id).execute()
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
 
 
 @app.route("/campaigns/books/<book_id>/contacts", methods=["GET"])
