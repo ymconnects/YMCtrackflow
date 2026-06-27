@@ -27,7 +27,13 @@ def update_recipient_status(recipient_id, status, wamid=None, error_code=None):
     if error_code:
         update_data["error_code"] = error_code
 
-    supabase.table("campaign_recipients").update(update_data).eq("id", recipient_id).execute()
+    for attempt in range(3):
+        try:
+            supabase.table("campaign_recipients").update(update_data).eq("id", recipient_id).execute()
+            return
+        except Exception:
+            if attempt < 2:
+                time.sleep(1)
 
 
 def send_campaign(campaign_id):
