@@ -23,6 +23,7 @@ const Campaigns = ({ role, onPageChange }) => {
   useEffect(() => { onPageChange('campaigns') }, [onPageChange])
 
   const pollIntervalRef = useRef(null)
+  const histPollRef    = useRef(null)
 
   // section 1 — upload
   const [bookName, setBookName]   = useState('')
@@ -63,13 +64,17 @@ const Campaigns = ({ role, onPageChange }) => {
   const [histRecipients, setHistRecipients]         = useState([])
   const [histLoadingRecipients, setHistLoadingRecipients] = useState(false)
   const [histFilter, setHistFilter]                 = useState('All')
+  const [resumingId, setResumingId]                 = useState(null)
 
   // load books + templates + history on mount; clean up interval on unmount
   useEffect(() => {
     loadBooks()
     loadTemplates()
     loadHistory()
-    return () => { if (pollIntervalRef.current) clearInterval(pollIntervalRef.current) }
+    return () => {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current)
+      if (histPollRef.current)    clearInterval(histPollRef.current)
+    }
   }, [])
 
   const loadBooks = () => {
@@ -110,6 +115,33 @@ const Campaigns = ({ role, onPageChange }) => {
       if (res.data.success) setHistRecipients(res.data.recipients)
     } catch {}
     setHistLoadingRecipients(false)
+  }
+
+  const handleResumeCampaign = async (c) => {
+    setResumingId(c.id)
+    try {
+      await sendCampaign(c.id)
+      histPollRef.current = setInterval(async () => {
+        try {
+          const statusRes = await getCampaignStatus(c.id)
+          if (statusRes.data.success) {
+            const d = statusRes.data
+            setHistory(prev => prev.map(h =>
+              h.id === c.id ? { ...h, status: d.status, sent: d.sent, failed: d.failed } : h
+            ))
+            if (d.status === 'DONE' || d.status === 'PAUSED') {
+              clearInterval(histPollRef.current)
+              setResumingId(null)
+            }
+          }
+        } catch {
+          clearInterval(histPollRef.current)
+          setResumingId(null)
+        }
+      }, 3000)
+    } catch {
+      setResumingId(null)
+    }
   }
 
   const handleDeleteCampaign = async (c) => {
@@ -470,6 +502,23 @@ const Campaigns = ({ role, onPageChange }) => {
                           >
                             {histViewId === c.id ? 'Close' : 'View'}
                           </button>
+                          {c.status === 'PAUSED' && (
+                            <button
+                              onClick={() => handleResumeCampaign(c)}
+                              disabled={resumingId === c.id}
+                              style={{
+                                height: '28px', padding: '0 12px',
+                                background: resumingId === c.id ? '#7a8090' : 'rgba(18,140,126,0.08)',
+                                border: `1px solid ${resumingId === c.id ? '#7a8090' : 'rgba(18,140,126,0.25)'}`,
+                                borderRadius: '6px', fontSize: '12px', fontWeight: '600',
+                                color: resumingId === c.id ? '#ffffff' : '#128C7E',
+                                cursor: resumingId === c.id ? 'not-allowed' : 'pointer',
+                                fontFamily: 'inherit'
+                              }}
+                            >
+                              {resumingId === c.id ? 'Resuming...' : 'Resume'}
+                            </button>
+                          )}
                           {role === 'admin' && (
                             <button
                               onClick={() => handleDeleteCampaign(c)}
