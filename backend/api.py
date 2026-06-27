@@ -420,6 +420,33 @@ def get_campaign_recipients(campaign_id):
     return jsonify({"success": True, "recipients": result.data})
 
 
+@app.route("/campaigns/history", methods=["GET"])
+def campaign_history():
+    token = get_token_from_request()
+    payload = verify_session(token)
+    if not payload:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    if payload["role"] not in ["admin", "campaigner"]:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+    result = supabase.table("campaigns").select("*").order("created_at", desc=True).execute()
+    return jsonify({"success": True, "campaigns": result.data})
+
+
+@app.route("/campaigns/<campaign_id>", methods=["DELETE"])
+def delete_campaign(campaign_id):
+    token = get_token_from_request()
+    payload = verify_session(token)
+    if not payload:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    if payload["role"] != "admin":
+        return jsonify({"success": False, "message": "Access denied"}), 403
+    try:
+        supabase.table("campaigns").delete().eq("id", campaign_id).execute()
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
 @app.route("/logs", methods=["GET"])
 def get_logs():
     token = get_token_from_request()
