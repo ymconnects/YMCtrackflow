@@ -14,6 +14,7 @@ from config import load_config
 from whatsapp import get_all_templates, delete_template, create_template
 import os
 import threading
+import time
 
 app = Flask(__name__)
 CORS(app, origins="*")
@@ -506,14 +507,19 @@ def webhook_receive():
                 STATUS_MAP = {"sent": "SENT", "delivered": "DELIVERED", "read": "DELIVERED", "failed": "FAILED"}
                 mapped = STATUS_MAP.get(status_type)
                 if mapped:
-                    try:
-                        from campaigns.bulk_sender import update_recipient_status
-                        row = supabase.table("campaign_recipients") \
-                            .select("id").eq("wamid", msg_id).limit(1).execute()
-                        if row.data:
-                            update_recipient_status(row.data[0]["id"], mapped)
-                    except Exception as ce:
-                        print(f"Campaign webhook update error: {ce}", flush=True)
+                    from campaigns.bulk_sender import update_recipient_status
+                    for attempt in range(3):
+                        try:
+                            row = supabase.table("campaign_recipients") \
+                                .select("id").eq("wamid", msg_id).limit(1).execute()
+                            if row.data:
+                                update_recipient_status(row.data[0]["id"], mapped)
+                            break
+                        except Exception as ce:
+                            if attempt < 2:
+                                time.sleep(1)
+                            else:
+                                print(f"Campaign webhook update error after 3 attempts: {ce}", flush=True)
         
         # handle incoming messages
         if "messages" in value:
