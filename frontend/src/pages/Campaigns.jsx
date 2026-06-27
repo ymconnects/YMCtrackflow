@@ -1,6 +1,24 @@
 import { useState, useEffect, useRef } from 'react'
 import { uploadContacts, getContactBooks, getBookColumns, getTemplates, createCampaign, sendCampaign, getCampaignStatus, getBookContacts, getCampaignRecipients, deleteContactBook } from '../utils/api'
 
+function getErrorLabel(code) {
+  const labels = {
+    "131026": "Not on WhatsApp",
+    "131047": "24hr window expired",
+    "131050": "User opted out",
+    "131048": "Spam restriction — slow down",
+    "130429": "Rate limit hit — retry later",
+    "131000": "Unknown error — retry",
+    "131049": "Ecosystem throttle — pause",
+    "130403": "User blocked by business",
+    "131042": "Payment issue",
+    "132001": "Template not approved",
+    "132000": "Wrong variable count",
+    "131056": "Too many messages to same number",
+  }
+  return labels[String(code)] || (code ? `Error ${code}` : "—")
+}
+
 const Campaigns = ({ role, onPageChange }) => {
   useEffect(() => { onPageChange('campaigns') }, [onPageChange])
 
@@ -722,8 +740,8 @@ const Campaigns = ({ role, onPageChange }) => {
                           <td style={td}>{r.name || '—'}</td>
                           <td style={{ ...td, fontFamily: 'JetBrains Mono, monospace', fontSize: '12.5px' }}>{r.phone}</td>
                           <td style={td}><span style={statusBadge(r.status)}>{r.status}</span></td>
-                          <td style={{ ...td, color: '#7a8090', fontSize: '12px', fontFamily: 'JetBrains Mono, monospace' }}>
-                            {r.error_code || '—'}
+                          <td style={{ ...td, color: '#7a8090', fontSize: '12px' }}>
+                            {getErrorLabel(r.error_code)}
                           </td>
                         </tr>
                       ))}
