@@ -377,6 +377,32 @@ def get_contact_books():
     return jsonify({"success": True, "books": result.data})
 
 
+@app.route("/campaigns/books/<book_id>/contacts", methods=["GET"])
+def get_book_contacts(book_id):
+    token = get_token_from_request()
+    payload = verify_session(token)
+    if not payload:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    if payload["role"] not in ["admin", "campaigner"]:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+    result = supabase.table("contacts").select("name,phone").eq("book_id", book_id).execute()
+    return jsonify({"success": True, "contacts": result.data})
+
+
+@app.route("/campaigns/<campaign_id>/recipients", methods=["GET"])
+def get_campaign_recipients(campaign_id):
+    token = get_token_from_request()
+    payload = verify_session(token)
+    if not payload:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    if payload["role"] not in ["admin", "campaigner"]:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+    result = supabase.table("campaign_recipients") \
+        .select("name,phone,status,error_code") \
+        .eq("campaign_id", campaign_id).execute()
+    return jsonify({"success": True, "recipients": result.data})
+
+
 @app.route("/logs", methods=["GET"])
 def get_logs():
     token = get_token_from_request()

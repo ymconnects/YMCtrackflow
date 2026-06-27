@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { uploadContacts, getContactBooks, getBookColumns, getTemplates, createCampaign, sendCampaign, getCampaignStatus } from '../utils/api'
+import { uploadContacts, getContactBooks, getBookColumns, getTemplates, createCampaign, sendCampaign, getCampaignStatus, getBookContacts, getCampaignRecipients } from '../utils/api'
 
 const Campaigns = ({ role, onPageChange }) => {
   useEffect(() => { onPageChange('campaigns') }, [onPageChange])
@@ -11,6 +11,12 @@ const Campaigns = ({ role, onPageChange }) => {
   const [csvFile, setCsvFile]     = useState(null)
   const [uploading, setUploading] = useState(false)
   const [uploadMsg, setUploadMsg] = useState(null)
+
+  // section 1b — saved contact books viewer
+  const [viewingBookId, setViewingBookId]     = useState(null)
+  const [viewingBookName, setViewingBookName] = useState('')
+  const [bookContacts, setBookContacts]       = useState([])
+  const [loadingContacts, setLoadingContacts] = useState(false)
 
   // section 2 — create & send
   const [books, setBooks]                     = useState([])
@@ -25,6 +31,12 @@ const Campaigns = ({ role, onPageChange }) => {
   const [polling, setPolling]                 = useState(false)
   const [pollProgress, setPollProgress]       = useState(null)
   const [errorMsg, setErrorMsg]               = useState(null)
+
+  // section 2b — per-recipient results
+  const [completedCampaignId, setCompletedCampaignId] = useState(null)
+  const [recipients, setRecipients]                   = useState([])
+  const [recipientFilter, setRecipientFilter]         = useState('All')
+  const [loadingRecipients, setLoadingRecipients]     = useState(false)
 
   // load books + templates on mount; clean up interval on unmount
   useEffect(() => {
@@ -96,10 +108,30 @@ const Campaigns = ({ role, onPageChange }) => {
     setUploading(false)
   }
 
+  const handleViewBook = async (book) => {
+    if (viewingBookId === book.id) {
+      setViewingBookId(null)
+      setBookContacts([])
+      return
+    }
+    setViewingBookId(book.id)
+    setViewingBookName(book.name)
+    setLoadingContacts(true)
+    setBookContacts([])
+    try {
+      const res = await getBookContacts(book.id)
+      if (res.data.success) setBookContacts(res.data.contacts)
+    } catch {}
+    setLoadingContacts(false)
+  }
+
   const handleCreateAndSend = async () => {
     setCreating(true)
     setErrorMsg(null)
     setPollProgress(null)
+    setRecipients([])
+    setCompletedCampaignId(null)
+    setRecipientFilter('All')
     try {
       const createRes = await createCampaign({
         name: campName,
@@ -125,6 +157,13 @@ const Campaigns = ({ role, onPageChange }) => {
             if (d.status === 'DONE' || d.status === 'PAUSED') {
               clearInterval(pollIntervalRef.current)
               setPolling(false)
+              setCompletedCampaignId(cid)
+              setLoadingRecipients(true)
+              try {
+                const rRes = await getCampaignRecipients(cid)
+                if (rRes.data.success) setRecipients(rRes.data.recipients)
+              } catch {}
+              setLoadingRecipients(false)
             }
           }
         } catch {
@@ -138,6 +177,26 @@ const Campaigns = ({ role, onPageChange }) => {
       setCreating(false)
     }
   }
+
+  const handleDownloadFailedCSV = () => {
+    const failed = recipients.filter(r => r.status === 'FAILED')
+    if (!failed.length) return
+    const rows = [['Name', 'Phone', 'Error Code'], ...failed.map(r => [r.name, r.phone, r.error_code || ''])]
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `failed_recipients_${completedCampaignId}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const filteredRecipients = recipients.filter(r => {
+    if (recipientFilter === 'Sent') return r.status === 'SENT'
+    if (recipientFilter === 'Failed') return r.status === 'FAILED'
+    return true
+  })
 
   const isReadyToSend = selectedBookId && campName && selectedTemplateName &&
     templateVars.every(v => variableMap[v])
@@ -198,6 +257,66 @@ const Campaigns = ({ role, onPageChange }) => {
     border: `1px solid ${isError ? 'rgba(220,38,38,0.2)' : 'rgba(18,140,126,0.2)'}`
   })
 
+  const tblHeader = {
+    background: '#f6f7f9',
+    borderBottom: '1px solid #e6e8ee'
+  }
+
+  const th = {
+    padding: '9px 14px',
+    fontSize: '12px',
+    fontWeight: '700',
+    color: '#4b5160',
+    textAlign: 'left',
+    whiteSpace: 'nowrap'
+  }
+
+  const td = {
+    padding: '9px 14px',
+    fontSize: '13px',
+    color: '#0f1117',
+    borderBottom: '1px solid #f0f1f4'
+  }
+
+  const statusBadge = (status) => {
+    const colors = {
+      SENT:      { bg: 'rgba(18,140,126,0.10)', color: '#128C7E', border: 'rgba(18,140,126,0.25)' },
+      FAILED:    { bg: 'rgba(220,38,38,0.10)',  color: '#dc2626', border: 'rgba(220,38,38,0.25)' },
+      DELIVERED: { bg: 'rgba(37,99,235,0.10)',  color: '#2563eb', border: 'rgba(37,99,235,0.25)' },
+      NO:        { bg: 'rgba(122,128,144,0.10)', color: '#7a8090', border: 'rgba(122,128,144,0.25)' }
+    }
+    const c = colors[status] || colors.NO
+    return {
+      display: 'inline-block',
+      padding: '2px 9px',
+      borderRadius: '20px',
+      fontSize: '11.5px',
+      fontWeight: '700',
+      background: c.bg,
+      color: c.color,
+      border: `1px solid ${c.border}`
+    }
+  }
+
+  const filterBtn = (active) => ({
+    height: '30px',
+    padding: '0 14px',
+    background: active ? '#128C7E' : '#f6f7f9',
+    border: `1px solid ${active ? '#128C7E' : '#e6e8ee'}`,
+    borderRadius: '6px',
+    fontSize: '12.5px',
+    fontWeight: '600',
+    color: active ? '#ffffff' : '#4b5160',
+    cursor: 'pointer',
+    fontFamily: 'inherit'
+  })
+
+  const formatDate = (iso) => {
+    if (!iso) return '—'
+    const d = new Date(iso)
+    return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+  }
+
   return (
     <div>
 
@@ -252,6 +371,108 @@ const Campaigns = ({ role, onPageChange }) => {
         )}
       </div>
 
+      {/* section 1b — saved contact books */}
+      {books.length > 0 && (
+        <div style={card}>
+          <h3 style={{ margin: '0 0 16px', fontSize: '14.5px', fontWeight: '700' }}>
+            Saved Contact Books
+          </h3>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+              <thead>
+                <tr style={tblHeader}>
+                  <th style={th}>Book Name</th>
+                  <th style={th}>Total Contacts</th>
+                  <th style={th}>Created</th>
+                  <th style={th}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {books.map(b => (
+                  <>
+                    <tr key={b.id}>
+                      <td style={{ ...td, fontWeight: '600' }}>{b.name}</td>
+                      <td style={td}>{b.total}</td>
+                      <td style={{ ...td, color: '#4b5160' }}>{formatDate(b.created_at)}</td>
+                      <td style={{ ...td, textAlign: 'right' }}>
+                        <button
+                          onClick={() => handleViewBook(b)}
+                          style={{
+                            height: '28px',
+                            padding: '0 12px',
+                            background: viewingBookId === b.id ? '#128C7E' : '#f6f7f9',
+                            border: `1px solid ${viewingBookId === b.id ? '#128C7E' : '#e6e8ee'}`,
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            color: viewingBookId === b.id ? '#ffffff' : '#4b5160',
+                            cursor: 'pointer',
+                            fontFamily: 'inherit'
+                          }}
+                        >
+                          {viewingBookId === b.id ? 'Close' : 'View'}
+                        </button>
+                      </td>
+                    </tr>
+                    {viewingBookId === b.id && (
+                      <tr key={`${b.id}-contacts`}>
+                        <td colSpan={4} style={{ padding: '0 0 12px 0', borderBottom: '1px solid #f0f1f4' }}>
+                          <div style={{
+                            margin: '0 0 0 16px',
+                            background: '#f6f7f9',
+                            border: '1px solid #e6e8ee',
+                            borderRadius: '10px',
+                            overflow: 'hidden'
+                          }}>
+                            {loadingContacts ? (
+                              <div style={{ padding: '16px', fontSize: '13px', color: '#4b5160' }}>
+                                Loading contacts...
+                              </div>
+                            ) : (
+                              <>
+                                <div style={{
+                                  padding: '10px 14px',
+                                  fontSize: '12px',
+                                  fontWeight: '700',
+                                  color: '#4b5160',
+                                  borderBottom: '1px solid #e6e8ee'
+                                }}>
+                                  {viewingBookName} — {bookContacts.length} contacts
+                                </div>
+                                <div style={{ maxHeight: '260px', overflowY: 'auto' }}>
+                                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                    <thead>
+                                      <tr>
+                                        <th style={{ ...th, background: '#eff0f3' }}>#</th>
+                                        <th style={{ ...th, background: '#eff0f3' }}>Name</th>
+                                        <th style={{ ...th, background: '#eff0f3' }}>Phone</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {bookContacts.map((c, i) => (
+                                        <tr key={i}>
+                                          <td style={{ ...td, color: '#7a8090', width: '48px' }}>{i + 1}</td>
+                                          <td style={td}>{c.name || '—'}</td>
+                                          <td style={{ ...td, fontFamily: 'JetBrains Mono, monospace', fontSize: '12.5px' }}>{c.phone}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* section 2 — create & send campaign */}
       <div style={card}>
         <h3 style={{ margin: '0 0 16px', fontSize: '14.5px', fontWeight: '700' }}>
@@ -301,7 +522,7 @@ const Campaigns = ({ role, onPageChange }) => {
           </select>
         </div>
 
-        {/* variable mapping — shown when template has variables */}
+        {/* variable mapping */}
         {templateVars.length > 0 && (
           <div style={{
             background: '#f6f7f9',
@@ -376,13 +597,109 @@ const Campaigns = ({ role, onPageChange }) => {
           </div>
         )}
 
-        {/* final result — done or paused */}
+        {/* final result */}
         {!polling && pollProgress && (
           <div style={notice(pollProgress.status === 'PAUSED')}>
             {pollProgress.status === 'PAUSED'
               ? `Paused — Daily limit reached. Sent: ${pollProgress.sent} · Failed: ${pollProgress.failed} · Total: ${pollProgress.total}`
               : `Done — Sent: ${pollProgress.sent} · Failed: ${pollProgress.failed} · Total: ${pollProgress.total}`
             }
+          </div>
+        )}
+
+        {/* per-recipient results */}
+        {(loadingRecipients || recipients.length > 0) && (
+          <div style={{ marginTop: '20px' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '12px',
+              flexWrap: 'wrap',
+              gap: '8px'
+            }}>
+              <div style={{ fontSize: '13.5px', fontWeight: '700' }}>
+                Recipient Results
+              </div>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                {['All', 'Sent', 'Failed'].map(f => (
+                  <button
+                    key={f}
+                    onClick={() => setRecipientFilter(f)}
+                    style={filterBtn(recipientFilter === f)}
+                  >
+                    {f}
+                    {f === 'All' && ` (${recipients.length})`}
+                    {f === 'Sent' && ` (${recipients.filter(r => r.status === 'SENT').length})`}
+                    {f === 'Failed' && ` (${recipients.filter(r => r.status === 'FAILED').length})`}
+                  </button>
+                ))}
+                {recipients.some(r => r.status === 'FAILED') && (
+                  <button
+                    onClick={handleDownloadFailedCSV}
+                    style={{
+                      height: '30px',
+                      padding: '0 14px',
+                      background: 'rgba(220,38,38,0.08)',
+                      border: '1px solid rgba(220,38,38,0.25)',
+                      borderRadius: '6px',
+                      fontSize: '12.5px',
+                      fontWeight: '600',
+                      color: '#dc2626',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit'
+                    }}
+                  >
+                    Download Failed CSV
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {loadingRecipients ? (
+              <div style={{ fontSize: '13px', color: '#4b5160', padding: '12px 0' }}>
+                Loading results...
+              </div>
+            ) : (
+              <div style={{
+                border: '1px solid #e6e8ee',
+                borderRadius: '10px',
+                overflow: 'hidden'
+              }}>
+                <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                    <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
+                      <tr style={tblHeader}>
+                        <th style={th}>#</th>
+                        <th style={th}>Name</th>
+                        <th style={th}>Phone</th>
+                        <th style={th}>Status</th>
+                        <th style={th}>Error Code</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredRecipients.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} style={{ ...td, textAlign: 'center', color: '#7a8090', padding: '20px' }}>
+                            No recipients in this filter.
+                          </td>
+                        </tr>
+                      ) : filteredRecipients.map((r, i) => (
+                        <tr key={i}>
+                          <td style={{ ...td, color: '#7a8090', width: '48px' }}>{i + 1}</td>
+                          <td style={td}>{r.name || '—'}</td>
+                          <td style={{ ...td, fontFamily: 'JetBrains Mono, monospace', fontSize: '12.5px' }}>{r.phone}</td>
+                          <td style={td}><span style={statusBadge(r.status)}>{r.status}</span></td>
+                          <td style={{ ...td, color: '#7a8090', fontSize: '12px', fontFamily: 'JetBrains Mono, monospace' }}>
+                            {r.error_code || '—'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
