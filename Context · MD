@@ -1,6 +1,6 @@
 # YMCTRACKFLOW — CONTEXT FILE
 # Paste this + MASTER.md at start of every NEW chat
-# Last updated: June 25, 2026
+# Last updated: June 27, 2026
 
 ═══════════════════════════════════════════
 QUICK START
@@ -22,34 +22,58 @@ Claude Code: cd D:\YMCtrackflow → claude
 WHAT THIS SYSTEM DOES
 ═══════════════════════════════════════════
 
-Manager pastes orders → system sends WhatsApp tracking auto.
-Webhook receives delivery updates from Meta.
-Dashboard shows real-time status.
-(Campaigns for bulk offers = being built, Phase 3.)
+TWO FUNCTIONS:
+1. TRACKING: Manager pastes orders → system sends WhatsApp tracking auto.
+   Webhook receives delivery updates from Meta. Dashboard shows status.
+   (Still on Google Sheets — migrating to Supabase in Phase 1)
+
+2. CAMPAIGNS: Upload CSV → save as contact book → pick template →
+   map variables → send bulk WhatsApp messages to students.
+   (LIVE on Supabase ✅)
 
 ═══════════════════════════════════════════
 CURRENT SYSTEM STATUS
 ═══════════════════════════════════════════
 
 WORKING:
-✅ WhatsApp tracking messages (all 4 couriers)
+✅ WhatsApp tracking messages (all 4 couriers) — on Sheets
 ✅ Google Sheets connected + syncing
 ✅ Deep links auto-generated (Apps Script)
 ✅ Server alive 24/7 (cron-job.org + internal ping)
 ✅ Webhook: delivery status + auto reply within 24hr
-✅ Status: SENT → DELIVERED / FAILED
 ✅ Orders page: filters, sort, badges, button loading states
 ✅ Dashboard: courier split, stats
 ✅ Frontend on Vercel
 ✅ Meta Live + Business Verified
-✅ Quality rating HIGH (80% click rate)
-✅ TEMPLATE MANAGEMENT — full live system (fetch/create/copy/delete,
-   3-step form, live preview)
+✅ Quality rating HIGH ✅
+✅ Daily limit: 10,000/day (upgraded June 2026)
+✅ Template Management — full live system
+✅ CAMPAIGN SYSTEM — fully live (June 2026)
+   - CSV upload → contact books → Supabase
+   - Create campaign → map variables → send
+   - Mini-batch sending (5 at a time, 1s delay)
+   - Crash recovery → PAUSED → Resume button
+   - Webhook queue (buffers → processes every 10s)
+   - Campaign history + delete
+   - Per-recipient results table
+   - Download failed CSV
+   - Human-readable error labels
+✅ Two campaign templates approved:
+   ymc_ca_final_batch (Utility) — CA Final IDT batch
+   ymc_cma_final_batch (Utility) — CMA Final IDT batch
+✅ Supabase live: orders, contact_books, contacts, campaigns, campaign_recipients
 
-KNOWN ISSUES (Supabase will fix):
-⚠️ ~30% bulk messages stay at SENT — Google Sheets rate limit (60/min),
-   NOT a webhook bug. Fixed by Supabase migration.
-⚠️ Failure reasons not captured — we see FAILED but not WHY. Phase 2.
+KNOWN ISSUES (fix next):
+🔴 Google Sheets scheduler kills campaign sends
+   → Every 10min Sheets read competes with campaign thread → campaign crashes
+   → FIX: In main.py process_all_tabs → skip if campaign SENDING
+   → THIS IS THE #1 PRIORITY FIX
+
+⚠️ Error codes not saving to campaign_recipients
+   → 181 failed messages with no error code in DB
+   → Need to investigate bulk_sender.py error capture
+
+⚠️ No retry button for failed campaign recipients
 
 PENDING EXTERNAL:
 ⏳ OBA (blue tick) — apply when ready
@@ -59,18 +83,19 @@ PENDING EXTERNAL:
 THE ROADMAP (where we are)
 ═══════════════════════════════════════════
 
-✅ Template Management        — DONE
-▶️ PHASE 1 — Supabase Foundation      ← WE ARE HERE (next)
+✅ Template Management              — DONE
+✅ PHASE 3 — Campaign System        — DONE (built first due to urgency)
+▶️ CAMPAIGN FIXES                   ← WE ARE HERE
+   PHASE 1 — Supabase Tracking Foundation
    PHASE 2 — Error Capture & Smart Retry
-   PHASE 3 — Campaign System (main milestone)
-   PHASE 4 — Campaign Safety (opt-out, quality monitor)
-   PHASE 5 — Polish (care redirect button, user mgmt UI)
+   PHASE 4 — Campaign Safety
+   PHASE 5 — Polish
 
-PHASE 1 DECISIONS MADE:
-- Merge 4 courier tabs → ONE orders table + courier column
-- Google Sheets fully replaced (not kept as backup)
-- Everything moves to Supabase (orders, campaigns, users, logs, settings)
-- New columns from day one: status, error_code, error_reason, wamid
+CAMPAIGN FIXES TO DO (in order):
+1. Fix Sheets scheduler killing campaigns ← DO FIRST
+2. Fix error codes not saving to DB
+3. Add retry button for failed recipients
+4. Build send→pause→update cycle (Malik's design for accuracy)
 
 ═══════════════════════════════════════════
 KEY FACTS TO REMEMBER
@@ -78,12 +103,26 @@ KEY FACTS TO REMEMBER
 
 META_PHONE_NUMBER_ID = 1569335317942266  (SENDING)
 META_WABA_ID = 2813814805677902          (TEMPLATES) — DIFFERENT!
+SUPABASE_URL = https://hfrjtjujnjozvyfzwjty.supabase.co
+SUPABASE_KEY = service_role key (in .env, never commit)
 
-SENDING ORDER: write SENT first → send → webhook wins on final status
-OTHERS TAB: extra Courier Name col, indices shift by 1
-TEMPLATE LANG: en_US not en
-NEVER commit .env (GitHub auto-revokes Google keys)
-Failed messages generally NOT billed (confirm in WhatsApp Manager)
+RENDER watches: main branch (not master)
+Push command: git push origin HEAD (not git push origin HEAD:master)
+
+SUPABASE GRANTS: required for all tables (project after May 30 2026)
+EVERY Supabase write on Render: needs try/except + 3 retry attempts
+
+CAMPAIGN VARIABLES: stored as ordered list ["Ramesh", "9876543210"]
+not as dict — bulk_sender passes list directly to send_template_message
+
+SENDING ORDER (campaigns):
+fetch 5 NO → send each → write status → fetch next 5 → repeat → DONE
+
+STATUS RANK: NO=0 SENT=1 FAILED=2 DELIVERED=3
+Only update if new rank > current rank
+
+WEBHOOK QUEUE: campaign webhooks go to queue.Queue → processed every 10s
+Prevents 153 simultaneous Supabase connections crashing Render
 
 ═══════════════════════════════════════════
 COMMON COMMANDS
@@ -95,7 +134,6 @@ Compile test  : py -3.11 -m py_compile <file>.py
 Push          : git add . → git commit -m "msg" → git push origin HEAD
 Fix rejection : git pull origin main --no-edit → git commit --no-edit → push
 Backup        : git branch backup-working-version
-Restore       : git checkout backup-working-version
 Claude Code   : cd D:\YMCtrackflow → claude
 
 ═══════════════════════════════════════════
@@ -110,5 +148,5 @@ CLAUDE CODE FIRST MESSAGE:
 "Read MASTER.md and CONTEXT.md to understand YMCTrackFlow.
 Cave man mode: one small step, explain before coding, wait for my OK,
 compile test before push, push to GitHub after every file change.
-We are starting Phase 1 — Supabase Foundation."
+[state what we are building next]"
 🦴
