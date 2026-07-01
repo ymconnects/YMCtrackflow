@@ -510,7 +510,9 @@ def webhook_receive():
                 STATUS_MAP = {"sent": "SENT", "delivered": "DELIVERED", "read": "DELIVERED", "failed": "FAILED"}
                 mapped = STATUS_MAP.get(status_type)
                 if mapped:
-                    campaign_webhook_queue.put({"wamid": msg_id, "status": mapped})
+                    errors = status.get("errors") or []
+                    error_code = str(errors[0]["code"]) if errors else None
+                    campaign_webhook_queue.put({"wamid": msg_id, "status": mapped, "error_code": error_code})
         
         # handle incoming messages
         if "messages" in value:
@@ -545,7 +547,7 @@ def process_campaign_webhook_queue():
                     row = supabase.table("campaign_recipients") \
                         .select("id").eq("wamid", item["wamid"]).limit(1).execute()
                     if row.data:
-                        update_recipient_status(row.data[0]["id"], item["status"])
+                        update_recipient_status(row.data[0]["id"], item["status"], error_code=item.get("error_code"))
                 except Exception as e:
                     print(f"Campaign queue item error: {e}", flush=True)
         except Exception as e:
