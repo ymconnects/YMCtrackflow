@@ -963,19 +963,19 @@ const Campaigns = ({ role, onPageChange }) => {
                 <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', tableLayout: 'fixed' }}>
                     <colgroup>
-                      <col style={{ width: '48px' }} />
-                      <col style={{ width: '22%' }} />
-                      <col style={{ width: '18%' }} />
-                      <col style={{ width: '14%' }} />
-                      <col style={{ width: '46%' }} />
+                      <col style={{ width: '40px' }} />
+                      <col style={{ width: '160px' }} />
+                      <col style={{ width: '130px' }} />
+                      <col style={{ width: '120px' }} />
+                      <col />
                     </colgroup>
                     <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
                       <tr style={tblHeader}>
-                        <th style={th}>#</th>
-                        <th style={th}>Name</th>
-                        <th style={th}>Phone</th>
-                        <th style={th}>Status</th>
-                        <th style={th}>Error Code</th>
+                        <th style={{ ...th, padding: '8px 10px' }}>#</th>
+                        <th style={{ ...th, padding: '8px 10px' }}>Name</th>
+                        <th style={{ ...th, padding: '8px 10px' }}>Phone</th>
+                        <th style={{ ...th, padding: '8px 10px' }}>Status</th>
+                        <th style={{ ...th, padding: '8px 10px' }}>Error Code</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -987,11 +987,11 @@ const Campaigns = ({ role, onPageChange }) => {
                         </tr>
                       ) : filteredRecipients.map((r, i) => (
                         <tr key={i}>
-                          <td style={{ ...td, color: '#7a8090', width: '48px' }}>{i + 1}</td>
-                          <td style={td}>{r.name || '—'}</td>
-                          <td style={{ ...td, fontFamily: 'JetBrains Mono, monospace', fontSize: '12.5px' }}>{r.phone}</td>
-                          <td style={td}><span style={statusBadge(r.status)}>{r.status}</span></td>
-                          <td style={{ ...td, color: '#7a8090', fontSize: '12px' }}>
+                          <td style={{ ...td, color: '#7a8090', padding: '8px 10px' }}>{i + 1}</td>
+                          <td style={{ ...td, padding: '8px 10px' }}>{r.name || '—'}</td>
+                          <td style={{ ...td, fontFamily: 'JetBrains Mono, monospace', fontSize: '12.5px', padding: '8px 10px' }}>{r.phone}</td>
+                          <td style={{ ...td, padding: '8px 10px' }}><span style={statusBadge(r.status)}>{r.status}</span></td>
+                          <td style={{ ...td, color: '#7a8090', fontSize: '12px', padding: '8px 10px' }}>
                             {getErrorLabel(r.error_code)}
                           </td>
                         </tr>
