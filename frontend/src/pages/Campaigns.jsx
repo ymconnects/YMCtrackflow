@@ -961,7 +961,14 @@ const Campaigns = ({ role, onPageChange }) => {
                 overflow: 'hidden'
               }}>
                 <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', tableLayout: 'fixed' }}>
+                    <colgroup>
+                      <col style={{ width: '48px' }} />
+                      <col style={{ width: '22%' }} />
+                      <col style={{ width: '18%' }} />
+                      <col style={{ width: '14%' }} />
+                      <col style={{ width: '46%' }} />
+                    </colgroup>
                     <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
                       <tr style={tblHeader}>
                         <th style={th}>#</th>
