@@ -144,6 +144,9 @@ START NEXT CHAT WITH:
 Cave man mode. 🦴"
 Paste MASTER.md + this CONTEXT.md at start.
 
+STAGING: staging branch → Vercel preview URL
+Push frontend changes to staging → test → merge to main → live
+Backend: always test locally → push to main directly
 CLAUDE CODE FIRST MESSAGE:
 "Read MASTER.md and CONTEXT.md to understand YMCTrackFlow.
 Cave man mode: one small step, explain before coding, wait for my OK,
