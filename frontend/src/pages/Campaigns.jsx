@@ -563,14 +563,21 @@ const Campaigns = ({ role, onPageChange }) => {
                                   ))}
                                 </div>
                                 <div style={{ maxHeight: '260px', overflowY: 'auto' }}>
-                                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                  <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+                                    <colgroup>
+                                      <col style={{ width: '40px' }} />
+                                      <col style={{ width: '160px' }} />
+                                      <col style={{ width: '130px' }} />
+                                      <col style={{ width: '120px' }} />
+                                      <col />
+                                    </colgroup>
                                     <thead>
                                       <tr>
-                                        <th style={{ ...th, background: '#eff0f3' }}>#</th>
-                                        <th style={{ ...th, background: '#eff0f3' }}>Name</th>
-                                        <th style={{ ...th, background: '#eff0f3' }}>Phone</th>
-                                        <th style={{ ...th, background: '#eff0f3' }}>Status</th>
-                                        <th style={{ ...th, background: '#eff0f3' }}>Error</th>
+                                        <th style={{ ...th, background: '#eff0f3', padding: '8px 10px' }}>#</th>
+                                        <th style={{ ...th, background: '#eff0f3', padding: '8px 10px' }}>Name</th>
+                                        <th style={{ ...th, background: '#eff0f3', padding: '8px 10px' }}>Phone</th>
+                                        <th style={{ ...th, background: '#eff0f3', padding: '8px 10px' }}>Status</th>
+                                        <th style={{ ...th, background: '#eff0f3', padding: '8px 10px' }}>Error</th>
                                       </tr>
                                     </thead>
                                     <tbody>
@@ -578,11 +585,11 @@ const Campaigns = ({ role, onPageChange }) => {
                                         .filter(r => histFilter === 'All' || r.status === histFilter.toUpperCase())
                                         .map((r, i) => (
                                           <tr key={i}>
-                                            <td style={{ ...td, color: '#7a8090', width: '48px' }}>{i + 1}</td>
-                                            <td style={td}>{r.name || '—'}</td>
-                                            <td style={{ ...td, fontFamily: 'JetBrains Mono, monospace', fontSize: '12.5px' }}>{r.phone}</td>
-                                            <td style={td}><span style={statusBadge(r.status)}>{r.status}</span></td>
-                                            <td style={{ ...td, color: '#7a8090', fontSize: '12px' }}>{getErrorLabel(r.error_code)}</td>
+                                            <td style={{ ...td, color: '#7a8090', padding: '8px 10px' }}>{i + 1}</td>
+                                            <td style={{ ...td, padding: '8px 10px' }}>{r.name || '—'}</td>
+                                            <td style={{ ...td, fontFamily: 'JetBrains Mono, monospace', fontSize: '12.5px', padding: '8px 10px' }}>{r.phone}</td>
+                                            <td style={{ ...td, padding: '8px 10px' }}><span style={statusBadge(r.status)}>{r.status}</span></td>
+                                            <td style={{ ...td, color: '#7a8090', fontSize: '12px', padding: '8px 10px' }}>{getErrorLabel(r.error_code)}</td>
                                           </tr>
                                         ))
                                       }
