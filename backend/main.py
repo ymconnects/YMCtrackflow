@@ -56,6 +56,10 @@ def process_single_tab(tab_name):
         batch_update_orders(fail_updates)
         
 def process_all_tabs():
+    from supabase_db import supabase
+    result = supabase.table("campaigns").select("id").eq("status", "SENDING").limit(1).execute()
+    if result.data:
+        return
     config = load_config()
     print("Starting to process all tabs...")
     from sheets import get_all_orders
