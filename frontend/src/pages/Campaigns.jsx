@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { uploadContacts, getContactBooks, getBookColumns, getTemplates, createCampaign, sendCampaign, getCampaignStatus, getBookContacts, getCampaignRecipients, deleteContactBook, getCampaignHistory, deleteCampaign } from '../utils/api'
+import { uploadContacts, getContactBooks, getBookColumns, getTemplates, createCampaign, sendCampaign, retryCampaign, getCampaignStatus, getBookContacts, getCampaignRecipients, deleteContactBook, getCampaignHistory, deleteCampaign } from '../utils/api'
 
 function getErrorLabel(code) {
   const labels = {
@@ -56,6 +56,7 @@ const Campaigns = ({ role, onPageChange }) => {
   const [recipients, setRecipients]                   = useState([])
   const [recipientFilter, setRecipientFilter]         = useState('All')
   const [loadingRecipients, setLoadingRecipients]     = useState(false)
+  const [retrying, setRetrying]                       = useState(false)
 
   // campaign history
   const [history, setHistory]                       = useState([])
@@ -281,6 +282,37 @@ const Campaigns = ({ role, onPageChange }) => {
     } catch {
       setErrorMsg('Failed to start campaign')
       setCreating(false)
+    }
+  }
+
+  const handleRetryCampaign = async (campaignId) => {
+    setRetrying(true)
+    try {
+      await retryCampaign(campaignId)
+      pollIntervalRef.current = setInterval(async () => {
+        try {
+          const statusRes = await getCampaignStatus(campaignId)
+          if (statusRes.data.success) {
+            const d = statusRes.data
+            setPollProgress({ status: d.status, sent: d.sent, failed: d.failed, total: d.total })
+            if (d.status === 'DONE' || d.status === 'PAUSED') {
+              clearInterval(pollIntervalRef.current)
+              setRetrying(false)
+              setLoadingRecipients(true)
+              try {
+                const rRes = await getCampaignRecipients(campaignId)
+                if (rRes.data.success) setRecipients(rRes.data.recipients)
+              } catch {}
+              setLoadingRecipients(false)
+            }
+          }
+        } catch {
+          clearInterval(pollIntervalRef.current)
+          setRetrying(false)
+        }
+      }, 3000)
+    } catch {
+      setRetrying(false)
     }
   }
 
