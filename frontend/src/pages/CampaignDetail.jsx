@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { Download, RotateCcw } from 'lucide-react'
 import { getCampaignHistory, getCampaignRecipients, getCampaignStatus, retryCampaign } from '../utils/api'
 import { getErrorLabel } from '../utils/formatters'
 
@@ -64,22 +65,22 @@ const CampaignDetail = ({ onPageChange }) => {
     }
   }
 
-  const handleDownloadFailedCSV = () => {
-    const failed = recipients.filter(r => r.status === 'FAILED')
-    if (!failed.length) return
-    const rows = [['Name', 'Phone', 'Error Code'], ...failed.map(r => [r.name, r.phone, r.error_code || ''])]
+  const handleDownloadCSV = () => {
+    if (!recipients.length) return
+    const rows = [['Name', 'Phone', 'Status', 'Error Code'], ...recipients.map(r => [r.name, r.phone, r.status, r.error_code || ''])]
     const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `failed_recipients_${id}.csv`
+    a.download = `campaign_${id}_recipients.csv`
     a.click()
     URL.revokeObjectURL(url)
   }
 
   const filteredRecipients = recipients.filter(r => {
-    if (filter === 'Sent') return r.status === 'SENT' || r.status === 'DELIVERED'
+    if (filter === 'Sent') return r.status === 'SENT'
+    if (filter === 'Delivered') return r.status === 'DELIVERED'
     if (filter === 'Failed') return r.status === 'FAILED'
     return true
   })
@@ -175,43 +176,46 @@ const CampaignDetail = ({ onPageChange }) => {
             marginBottom: '12px', flexWrap: 'wrap', gap: '8px'
           }}>
             <div style={{ display: 'flex', gap: '6px' }}>
-              {['All', 'Sent', 'Failed'].map(f => (
+              {['All', 'Sent', 'Delivered', 'Failed'].map(f => (
                 <button key={f} onClick={() => setFilter(f)} style={filterBtn(filter === f)}>
                   {f}
                   {f === 'All' && ` (${recipients.length})`}
-                  {f === 'Sent' && ` (${recipients.filter(r => r.status === 'SENT' || r.status === 'DELIVERED').length})`}
+                  {f === 'Sent' && ` (${recipients.filter(r => r.status === 'SENT').length})`}
+                  {f === 'Delivered' && ` (${recipients.filter(r => r.status === 'DELIVERED').length})`}
                   {f === 'Failed' && ` (${recipients.filter(r => r.status === 'FAILED').length})`}
                 </button>
               ))}
             </div>
             <div style={{ display: 'flex', gap: '6px' }}>
-              {recipients.some(r => r.status === 'FAILED') && (
+              {recipients.length > 0 && (
                 <button
-                  onClick={handleDownloadFailedCSV}
+                  onClick={handleDownloadCSV}
+                  title="Download all recipients"
                   style={{
-                    height: '30px', padding: '0 14px',
-                    background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.25)',
-                    borderRadius: '6px', fontSize: '12.5px', fontWeight: '600',
-                    color: '#dc2626', cursor: 'pointer', fontFamily: 'inherit'
+                    width: '30px', height: '30px', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center',
+                    background: '#f6f7f9', border: '1px solid #e6e8ee',
+                    borderRadius: '6px', color: '#4b5160', cursor: 'pointer'
                   }}
                 >
-                  Download Failed CSV
+                  <Download size={15} />
                 </button>
               )}
               {recipients.some(r => r.status === 'FAILED') && (
                 <button
                   onClick={handleRetry}
                   disabled={retrying}
+                  title={retrying ? 'Retrying...' : 'Retry failed'}
                   style={{
-                    height: '30px', padding: '0 14px',
+                    width: '30px', height: '30px', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center',
                     background: retrying ? '#7a8090' : 'rgba(18,140,126,0.08)',
                     border: `1px solid ${retrying ? '#7a8090' : 'rgba(18,140,126,0.25)'}`,
-                    borderRadius: '6px', fontSize: '12.5px', fontWeight: '600',
-                    color: retrying ? '#ffffff' : '#128C7E',
-                    cursor: retrying ? 'not-allowed' : 'pointer', fontFamily: 'inherit'
+                    borderRadius: '6px', color: retrying ? '#ffffff' : '#128C7E',
+                    cursor: retrying ? 'not-allowed' : 'pointer'
                   }}
                 >
-                  {retrying ? 'Retrying...' : 'Retry Failed'}
+                  <RotateCcw size={15} />
                 </button>
               )}
             </div>
