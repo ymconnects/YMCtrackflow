@@ -88,7 +88,7 @@ const App = () => {
           <ProtectedRoute isLoggedIn={!!user} isAllowed={isAllowed('orders')} loading={loading}>
             <div style={{ display: 'flex', minHeight: '100vh', background: '#f6f7f9', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
               <Sidebar user={user} role={role} onLogout={handleLogout} currentPage={currentPage} isAllowed={isAllowed} ordersCount={ordersCount} />
-              <div style={{ marginLeft: '240px', flex: 1 , width: 'calc(100% - 240px)'}}>
+              <div style={{ marginLeft: '240px', flex: 1, width: 'calc(100% - 240px)', minWidth: 0 }}>
                 <TopBar currentPage={currentPage} systemOn={systemOn} autoMsg={autoMsg} onToggleSystem={handleToggleSystem} onToggleAutoMsg={handleToggleAutoMsg} role={role} />
                 <div style={{ marginTop: '60px', padding: '24px 28px' }}>
                   <Orders role={role} onPageChange={setCurrentPage} onOrdersLoad={setOrdersCount} />
