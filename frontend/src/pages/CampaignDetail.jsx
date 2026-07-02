@@ -163,9 +163,9 @@ const CampaignDetail = ({ onPageChange }) => {
             marginBottom: '16px', flexWrap: 'wrap', gap: '10px'
           }}>
             <div>
-              <div style={{ fontSize: '16px', fontWeight: '700' }}>{campaign.name}</div>
-              <div style={{ fontSize: '12.5px', color: '#7a8090', marginTop: '2px' }}>
-                {campaign.template_name} · {campaign.total} recipients · {campaign.sent} sent · {campaign.failed} failed
+              <div style={{ fontSize: '16px', fontWeight: '700', textAlign: 'left' }}>{campaign.name}</div>
+              <div style={{ fontSize: '12.5px', color: '#7a8090', marginTop: '2px', textAlign: 'left' }}>
+                {campaign.template_name}
               </div>
             </div>
             <span style={campaignStatusBadge(campaign.status)}>{campaign.status}</span>
