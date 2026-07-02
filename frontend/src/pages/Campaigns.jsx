@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { uploadContacts, getContactBooks, getBookColumns, getTemplates, createCampaign, sendCampaign, retryCampaign, getCampaignStatus, getBookContacts, getCampaignRecipients, deleteContactBook, getCampaignHistory, deleteCampaign } from '../utils/api'
 import { getErrorLabel } from '../utils/formatters'
 
 const Campaigns = ({ role, onPageChange }) => {
   useEffect(() => { onPageChange('campaigns') }, [onPageChange])
 
+  const navigate = useNavigate()
   const pollIntervalRef = useRef(null)
   const histPollRef    = useRef(null)
 
@@ -504,6 +506,17 @@ const Campaigns = ({ role, onPageChange }) => {
                       <td style={{ ...td, color: '#4b5160' }}>{formatDate(c.created_at)}</td>
                       <td style={{ ...td, textAlign: 'right' }}>
                         <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                          <button
+                            onClick={() => navigate(`/campaigns/${c.id}`)}
+                            style={{
+                              height: '28px', padding: '0 12px',
+                              background: '#f6f7f9', border: '1px solid #e6e8ee',
+                              borderRadius: '6px', fontSize: '12px', fontWeight: '600',
+                              color: '#4b5160', cursor: 'pointer', fontFamily: 'inherit'
+                            }}
+                          >
+                            Open
+                          </button>
                           <button
                             onClick={() => handleViewHistoryCampaign(c)}
                             style={{
