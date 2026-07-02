@@ -156,7 +156,7 @@ def determine_retry_batch(campaign_id, recipient_id=None):
 
 
 def process_retry_batch(campaign_id, template_name, rows, original_status):
-    supabase.table("campaigns").update({"status": "RETRYING"}).eq("id", campaign_id).execute()
+    supabase.table("campaigns").update({"status": "SENDING"}).eq("id", campaign_id).execute()
 
     try:
         for i in range(0, len(rows), 5):
