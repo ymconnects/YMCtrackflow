@@ -12,6 +12,7 @@ from campaigns.audience_filter import parse_csv, save_contact_book
 from supabase_db import supabase
 from config import load_config
 from whatsapp import get_all_templates, delete_template, create_template
+from migrate_orders import sync_orders_from_sheets
 import os
 import threading
 import time
@@ -510,6 +511,17 @@ def sync():
     from sheets import refresh_cache
     orders = refresh_cache()
     return jsonify({"success": True, "message": "Synced", "orders": orders})
+
+@app.route("/admin/sync-orders-to-supabase", methods=["POST"])
+def sync_orders_to_supabase():
+    token = get_token_from_request()
+    payload = verify_session(token)
+    if not payload:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    if payload["role"] != "admin":
+        return jsonify({"success": False, "message": "Access denied"}), 403
+    result = sync_orders_from_sheets()
+    return jsonify({"success": True, **result})
 
 @app.route("/column-settings/<page_name>", methods=["GET"])
 def get_column_settings(page_name):
