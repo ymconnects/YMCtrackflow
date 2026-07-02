@@ -122,6 +122,14 @@ export const getLogs = () => {
   return api.get('/logs')
 }
 
+export const getColumnSettings = (pageName) => {
+  return api.get(`/column-settings/${pageName}`)
+}
+
+export const saveColumnSettings = (pageName, columnOrder, pinnedColumns) => {
+  return api.post(`/column-settings/${pageName}`, { column_order: columnOrder, pinned_columns: pinnedColumns })
+}
+
 export const updateSettings = (data) => {
   return api.post('/update-settings', data)
 }
