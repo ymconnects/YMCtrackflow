@@ -70,6 +70,7 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry, pageName }) => {
   const [columnOrder, setColumnOrder] = useState(DEFAULT_COLUMN_ORDER)
   const [pinnedColumns, setPinnedColumns] = useState([])
   const [dragKey, setDragKey] = useState(null)
+  const [hoveredRow, setHoveredRow] = useState(null)
 
   // showActions = false on dashboard (just view)
   // showActions = true on orders page (send/retry)
@@ -142,7 +143,7 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry, pageName }) => {
     }}>
         {/* scrollable inner wrapper - both scrollbars, sticky header */}
       <div style={{ maxHeight: '600px', overflow: 'auto' }}>
-      <table style={{ width: '100%', minWidth: '900px', borderCollapse: 'collapse' }}>
+      <table style={{ width: '100%', minWidth: '900px', borderCollapse: 'separate', borderSpacing: 0 }}>
 
         {/* header row */}
         <thead>
@@ -169,7 +170,7 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry, pageName }) => {
                     position: 'sticky',
                     top: 0,
                     left: isPinned ? stickyLeft[key] : undefined,
-                    zIndex: isPinned ? 3 : 1,
+                    zIndex: isPinned ? 4 : 3,
                     width: pageName ? COLUMN_WIDTH : undefined,
                     cursor: pageName ? 'grab' : 'default',
                     whiteSpace: 'nowrap'
@@ -211,7 +212,7 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry, pageName }) => {
                 borderBottom: '1px solid #e6e8ee',
                 position: 'sticky',
                 top: 0,
-                zIndex: 1
+                zIndex: 3
               }}>
                 Action
               </th>
@@ -234,10 +235,11 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry, pageName }) => {
 
             // one row per order
             <tr key={order.id || index} style={{
-              borderBottom: '1px solid #e6e8ee'
+              borderBottom: '1px solid #e6e8ee',
+              background: hoveredRow === index ? 'rgba(15,17,23,0.025)' : 'transparent'
             }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(15,17,23,0.025)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            onMouseEnter={() => setHoveredRow(index)}
+            onMouseLeave={() => setHoveredRow(null)}
             >
               {orderedKeys.map(key => {
                 const isPinned = pinnedColumns.includes(key)
@@ -247,7 +249,7 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry, pageName }) => {
                     width: pageName ? COLUMN_WIDTH : undefined,
                     position: isPinned ? 'sticky' : undefined,
                     left: isPinned ? stickyLeft[key] : undefined,
-                    background: isPinned ? '#ffffff' : undefined,
+                    background: isPinned ? (hoveredRow === index ? '#f7f8fa' : '#ffffff') : undefined,
                     zIndex: isPinned ? 2 : undefined
                   }}>
                     {COLUMN_DEFS[key].render(order)}
