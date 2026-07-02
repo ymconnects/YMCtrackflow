@@ -2,14 +2,15 @@
 // Main overview page
 // Shows stats, chart, recent orders
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import useOrders from '../hooks/useOrders'
 import useStatus from '../hooks/useStatus'
 import StatCard from '../components/StatCard'
 import OrdersTable from '../components/OrdersTable'
 import ToastContainer from '../components/ToastContainer'
+import AddOrdersModal from '../components/AddOrdersModal'
 import { Chart, registerables } from 'chart.js'
-import { Package, Send, Clock, AlertTriangle, RefreshCw } from 'lucide-react'
+import { Package, Send, Clock, AlertTriangle, RefreshCw, Plus } from 'lucide-react'
 Chart.register(...registerables)
 
 const Dashboard = ({ role, onPageChange }) => {
@@ -32,6 +33,7 @@ const Dashboard = ({ role, onPageChange }) => {
   // chart references - must be before any return
   const chartRef = useRef(null)
   const chartInstance = useRef(null)
+  const [addModalOpen, setAddModalOpen] = useState(false)
 
   // tell App.jsx we are on dashboard
   useEffect(() => {
@@ -192,6 +194,18 @@ return (
 
         {/* run now button - admin and manager only */}
         <div style={{ display: 'flex', gap: '8px' }}>
+          {(role === 'admin' || role === 'manager') && (
+            <button
+              onClick={() => setAddModalOpen(true)}
+              style={{
+                height: '36px', padding: '0 14px', background: '#128C7E', color: '#ffffff',
+                border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '13px',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'inherit'
+              }}
+            >
+              <Plus size={14} /> Add Orders
+            </button>
+          )}
           <button
             onClick={async () => {
             const result = await handleSync()
@@ -461,6 +475,7 @@ return (
         />
       </div>
 
+      <AddOrdersModal isOpen={addModalOpen} onClose={() => setAddModalOpen(false)} />
     </div>
   )
 }
