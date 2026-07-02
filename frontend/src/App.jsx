@@ -16,6 +16,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Orders from './pages/Orders'
 import Campaigns from './pages/Campaigns'
+import CampaignDetail from './pages/CampaignDetail'
 import Templates from './pages/Templates'
 import Logs from './pages/Logs'
 import Settings from './pages/Settings'
@@ -106,6 +107,20 @@ const App = () => {
                 <TopBar currentPage={currentPage} systemOn={systemOn} autoMsg={autoMsg} onToggleSystem={handleToggleSystem} onToggleAutoMsg={handleToggleAutoMsg} role={role} />
                 <div style={{ marginTop: '60px', padding: '24px 28px' }}>
                   <Campaigns role={role} onPageChange={setCurrentPage} />
+                </div>
+              </div>
+            </div>
+          </ProtectedRoute>
+        } />
+
+        <Route path='/campaigns/:id' element={
+          <ProtectedRoute isLoggedIn={!!user} isAllowed={isAllowed('campaigns')} loading={loading}>
+            <div style={{ display: 'flex', minHeight: '100vh', background: '#f6f7f9', fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif' }}>
+              <Sidebar user={user} role={role} onLogout={handleLogout} currentPage={currentPage} isAllowed={isAllowed} ordersCount={ordersCount} />
+              <div style={{ marginLeft: '240px', flex: 1 }}>
+                <TopBar currentPage={currentPage} systemOn={systemOn} autoMsg={autoMsg} onToggleSystem={handleToggleSystem} onToggleAutoMsg={handleToggleAutoMsg} role={role} />
+                <div style={{ marginTop: '60px', padding: '24px 28px' }}>
+                  <CampaignDetail onPageChange={setCurrentPage} />
                 </div>
               </div>
             </div>
