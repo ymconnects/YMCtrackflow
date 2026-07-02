@@ -22,8 +22,9 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry }) => {
       overflow: 'hidden',
       boxShadow: '0 1px 2px rgba(15,17,23,0.04)'
     }}>
-        {/* table element */}
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        {/* scrollable inner wrapper - both scrollbars, sticky header */}
+      <div style={{ maxHeight: '600px', overflow: 'auto' }}>
+      <table style={{ width: '100%', minWidth: '900px', borderCollapse: 'collapse' }}>
 
         {/* header row */}
         <thead>
@@ -41,7 +42,10 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry }) => {
                 color: '#4b5160',
                 letterSpacing: '0.06em',
                 textTransform: 'uppercase',
-                borderBottom: '1px solid #e6e8ee'
+                borderBottom: '1px solid #e6e8ee',
+                position: 'sticky',
+                top: 0,
+                zIndex: 1
               }}>
                 {col}
               </th>
@@ -72,24 +76,23 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry }) => {
               {/* order id - green monospace */}
               <td style={{ padding: '12px 16px', fontFamily: 'JetBrains Mono, monospace',
                 fontSize: '13px', color: '#128C7E', fontWeight: '600' }}>
-                {order.order_id}
+                {order.order_id || '—'}
               </td>
 
               {/* customer name */}
               <td style={{ padding: '12px 16px', fontSize: '13.5px' }}>
-                {order.customer_name}
+                {order.customer_name || '—'}
               </td>
 
               {/* phone number - formatted */}
               <td style={{ padding: '12px 16px', fontSize: '12px',
                 color: '#4b5160', fontFamily: 'JetBrains Mono, monospace' }}>
-                {formatPhone(order.phone)}
+                {formatPhone(order.phone) || '—'}
               </td>
 
               {/* courier name */}
-              {/* courier name */}
               <td style={{ padding: '12px 16px', fontSize: '13.5px' }}>
-                {order.courier}
+                {order.courier || '—'}
               </td>
 
               {/* tracking id */}
@@ -173,6 +176,7 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry }) => {
           ))}
         </tbody>
       </table>
+      </div>
       {/* view order modal */}
       {viewOrder && (
         <div
