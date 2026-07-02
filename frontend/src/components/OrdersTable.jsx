@@ -4,7 +4,7 @@
 // pageName prop (e.g. "orders") enables drag-reorder + pin/freeze, persisted via column-settings API.
 // Omit pageName (e.g. Dashboard's preview usage) to render plain, no drag/pin.
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import StatusBadge from './StatusBadge'
 import { formatPhone } from '../utils/formatters'
 import { GripVertical, Pin, PinOff } from 'lucide-react'
@@ -60,8 +60,8 @@ const COLUMN_DEFS = {
   }
 }
 
-const COLUMN_WIDTH = 160 // fixed width when pageName set, so pinned sticky-left offsets stay accurate
-const ACTION_COLUMN_WIDTH = 140
+const COLUMN_MIN_WIDTH = 120 // floor only - columns can grow wider based on content/available space
+const ACTION_COLUMN_MIN_WIDTH = 140
 
 const OrdersTable = ({ orders, showActions, onSend, onRetry, pageName }) => {
   // track which order is open in view modal
@@ -72,6 +72,8 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry, pageName }) => {
   const [pinnedColumns, setPinnedColumns] = useState([])
   const [dragKey, setDragKey] = useState(null)
   const [hoveredRow, setHoveredRow] = useState(null)
+  const [stickyLeft, setStickyLeft] = useState({})
+  const pinnedThRefs = useRef({})
 
   // showActions = false on dashboard (just view)
   // showActions = true on orders page (send/retry)
@@ -128,10 +130,25 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry, pageName }) => {
     ...columnOrder.filter(k => !pinnedColumns.includes(k))
   ]
 
-  const stickyLeft = {}
-  orderedKeys.filter(k => pinnedColumns.includes(k)).forEach((k, i) => {
-    stickyLeft[k] = i * COLUMN_WIDTH
-  })
+  // measure real rendered widths of pinned headers so sticky offsets stay
+  // accurate at any screen size, instead of assuming a fixed column width
+  useEffect(() => {
+    if (!pageName) return
+    const measure = () => {
+      const pinnedKeysInOrder = columnOrder.filter(k => pinnedColumns.includes(k))
+      let cumulative = 0
+      const next = {}
+      pinnedKeysInOrder.forEach(k => {
+        next[k] = cumulative
+        const el = pinnedThRefs.current[k]
+        cumulative += el ? el.offsetWidth : COLUMN_MIN_WIDTH
+      })
+      setStickyLeft(next)
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [pageName, pinnedColumns, columnOrder, orders])
 
   return (
     // outer wrapper with rounded border
@@ -145,9 +162,8 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry, pageName }) => {
         {/* scrollable inner wrapper - both scrollbars, sticky header */}
       <div style={{ maxHeight: '600px', overflow: 'auto' }}>
       <table style={{
-        width: pageName ? undefined : '100%',
-        minWidth: pageName ? undefined : '900px',
-        tableLayout: pageName ? 'fixed' : 'auto',
+        width: '100%',
+        minWidth: '900px',
         borderCollapse: 'separate',
         borderSpacing: 0
       }}>
@@ -160,6 +176,7 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry, pageName }) => {
               return (
                 <th
                   key={key}
+                  ref={isPinned ? (el => { pinnedThRefs.current[key] = el }) : undefined}
                   draggable={!!pageName}
                   onDragStart={() => setDragKey(key)}
                   onDragOver={e => e.preventDefault()}
@@ -176,9 +193,9 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry, pageName }) => {
                     borderBottom: '1px solid #e6e8ee',
                     position: 'sticky',
                     top: 0,
-                    left: isPinned ? stickyLeft[key] : undefined,
+                    left: isPinned ? (stickyLeft[key] ?? 0) : undefined,
                     zIndex: isPinned ? 4 : 3,
-                    width: pageName ? COLUMN_WIDTH : undefined,
+                    minWidth: pageName ? COLUMN_MIN_WIDTH : undefined,
                     cursor: pageName ? 'grab' : 'default',
                     whiteSpace: 'nowrap',
                     overflow: pageName ? 'hidden' : undefined,
@@ -222,7 +239,7 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry, pageName }) => {
                 position: 'sticky',
                 top: 0,
                 zIndex: 3,
-                width: pageName ? ACTION_COLUMN_WIDTH : undefined
+                minWidth: pageName ? ACTION_COLUMN_MIN_WIDTH : undefined
               }}>
                 Action
               </th>
@@ -256,9 +273,9 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry, pageName }) => {
                 return (
                   <td key={key} style={{
                     padding: '12px 16px',
-                    width: pageName ? COLUMN_WIDTH : undefined,
+                    minWidth: pageName ? COLUMN_MIN_WIDTH : undefined,
                     position: isPinned ? 'sticky' : undefined,
-                    left: isPinned ? stickyLeft[key] : undefined,
+                    left: isPinned ? (stickyLeft[key] ?? 0) : undefined,
                     background: isPinned ? (hoveredRow === index ? '#f7f8fa' : '#ffffff') : undefined,
                     zIndex: isPinned ? 2 : undefined,
                     overflow: pageName ? 'hidden' : undefined,
