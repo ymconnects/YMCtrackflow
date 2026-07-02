@@ -7,7 +7,8 @@ import { useEffect, useState } from 'react'
 import useOrders from '../hooks/useOrders'
 import OrdersTable from '../components/OrdersTable'
 import ToastContainer from '../components/ToastContainer'
-import { Bot, RefreshCw, RotateCcw } from 'lucide-react'
+import AddOrdersModal from '../components/AddOrdersModal'
+import { Bot, RefreshCw, RotateCcw, Plus } from 'lucide-react'
 import { getOrders, runNow, retryFailed, syncOrders, retrySingle } from '../utils/api'
 
 const Orders = ({ role, onPageChange, onOrdersLoad }) => {
@@ -36,6 +37,7 @@ const Orders = ({ role, onPageChange, onOrdersLoad }) => {
   const [syncing, setSyncing] = useState(false)
   const [retrying, setRetrying] = useState(false)
   const [runningNow, setRunningNow] = useState(false)
+  const [addModalOpen, setAddModalOpen] = useState(false)
 
   // tell App.jsx we are on orders page
   useEffect(() => {
@@ -182,6 +184,18 @@ const paginatedOrders = sortedOrders.slice(startIndex, startIndex + ordersPerPag
 
         {/* action buttons */}
         <div style={{ display: 'flex', gap: '8px' }}>
+          {(role === 'admin' || role === 'manager') && (
+            <button
+              onClick={() => setAddModalOpen(true)}
+              style={{
+                height: '36px', padding: '0 14px', background: '#128C7E', color: '#ffffff',
+                border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '13px',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'inherit'
+              }}
+            >
+              <Plus size={14} /> Add Orders
+            </button>
+          )}
           <button
             onClick={async () => {
   setSyncing(true)
@@ -404,7 +418,8 @@ const paginatedOrders = sortedOrders.slice(startIndex, startIndex + ordersPerPag
           disabled={currentPage === totalPages}
           style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #e6e8ee', background: '#fff', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', color: '#4b5160' }}
         >›</button>
-      </div> 
+      </div>
+      <AddOrdersModal isOpen={addModalOpen} onClose={() => setAddModalOpen(false)} />
     </div>
   )
 }
