@@ -7,7 +7,7 @@ from sheets import get_all_orders, get_all_pending_orders, refresh_cache
 from logger import log_system_start
 import tempfile
 from campaigns.campaign_manager import create_campaign, get_campaign, get_contacts_by_book
-from campaigns.bulk_sender import send_campaign
+from campaigns.bulk_sender import send_campaign, determine_retry_batch, process_retry_batch
 from campaigns.audience_filter import parse_csv, save_contact_book
 from supabase_db import supabase
 from config import load_config
@@ -350,6 +350,41 @@ def campaign_send(campaign_id):
     thread.daemon = True
     thread.start()
     return jsonify({"success": True, "status": "started", "campaign_id": campaign_id})
+
+
+@app.route("/campaigns/<campaign_id>/retry", methods=["POST"])
+def campaign_retry(campaign_id):
+    token = get_token_from_request()
+    payload = verify_session(token)
+    if not payload:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    if payload["role"] not in ["admin", "campaigner"]:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+
+    data = request.json or {}
+    recipient_id = data.get("recipient_id")
+
+    batch, error = determine_retry_batch(campaign_id, recipient_id)
+    if error:
+        return jsonify({"success": False, "message": error}), 404
+
+    to_retry = batch["to_retry"]
+    skipped_reasons = batch["skipped_reasons"]
+
+    if to_retry:
+        thread = threading.Thread(
+            target=process_retry_batch,
+            args=(campaign_id, batch["campaign"]["template_name"], to_retry, batch["campaign"]["status"])
+        )
+        thread.daemon = True
+        thread.start()
+
+    return jsonify({
+        "success": True,
+        "retried": len(to_retry),
+        "skipped": len(skipped_reasons),
+        "skipped_reasons": skipped_reasons
+    })
 
 
 @app.route("/campaigns/status/<campaign_id>", methods=["GET"])
