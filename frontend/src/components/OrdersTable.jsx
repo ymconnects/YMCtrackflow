@@ -61,6 +61,7 @@ const COLUMN_DEFS = {
 }
 
 const COLUMN_WIDTH = 160 // fixed width when pageName set, so pinned sticky-left offsets stay accurate
+const ACTION_COLUMN_WIDTH = 140
 
 const OrdersTable = ({ orders, showActions, onSend, onRetry, pageName }) => {
   // track which order is open in view modal
@@ -143,7 +144,13 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry, pageName }) => {
     }}>
         {/* scrollable inner wrapper - both scrollbars, sticky header */}
       <div style={{ maxHeight: '600px', overflow: 'auto' }}>
-      <table style={{ width: '100%', minWidth: '900px', borderCollapse: 'separate', borderSpacing: 0 }}>
+      <table style={{
+        width: pageName ? undefined : '100%',
+        minWidth: pageName ? undefined : '900px',
+        tableLayout: pageName ? 'fixed' : 'auto',
+        borderCollapse: 'separate',
+        borderSpacing: 0
+      }}>
 
         {/* header row */}
         <thead>
@@ -173,7 +180,9 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry, pageName }) => {
                     zIndex: isPinned ? 4 : 3,
                     width: pageName ? COLUMN_WIDTH : undefined,
                     cursor: pageName ? 'grab' : 'default',
-                    whiteSpace: 'nowrap'
+                    whiteSpace: 'nowrap',
+                    overflow: pageName ? 'hidden' : undefined,
+                    textOverflow: pageName ? 'ellipsis' : undefined
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -212,7 +221,8 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry, pageName }) => {
                 borderBottom: '1px solid #e6e8ee',
                 position: 'sticky',
                 top: 0,
-                zIndex: 3
+                zIndex: 3,
+                width: pageName ? ACTION_COLUMN_WIDTH : undefined
               }}>
                 Action
               </th>
@@ -250,7 +260,10 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry, pageName }) => {
                     position: isPinned ? 'sticky' : undefined,
                     left: isPinned ? stickyLeft[key] : undefined,
                     background: isPinned ? (hoveredRow === index ? '#f7f8fa' : '#ffffff') : undefined,
-                    zIndex: isPinned ? 2 : undefined
+                    zIndex: isPinned ? 2 : undefined,
+                    overflow: pageName ? 'hidden' : undefined,
+                    textOverflow: pageName ? 'ellipsis' : undefined,
+                    whiteSpace: pageName ? 'nowrap' : undefined
                   }}>
                     {COLUMN_DEFS[key].render(order)}
                   </td>
