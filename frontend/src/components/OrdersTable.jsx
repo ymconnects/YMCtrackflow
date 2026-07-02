@@ -1,17 +1,135 @@
  // OrdersTable.jsx
 // Shows orders in a table format
 // Used in Dashboard and Orders page
+// pageName prop (e.g. "orders") enables drag-reorder + pin/freeze, persisted via column-settings API.
+// Omit pageName (e.g. Dashboard's preview usage) to render plain, no drag/pin.
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import StatusBadge from './StatusBadge'
-import { formatPhone, truncate } from '../utils/formatters'
+import { formatPhone } from '../utils/formatters'
+import { GripVertical, Pin, PinOff } from 'lucide-react'
+import { getColumnSettings, saveColumnSettings } from '../utils/api'
 
-const OrdersTable = ({ orders, showActions, onSend, onRetry }) => {
+const DEFAULT_COLUMN_ORDER = ['order_id', 'customer_name', 'phone', 'courier', 'tracking_id', 'tracking_link', 'msg_sent']
+
+const COLUMN_DEFS = {
+  order_id: {
+    label: 'Order ID',
+    render: (order) => (
+      <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '13px', color: '#128C7E', fontWeight: '600' }}>
+        {order.order_id || '—'}
+      </span>
+    )
+  },
+  customer_name: {
+    label: 'Customer',
+    render: (order) => <span style={{ fontSize: '13.5px' }}>{order.customer_name || '—'}</span>
+  },
+  phone: {
+    label: 'Phone',
+    render: (order) => (
+      <span style={{ fontSize: '12px', color: '#4b5160', fontFamily: 'JetBrains Mono, monospace' }}>
+        {formatPhone(order.phone) || '—'}
+      </span>
+    )
+  },
+  courier: {
+    label: 'Courier',
+    render: (order) => <span style={{ fontSize: '13.5px' }}>{order.courier || '—'}</span>
+  },
+  tracking_id: {
+    label: 'Tracking ID',
+    render: (order) => (
+      <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '12px', color: '#4b5160' }}>
+        {order.tracking_id || '—'}
+      </span>
+    )
+  },
+  tracking_link: {
+    label: 'Tracking Link',
+    render: (order) => order.tracking_link ? (
+      <a href={order.tracking_link} target="_blank" rel="noreferrer"
+        style={{ color: '#128C7E', fontSize: '12px', fontFamily: 'JetBrains Mono, monospace' }}>
+        Track ↗
+      </a>
+    ) : '—'
+  },
+  msg_sent: {
+    label: 'Msg Status',
+    render: (order) => <StatusBadge status={order.msg_sent} />
+  }
+}
+
+const COLUMN_WIDTH = 160 // fixed width when pageName set, so pinned sticky-left offsets stay accurate
+
+const OrdersTable = ({ orders, showActions, onSend, onRetry, pageName }) => {
   // track which order is open in view modal
   const [viewOrder, setViewOrder] = useState(null)
 
+  // column customization state (only meaningful when pageName is set)
+  const [columnOrder, setColumnOrder] = useState(DEFAULT_COLUMN_ORDER)
+  const [pinnedColumns, setPinnedColumns] = useState([])
+  const [dragKey, setDragKey] = useState(null)
+
   // showActions = false on dashboard (just view)
   // showActions = true on orders page (send/retry)
+
+  useEffect(() => {
+    if (!pageName) return
+    getColumnSettings(pageName)
+      .then(res => {
+        if (res.data.success) {
+          const saved = res.data.column_order || []
+          const merged = [
+            ...saved.filter(k => DEFAULT_COLUMN_ORDER.includes(k)),
+            ...DEFAULT_COLUMN_ORDER.filter(k => !saved.includes(k))
+          ]
+          setColumnOrder(merged.length ? merged : DEFAULT_COLUMN_ORDER)
+          setPinnedColumns(res.data.pinned_columns || [])
+        }
+      })
+      .catch(() => {})
+  }, [pageName])
+
+  const persist = (order, pinned) => {
+    if (!pageName) return
+    saveColumnSettings(pageName, order, pinned).catch(() => {})
+  }
+
+  const handleDrop = (targetKey) => {
+    if (!dragKey || dragKey === targetKey) { setDragKey(null); return }
+    const next = [...columnOrder]
+    const from = next.indexOf(dragKey)
+    const to = next.indexOf(targetKey)
+    next.splice(from, 1)
+    next.splice(to, 0, dragKey)
+    setColumnOrder(next)
+    persist(next, pinnedColumns)
+    setDragKey(null)
+  }
+
+  const togglePin = (key) => {
+    let next
+    if (pinnedColumns.includes(key)) {
+      next = pinnedColumns.filter(k => k !== key)
+    } else {
+      if (pinnedColumns.length >= 4) return
+      next = [...pinnedColumns, key]
+    }
+    setPinnedColumns(next)
+    persist(columnOrder, next)
+  }
+
+  // pinned columns float to the left edge (in their relative columnOrder), rest follow after
+  const orderedKeys = [
+    ...columnOrder.filter(k => pinnedColumns.includes(k)),
+    ...columnOrder.filter(k => !pinnedColumns.includes(k))
+  ]
+
+  const stickyLeft = {}
+  orderedKeys.filter(k => pinnedColumns.includes(k)).forEach((k, i) => {
+    stickyLeft[k] = i * COLUMN_WIDTH
+  })
 
   return (
     // outer wrapper with rounded border
@@ -29,11 +147,59 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry }) => {
         {/* header row */}
         <thead>
           <tr>
-            {/* column headers */}
-            {['Order ID','Customer','Phone','Courier','Tracking ID','Tracking Link','Msg Status',
-              ...(showActions ? ['Action'] : [])
-            ].map(col => (
-              <th key={col} style={{
+            {orderedKeys.map(key => {
+              const isPinned = pinnedColumns.includes(key)
+              return (
+                <th
+                  key={key}
+                  draggable={!!pageName}
+                  onDragStart={() => setDragKey(key)}
+                  onDragOver={e => e.preventDefault()}
+                  onDrop={() => handleDrop(key)}
+                  style={{
+                    padding: '12px 16px',
+                    textAlign: 'left',
+                    background: isPinned ? '#e4e7ee' : '#eef0f4',
+                    fontSize: '11.5px',
+                    fontWeight: '600',
+                    color: '#4b5160',
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                    borderBottom: '1px solid #e6e8ee',
+                    position: 'sticky',
+                    top: 0,
+                    left: isPinned ? stickyLeft[key] : undefined,
+                    zIndex: isPinned ? 3 : 1,
+                    width: pageName ? COLUMN_WIDTH : undefined,
+                    cursor: pageName ? 'grab' : 'default',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {pageName && <GripVertical size={12} style={{ opacity: 0.4, flexShrink: 0 }} />}
+                    <span style={{ flex: 1 }}>{COLUMN_DEFS[key].label}</span>
+                    {pageName && (
+                      <button
+                        onClick={() => togglePin(key)}
+                        disabled={!isPinned && pinnedColumns.length >= 4}
+                        title={isPinned ? 'Unpin column' : 'Pin column'}
+                        style={{
+                          background: 'none', border: 'none',
+                          cursor: (!isPinned && pinnedColumns.length >= 4) ? 'not-allowed' : 'pointer',
+                          padding: 0, display: 'flex', flexShrink: 0,
+                          opacity: (!isPinned && pinnedColumns.length >= 4) ? 0.3 : (isPinned ? 1 : 0.5),
+                          color: isPinned ? '#128C7E' : '#7a8090'
+                        }}
+                      >
+                        {isPinned ? <Pin size={12} /> : <PinOff size={12} />}
+                      </button>
+                    )}
+                  </div>
+                </th>
+              )
+            })}
+            {showActions && (
+              <th style={{
                 padding: '12px 16px',
                 textAlign: 'left',
                 background: '#eef0f4',
@@ -47,9 +213,9 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry }) => {
                 top: 0,
                 zIndex: 1
               }}>
-                {col}
+                Action
               </th>
-            ))}
+            )}
           </tr>
         </thead>
         {/* table body - loops through orders */}
@@ -58,7 +224,7 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry }) => {
 
             // empty state - no orders found
             <tr>
-              <td colSpan={showActions ? 8 : 7}
+              <td colSpan={orderedKeys.length + (showActions ? 1 : 0)}
                 style={{ padding: '36px', textAlign: 'center', color: '#7a8090' }}>
                 No orders found
               </td>
@@ -73,50 +239,22 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry }) => {
             onMouseEnter={e => e.currentTarget.style.background = 'rgba(15,17,23,0.025)'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >
-              {/* order id - green monospace */}
-              <td style={{ padding: '12px 16px', fontFamily: 'JetBrains Mono, monospace',
-                fontSize: '13px', color: '#128C7E', fontWeight: '600' }}>
-                {order.order_id || '—'}
-              </td>
+              {orderedKeys.map(key => {
+                const isPinned = pinnedColumns.includes(key)
+                return (
+                  <td key={key} style={{
+                    padding: '12px 16px',
+                    width: pageName ? COLUMN_WIDTH : undefined,
+                    position: isPinned ? 'sticky' : undefined,
+                    left: isPinned ? stickyLeft[key] : undefined,
+                    background: isPinned ? '#ffffff' : undefined,
+                    zIndex: isPinned ? 2 : undefined
+                  }}>
+                    {COLUMN_DEFS[key].render(order)}
+                  </td>
+                )
+              })}
 
-              {/* customer name */}
-              <td style={{ padding: '12px 16px', fontSize: '13.5px' }}>
-                {order.customer_name || '—'}
-              </td>
-
-              {/* phone number - formatted */}
-              <td style={{ padding: '12px 16px', fontSize: '12px',
-                color: '#4b5160', fontFamily: 'JetBrains Mono, monospace' }}>
-                {formatPhone(order.phone) || '—'}
-              </td>
-
-              {/* courier name */}
-              <td style={{ padding: '12px 16px', fontSize: '13.5px' }}>
-                {order.courier || '—'}
-              </td>
-
-              {/* tracking id */}
-              <td style={{ padding: '12px 16px', fontFamily: 'JetBrains Mono, monospace', fontSize: '12px', color: '#4b5160' }}>
-                {order.tracking_id || '—'}
-              </td>
-
-              {/* tracking link */}
-              <td style={{ padding: '12px 16px' }}>
-                {order.tracking_link ? (
-                  <a href={order.tracking_link} target="_blank" rel="noreferrer"
-                    style={{ color: '#128C7E', fontSize: '12px',
-                      fontFamily: 'JetBrains Mono, monospace' }}>
-                    Track ↗
-                  </a>
-                ) : '—'}
-              </td>
-
-              {/* message sent status badge */}
-              <td style={{ padding: '12px 16px' }}>
-               <StatusBadge status={order.msg_sent} />
-              </td>
-
-              {/* action buttons - only if showActions true */}
               {/* action buttons - only if showActions true */}
               {showActions && (
                 <td style={{ padding: '12px 16px' }}>

@@ -380,6 +380,7 @@ const paginatedOrders = sortedOrders.slice(startIndex, startIndex + ordersPerPag
         showActions={role === 'admin' || role === 'manager'}
         onSend={handleSend}
         onRetry={handleRetry}
+        pageName="orders"
       />
     {/* pagination */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px', marginTop: '16px' }}>
