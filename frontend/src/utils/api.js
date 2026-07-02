@@ -89,6 +89,10 @@ export const sendCampaign = (campaignId) => {
   return api.post(`/campaigns/send/${campaignId}`)
 }
 
+export const retryCampaign = (campaignId, recipientId) => {
+  return api.post(`/campaigns/${campaignId}/retry`, recipientId ? { recipient_id: recipientId } : {})
+}
+
 export const getBookColumns = (bookId) => {
   return api.get(`/campaigns/books/${bookId}/columns`)
 }
