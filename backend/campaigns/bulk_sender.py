@@ -7,6 +7,12 @@ from whatsapp import send_template_message
 STATUS_RANK = {"NO": 0, "SENT": 1, "FAILED": 2, "DELIVERED": 3}
 DAILY_LIMIT = 1900
 
+PERMANENT_ERROR_CODES = {
+    "131026": "Not on WhatsApp",
+    "130403": "Blocked by recipient",
+    "131050": "Recipient opted out",
+}
+
 
 def update_recipient_status(recipient_id, status, wamid=None, error_code=None):
     current = supabase.table("campaign_recipients") \
@@ -112,3 +118,75 @@ def send_campaign(campaign_id):
     }).eq("id", campaign_id).execute()
 
     return True, {"sent": sent_count, "failed": failed_count}
+
+
+def determine_retry_batch(campaign_id, recipient_id=None):
+    campaign = get_campaign(campaign_id)
+    if not campaign:
+        return None, "Campaign not found"
+
+    query = supabase.table("campaign_recipients").select("*") \
+        .eq("campaign_id", campaign_id).eq("status", "FAILED")
+    if recipient_id:
+        query = query.eq("id", recipient_id)
+    failed_rows = query.execute().data
+
+    if recipient_id and not failed_rows:
+        return None, "Recipient not found or not in FAILED status"
+
+    to_retry = []
+    skipped_reasons = []
+    for row in failed_rows:
+        code = row.get("error_code")
+        if code in PERMANENT_ERROR_CODES:
+            skipped_reasons.append({
+                "recipient_id": row["id"],
+                "phone": row.get("phone"),
+                "error_code": code,
+                "reason": PERMANENT_ERROR_CODES[code]
+            })
+        else:
+            to_retry.append(row)
+
+    return {
+        "campaign": campaign,
+        "to_retry": to_retry,
+        "skipped_reasons": skipped_reasons
+    }, None
+
+
+def process_retry_batch(campaign_id, template_name, rows, original_status):
+    supabase.table("campaigns").update({"status": "RETRYING"}).eq("id", campaign_id).execute()
+
+    try:
+        for i in range(0, len(rows), 5):
+            chunk = rows[i:i + 5]
+            for row in chunk:
+                supabase.table("campaign_recipients").update({
+                    "status": "NO",
+                    "status_rank": 0,
+                    "error_code": None
+                }).eq("id", row["id"]).execute()
+
+                variables = row.get("variables") or []
+                success, result = send_template_message(row["phone"], template_name, variables)
+
+                if success:
+                    update_recipient_status(row["id"], "SENT", wamid=result)
+                else:
+                    update_recipient_status(row["id"], "FAILED", error_code=str(result))
+
+                time.sleep(1)
+    except Exception as e:
+        print(f"Retry for campaign {campaign_id} crashed: {e}", flush=True)
+
+    recipients = supabase.table("campaign_recipients").select("status") \
+        .eq("campaign_id", campaign_id).execute().data
+    sent_count = sum(1 for r in recipients if r["status"] in ("SENT", "DELIVERED"))
+    failed_count = sum(1 for r in recipients if r["status"] == "FAILED")
+
+    supabase.table("campaigns").update({
+        "status": original_status or "DONE",
+        "sent": sent_count,
+        "failed": failed_count
+    }).eq("id", campaign_id).execute()
