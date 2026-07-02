@@ -45,6 +45,10 @@ export const syncOrders = () => {
   return api.post('/sync')
 }
 
+export const bulkAddOrders = (courier, courierName, rows, dryRun) => {
+  return api.post('/orders/bulk-add', { courier, courier_name: courierName, rows, dry_run: dryRun })
+}
+
 export const runNow = () => {
   return api.post('/run-now')
 }
