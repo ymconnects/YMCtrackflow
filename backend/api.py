@@ -16,6 +16,7 @@ import os
 import threading
 import time
 import queue
+from datetime import datetime
 
 app = Flask(__name__)
 CORS(app, origins="*")
@@ -509,6 +510,38 @@ def sync():
     from sheets import refresh_cache
     orders = refresh_cache()
     return jsonify({"success": True, "message": "Synced", "orders": orders})
+
+@app.route("/column-settings/<page_name>", methods=["GET"])
+def get_column_settings(page_name):
+    token = get_token_from_request()
+    payload = verify_session(token)
+    if not payload:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    result = supabase.table("table_column_settings").select("column_order,pinned_columns") \
+        .eq("page_name", page_name).limit(1).execute()
+    if result.data:
+        return jsonify({"success": True, "column_order": result.data[0]["column_order"],
+                        "pinned_columns": result.data[0]["pinned_columns"]})
+    return jsonify({"success": True, "column_order": [], "pinned_columns": []})
+
+@app.route("/column-settings/<page_name>", methods=["POST"])
+def save_column_settings(page_name):
+    token = get_token_from_request()
+    payload = verify_session(token)
+    if not payload:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    data = request.json or {}
+    column_order = data.get("column_order", [])
+    pinned_columns = data.get("pinned_columns", [])
+    if len(pinned_columns) > 4:
+        return jsonify({"success": False, "message": "Max 4 pinned columns"}), 400
+    supabase.table("table_column_settings").upsert({
+        "page_name": page_name,
+        "column_order": column_order,
+        "pinned_columns": pinned_columns,
+        "updated_at": datetime.utcnow().isoformat()
+    }, on_conflict="page_name").execute()
+    return jsonify({"success": True})
 
 @app.route("/webhook", methods=["GET"])
 def webhook_verify():
