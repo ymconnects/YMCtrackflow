@@ -986,6 +986,26 @@ const Campaigns = ({ role, onPageChange }) => {
                     Download Failed CSV
                   </button>
                 )}
+                {recipients.some(r => r.status === 'FAILED') && (
+                  <button
+                    onClick={() => handleRetryCampaign(completedCampaignId)}
+                    disabled={retrying}
+                    style={{
+                      height: '30px',
+                      padding: '0 14px',
+                      background: retrying ? '#7a8090' : 'rgba(18,140,126,0.08)',
+                      border: `1px solid ${retrying ? '#7a8090' : 'rgba(18,140,126,0.25)'}`,
+                      borderRadius: '6px',
+                      fontSize: '12.5px',
+                      fontWeight: '600',
+                      color: retrying ? '#ffffff' : '#128C7E',
+                      cursor: retrying ? 'not-allowed' : 'pointer',
+                      fontFamily: 'inherit'
+                    }}
+                  >
+                    {retrying ? 'Retrying...' : 'Retry Failed'}
+                  </button>
+                )}
               </div>
             </div>
 
