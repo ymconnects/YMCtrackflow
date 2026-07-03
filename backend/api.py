@@ -3,7 +3,6 @@ from flask_cors import CORS
 from auth import check_login, create_session, verify_session, get_user_role, get_user_tab
 from scheduler import start_scheduler
 from orders.bulk_sender import send_pending_orders
-from sheets import get_all_orders, get_all_pending_orders, refresh_cache
 from logger import log_system_start
 import tempfile
 from campaigns.campaign_manager import create_campaign, get_campaign, get_contacts_by_book
@@ -148,7 +147,7 @@ def orders():
         return jsonify({"success": False, "message": "Not logged in"}), 401
     if payload["role"] == "campaigner":
         return jsonify({"success": False, "message": "Access denied"}), 403
-    from sheets import get_all_orders, refresh_cache
+    from orders.order_view import get_all_orders
     data = get_all_orders()
     return jsonify({"success": True, "orders": data})
 
@@ -174,37 +173,36 @@ def retry_single():
         return jsonify({"success": False, "message": "Not logged in"}), 401
     if payload["role"] not in ["admin", "manager"]:
         return jsonify({"success": False, "message": "Access denied"}), 403
-    
+
     data = request.json
-    tab_name = data.get("tab_name")
-    row_number = data.get("row_number")
-    phone = data.get("phone")
-    name = data.get("customer_name")
-    tracking_id = data.get("tracking_id")
-    tracking_link = data.get("tracking_link")
-    courier = data.get("courier")
-    
-    from whatsapp import send_whatsapp_message
-    from sheets import batch_update_orders
+    order_id = data.get("id")
+    if not order_id:
+        return jsonify({"success": False, "message": "Missing order id"}), 400
+
+    from whatsapp import send_order_template_message
+    from orders.bulk_sender import update_order_status
     from logger import log_success, log_failure
-    
-    success, message = send_whatsapp_message(
-        phone=phone,
-        name=name,
-        tracking_id=tracking_id,
-        tracking_link=tracking_link,
-        courier_name=courier
+
+    row = supabase.table("orders").select("*").eq("id", order_id).single().execute().data
+    if not row:
+        return jsonify({"success": False, "message": "Order not found"}), 404
+
+    # reset to NO first so the rank-guard doesn't block a FAILED->SENT write
+    supabase.table("orders").update({"status": "NO", "status_rank": 0, "error_code": None}).eq("id", order_id).execute()
+
+    success, result = send_order_template_message(
+        row["phone"], row["courier"], row.get("courier_name"),
+        row["customer_name"], row["tracking_id"], row["tracking_link"]
     )
-    
-    status = "SENT" if success else "FAILED"
-    batch_update_orders([{"tab_name": tab_name, "row_number": row_number, "status": status}])
-    
+
     if success:
-        log_success(phone, name, tab_name)
+        update_order_status(order_id, "SENT", wamid=result)
+        log_success(row["phone"], row["customer_name"], row["courier"])
         return jsonify({"success": True, "message": "Message sent"})
     else:
-        log_failure(phone, name, tab_name, message)
-        return jsonify({"success": False, "message": message})
+        update_order_status(order_id, "FAILED", error_code=str(result))
+        log_failure(row["phone"], row["customer_name"], row["courier"], result)
+        return jsonify({"success": False, "message": result})
     
 @app.route("/toggle-auto-message", methods=["POST"])
 def toggle_auto_message_endpoint():
@@ -512,8 +510,9 @@ def sync():
     payload = verify_session(token)
     if not payload:
         return jsonify({"success": False, "message": "Not logged in"}), 401
-    from sheets import refresh_cache
-    orders = refresh_cache()
+    from orders.order_view import get_all_orders
+    sync_orders_from_sheets()
+    orders = get_all_orders()
     return jsonify({"success": True, "message": "Synced", "orders": orders})
 
 @app.route("/admin/sync-orders-to-supabase", methods=["POST"])
