@@ -623,7 +623,7 @@ def webhook_receive():
             message = value["messages"][0]
             from_phone = message["from"]
             print(f"Incoming message from: {from_phone}", flush=True)
-            from sheets import was_message_sent_within_24hrs
+            from orders.order_view import was_message_sent_within_24hrs
             from whatsapp import send_fixed_reply
             if was_message_sent_within_24hrs(from_phone):
                 send_fixed_reply(from_phone)

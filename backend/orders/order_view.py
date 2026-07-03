@@ -46,3 +46,34 @@ def _to_legacy_shape(row):
 def get_all_orders():
     rows = supabase.table("orders").select("*").order("id", desc=True).execute().data
     return [_to_legacy_shape(r) for r in rows]
+
+
+def _phone_candidates(phone):
+    phone = str(phone).strip().replace("+", "").replace(" ", "")
+    if len(phone) == 12 and phone.startswith("91"):
+        return [phone, phone[2:]]
+    if len(phone) == 10:
+        return [phone, "91" + phone]
+    return [phone]
+
+
+def was_message_sent_within_24hrs(phone):
+    candidates = _phone_candidates(phone)
+    rows = supabase.table("orders").select("status,last_updated,created_at") \
+        .in_("phone", candidates).in_("status", ["SENT", "DELIVERED", "FAILED"]).execute().data
+
+    now = datetime.now(timezone.utc)
+    for row in rows:
+        raw = row.get("last_updated") or row.get("created_at")
+        if not raw:
+            continue
+        try:
+            dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            diff = (now - dt).total_seconds()
+            if diff < 86400:
+                return True
+        except Exception:
+            continue
+    return False
