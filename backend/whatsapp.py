@@ -76,6 +76,80 @@ def send_whatsapp_message(phone, name, tracking_id, tracking_link, courier_name)
     print(f"Meta response: {response.status_code} | {response.text}", flush=True)
     return (True, "Message sent successfully") if response.status_code == 200 else (False, response.text)
 
+def get_order_template_name(courier):
+    config = load_config()
+    templates = {
+        "anjani": config["META_TEMPLATE_ANJANI"],
+        "dtdc": config["META_TEMPLATE_DTDC"],
+        "maruti": config["META_TEMPLATE_MARUTI"],
+    }
+    return templates.get(courier, config["META_TEMPLATE_OTHERS"])
+
+def send_order_template_message(phone, courier, courier_name, name, tracking_id, tracking_link):
+    phone = format_phone_number(phone)
+    if not validate_phone_number(phone):
+        return False, "Invalid phone number"
+    config = load_config()
+    is_other = courier == "others"
+    url = f"https://graph.facebook.com/v18.0/{config['META_PHONE_NUMBER_ID']}/messages"
+    headers = {
+        "Authorization": f"Bearer {config['META_ACCESS_TOKEN']}",
+        "Content-Type": "application/json"
+    }
+    if is_other:
+        components = [
+            {
+                "type": "body",
+                "parameters": [
+                    {"type": "text", "text": name},
+                    {"type": "text", "text": courier_name},
+                    {"type": "text", "text": tracking_id},
+                    {"type": "text", "text": tracking_link}
+                ]
+            }
+        ]
+    else:
+        components = [
+            {
+                "type": "body",
+                "parameters": [
+                    {"type": "text", "text": name},
+                    {"type": "text", "text": tracking_id}
+                ]
+            },
+            {
+                "type": "button",
+                "sub_type": "url",
+                "index": "0",
+                "parameters": [
+                    {"type": "text", "text": tracking_id}
+                ]
+            }
+        ]
+    data = {
+        "messaging_product": "whatsapp",
+        "to": phone,
+        "type": "template",
+        "template": {
+            "name": get_order_template_name(courier),
+            "language": {"code": "en_US"},
+            "components": components
+        }
+    }
+    response = requests.post(url, headers=headers, json=data)
+    print(f"Order send: {phone} | {response.status_code}", flush=True)
+    if response.status_code == 200:
+        try:
+            wamid = response.json()["messages"][0]["id"]
+        except Exception:
+            wamid = "unknown"
+        return True, wamid
+    try:
+        error_code = str(response.json().get("error", {}).get("code", response.status_code))
+    except Exception:
+        error_code = str(response.status_code)
+    return False, error_code
+
 def send_fixed_reply(phone):
     config = load_config()
     url = f"https://graph.facebook.com/v18.0/{config['META_PHONE_NUMBER_ID']}/messages"

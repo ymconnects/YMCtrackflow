@@ -1,6 +1,6 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from config import load_config
-from main import process_all_tabs
+from orders.bulk_sender import send_pending_orders
 from sheets import get_settings, save_settings_to_sheet
 
 import requests
@@ -24,7 +24,7 @@ def keep_alive():
 
 def run_if_enabled():
     if auto_message_enabled:
-        process_all_tabs()
+        send_pending_orders()
 
 def start_scheduler():
     config = load_config()

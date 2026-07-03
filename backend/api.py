@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from auth import check_login, create_session, verify_session, get_user_role, get_user_tab
 from scheduler import start_scheduler
-from main import process_all_tabs, process_single_tab, retry_failed_orders
+from orders.bulk_sender import send_pending_orders
 from sheets import get_all_orders, get_all_pending_orders, refresh_cache
 from logger import log_system_start
 import tempfile
@@ -134,7 +134,7 @@ def run_now():
     if payload["role"] not in ["admin", "manager"]:
         return jsonify({"success": False, "message": "Access denied"}), 403
     try:
-        process_all_tabs()
+        send_pending_orders()
         return jsonify({"success": True, "message": "Processing started"})
     except Exception as e:
         print(f"Error in run-now: {e}")
@@ -160,7 +160,10 @@ def retry_failed():
         return jsonify({"success": False, "message": "Not logged in"}), 401
     if payload["role"] not in ["admin", "manager"]:
         return jsonify({"success": False, "message": "Access denied"}), 403
-    retry_failed_orders()
+    failed = supabase.table("orders").select("id").eq("status", "FAILED").execute().data
+    for row in failed:
+        supabase.table("orders").update({"status": "NO", "status_rank": 0, "error_code": None}).eq("id", row["id"]).execute()
+    send_pending_orders()
     return jsonify({"success": True, "message": "Retry started"})
 
 @app.route("/retry-single", methods=["POST"])
