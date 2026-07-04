@@ -9,7 +9,7 @@ import OrdersTable from '../components/OrdersTable'
 import ToastContainer from '../components/ToastContainer'
 import AddOrdersModal from '../components/AddOrdersModal'
 import { Bot, RefreshCw, RotateCcw, Plus } from 'lucide-react'
-import { getOrders, runNow, retryFailed, retrySingle, markOrderDelivered } from '../utils/api'
+import { getOrders, runNow, retryFailed, retrySingle, markOrderDelivered, deleteOrder } from '../utils/api'
 
 const Orders = ({ role, onPageChange, onOrdersLoad }) => {
 
@@ -146,6 +146,17 @@ const paginatedOrders = sortedOrders.slice(startIndex, startIndex + ordersPerPag
       fetchOrders()
     } else {
       ToastContainer.addToast('Failed to mark as delivered', 'error')
+    }
+  }
+
+  // handle deleting an order - admin only, permanent (confirmed in OrdersTable before this fires)
+  const handleDelete = async (order) => {
+    const result = await deleteOrder(order.id)
+    if (result.data.success) {
+      ToastContainer.addToast(`${order.customer_name}'s order deleted`, 'success')
+      fetchOrders()
+    } else {
+      ToastContainer.addToast('Failed to delete order', 'error')
     }
   }
 
@@ -407,6 +418,8 @@ const paginatedOrders = sortedOrders.slice(startIndex, startIndex + ordersPerPag
         onSend={handleSend}
         onRetry={handleRetry}
         onMarkDelivered={handleMarkDelivered}
+        canDelete={role === 'admin'}
+        onDelete={handleDelete}
         pageName="orders"
       />
     {/* pagination */}
