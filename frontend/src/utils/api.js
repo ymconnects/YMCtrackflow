@@ -41,8 +41,8 @@ export const getOrders = () => {
   return api.get('/orders')
 }
 
-export const syncOrders = () => {
-  return api.post('/sync')
+export const bulkAddOrders = (courier, courierName, rows, dryRun) => {
+  return api.post('/orders/bulk-add', { courier, courier_name: courierName, rows, dry_run: dryRun })
 }
 
 export const runNow = () => {
@@ -89,6 +89,10 @@ export const sendCampaign = (campaignId) => {
   return api.post(`/campaigns/send/${campaignId}`)
 }
 
+export const retryCampaign = (campaignId, recipientId) => {
+  return api.post(`/campaigns/${campaignId}/retry`, recipientId ? { recipient_id: recipientId } : {})
+}
+
 export const getBookColumns = (bookId) => {
   return api.get(`/campaigns/books/${bookId}/columns`)
 }
@@ -116,6 +120,14 @@ export const getCampaignRecipients = (campaignId) => {
 
 export const getLogs = () => {
   return api.get('/logs')
+}
+
+export const getColumnSettings = (pageName) => {
+  return api.get(`/column-settings/${pageName}`)
+}
+
+export const saveColumnSettings = (pageName, columnOrder, pinnedColumns) => {
+  return api.post(`/column-settings/${pageName}`, { column_order: columnOrder, pinned_columns: pinnedColumns })
 }
 
 export const updateSettings = (data) => {

@@ -58,6 +58,24 @@ export const truncate = (str, length = 30) => {
   return str.slice(0, length) + '...'
 }
 
+export const getErrorLabel = (code) => {
+  const labels = {
+    "131026": "Not on WhatsApp",
+    "131047": "24hr window expired",
+    "131050": "User opted out",
+    "131048": "Spam restriction — slow down",
+    "130429": "Rate limit hit — retry later",
+    "131000": "Unknown error — retry",
+    "131049": "Ecosystem throttle — pause",
+    "130403": "User blocked by business",
+    "131042": "Payment issue",
+    "132001": "Template not approved",
+    "132000": "Wrong variable count",
+    "131056": "Too many messages to same number",
+  }
+  return labels[String(code)] || (code ? `Error ${code}` : "—")
+}
+
 export const getInitials = (name) => {
   if (!name) return ''
   return name

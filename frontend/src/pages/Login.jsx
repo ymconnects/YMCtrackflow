@@ -138,8 +138,7 @@ const Login = ({ onLogin }) => {
             margin: '0 0 36px'
           }}>
             One control room for courier-aware order tracking
-            messages wired straight to your Google Sheet
-            and WhatsApp Business API.
+            messages wired straight to your WhatsApp Business API.
           </p>
 
           {/* 3 stat boxes */}

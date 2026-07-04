@@ -1,23 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { uploadContacts, getContactBooks, getBookColumns, getTemplates, createCampaign, sendCampaign, getCampaignStatus, getBookContacts, getCampaignRecipients, deleteContactBook, getCampaignHistory, deleteCampaign } from '../utils/api'
-
-function getErrorLabel(code) {
-  const labels = {
-    "131026": "Not on WhatsApp",
-    "131047": "24hr window expired",
-    "131050": "User opted out",
-    "131048": "Spam restriction — slow down",
-    "130429": "Rate limit hit — retry later",
-    "131000": "Unknown error — retry",
-    "131049": "Ecosystem throttle — pause",
-    "130403": "User blocked by business",
-    "131042": "Payment issue",
-    "132001": "Template not approved",
-    "132000": "Wrong variable count",
-    "131056": "Too many messages to same number",
-  }
-  return labels[String(code)] || (code ? `Error ${code}` : "—")
-}
+import { uploadContacts, getContactBooks, getBookColumns, getTemplates, createCampaign, sendCampaign, retryCampaign, getCampaignStatus, getBookContacts, getCampaignRecipients, deleteContactBook, getCampaignHistory, deleteCampaign } from '../utils/api'
+import { getErrorLabel } from '../utils/formatters'
 
 const Campaigns = ({ role, onPageChange }) => {
   useEffect(() => { onPageChange('campaigns') }, [onPageChange])
@@ -56,14 +39,11 @@ const Campaigns = ({ role, onPageChange }) => {
   const [recipients, setRecipients]                   = useState([])
   const [recipientFilter, setRecipientFilter]         = useState('All')
   const [loadingRecipients, setLoadingRecipients]     = useState(false)
+  const [retrying, setRetrying]                       = useState(false)
 
   // campaign history
   const [history, setHistory]                       = useState([])
   const [loadingHistory, setLoadingHistory]         = useState(false)
-  const [histViewId, setHistViewId]                 = useState(null)
-  const [histRecipients, setHistRecipients]         = useState([])
-  const [histLoadingRecipients, setHistLoadingRecipients] = useState(false)
-  const [histFilter, setHistFilter]                 = useState('All')
   const [resumingId, setResumingId]                 = useState(null)
 
   // load books + templates + history on mount; clean up interval on unmount
@@ -100,23 +80,6 @@ const Campaigns = ({ role, onPageChange }) => {
       .finally(() => setLoadingHistory(false))
   }
 
-  const handleViewHistoryCampaign = async (c) => {
-    if (histViewId === c.id) {
-      setHistViewId(null)
-      setHistRecipients([])
-      return
-    }
-    setHistViewId(c.id)
-    setHistFilter('All')
-    setHistLoadingRecipients(true)
-    setHistRecipients([])
-    try {
-      const res = await getCampaignRecipients(c.id)
-      if (res.data.success) setHistRecipients(res.data.recipients)
-    } catch {}
-    setHistLoadingRecipients(false)
-  }
-
   const handleResumeCampaign = async (c) => {
     setResumingId(c.id)
     try {
@@ -150,7 +113,6 @@ const Campaigns = ({ role, onPageChange }) => {
       const res = await deleteCampaign(c.id)
       if (res.data.success) {
         setHistory(prev => prev.filter(h => h.id !== c.id))
-        if (histViewId === c.id) { setHistViewId(null); setHistRecipients([]) }
       }
     } catch {}
   }
@@ -281,6 +243,37 @@ const Campaigns = ({ role, onPageChange }) => {
     } catch {
       setErrorMsg('Failed to start campaign')
       setCreating(false)
+    }
+  }
+
+  const handleRetryCampaign = async (campaignId) => {
+    setRetrying(true)
+    try {
+      await retryCampaign(campaignId)
+      pollIntervalRef.current = setInterval(async () => {
+        try {
+          const statusRes = await getCampaignStatus(campaignId)
+          if (statusRes.data.success) {
+            const d = statusRes.data
+            setPollProgress({ status: d.status, sent: d.sent, failed: d.failed, total: d.total })
+            if (d.status === 'DONE' || d.status === 'PAUSED') {
+              clearInterval(pollIntervalRef.current)
+              setRetrying(false)
+              setLoadingRecipients(true)
+              try {
+                const rRes = await getCampaignRecipients(campaignId)
+                if (rRes.data.success) setRecipients(rRes.data.recipients)
+              } catch {}
+              setLoadingRecipients(false)
+            }
+          }
+        } catch {
+          clearInterval(pollIntervalRef.current)
+          setRetrying(false)
+        }
+      }, 3000)
+    } catch {
+      setRetrying(false)
     }
   }
 
@@ -478,7 +471,6 @@ const Campaigns = ({ role, onPageChange }) => {
               </thead>
               <tbody>
                 {history.map(c => (
-                  <>
                     <tr key={c.id}>
                       <td style={{ ...td, fontWeight: '600' }}>{c.name}</td>
                       <td style={td}>{c.template_name}</td>
@@ -490,17 +482,15 @@ const Campaigns = ({ role, onPageChange }) => {
                       <td style={{ ...td, textAlign: 'right' }}>
                         <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                           <button
-                            onClick={() => handleViewHistoryCampaign(c)}
+                            onClick={() => window.open(`/campaigns/${c.id}`, '_blank')}
                             style={{
                               height: '28px', padding: '0 12px',
-                              background: histViewId === c.id ? '#128C7E' : '#f6f7f9',
-                              border: `1px solid ${histViewId === c.id ? '#128C7E' : '#e6e8ee'}`,
+                              background: '#f6f7f9', border: '1px solid #e6e8ee',
                               borderRadius: '6px', fontSize: '12px', fontWeight: '600',
-                              color: histViewId === c.id ? '#ffffff' : '#4b5160',
-                              cursor: 'pointer', fontFamily: 'inherit'
+                              color: '#4b5160', cursor: 'pointer', fontFamily: 'inherit'
                             }}
                           >
-                            {histViewId === c.id ? 'Close' : 'View'}
+                            Explore
                           </button>
                           {c.status === 'PAUSED' && (
                             <button
@@ -536,73 +526,6 @@ const Campaigns = ({ role, onPageChange }) => {
                         </div>
                       </td>
                     </tr>
-                    {histViewId === c.id && (
-                      <tr key={`${c.id}-recipients`}>
-                        <td colSpan={8} style={{ padding: '0 0 12px 0', borderBottom: '1px solid #f0f1f4' }}>
-                          <div style={{
-                            margin: '0 0 0 16px', background: '#f6f7f9',
-                            border: '1px solid #e6e8ee', borderRadius: '10px', overflow: 'hidden'
-                          }}>
-                            {histLoadingRecipients ? (
-                              <div style={{ padding: '16px', fontSize: '13px', color: '#4b5160' }}>
-                                Loading recipients...
-                              </div>
-                            ) : (
-                              <>
-                                <div style={{
-                                  padding: '10px 14px', display: 'flex', gap: '6px',
-                                  alignItems: 'center', borderBottom: '1px solid #e6e8ee'
-                                }}>
-                                  {['All', 'Sent', 'Failed'].map(f => (
-                                    <button key={f} onClick={() => setHistFilter(f)} style={filterBtn(histFilter === f)}>
-                                      {f}
-                                      {f === 'All' && ` (${histRecipients.length})`}
-                                      {f === 'Sent' && ` (${histRecipients.filter(r => r.status === 'SENT').length})`}
-                                      {f === 'Failed' && ` (${histRecipients.filter(r => r.status === 'FAILED').length})`}
-                                    </button>
-                                  ))}
-                                </div>
-                                <div style={{ maxHeight: '260px', overflowY: 'auto' }}>
-                                  <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
-                                    <colgroup>
-                                      <col style={{ width: '40px' }} />
-                                      <col style={{ width: '160px' }} />
-                                      <col style={{ width: '130px' }} />
-                                      <col style={{ width: '120px' }} />
-                                      <col />
-                                    </colgroup>
-                                    <thead>
-                                      <tr>
-                                        <th style={{ ...th, background: '#eff0f3', padding: '8px 10px' }}>#</th>
-                                        <th style={{ ...th, background: '#eff0f3', padding: '8px 10px' }}>Name</th>
-                                        <th style={{ ...th, background: '#eff0f3', padding: '8px 10px' }}>Phone</th>
-                                        <th style={{ ...th, background: '#eff0f3', padding: '8px 10px' }}>Status</th>
-                                        <th style={{ ...th, background: '#eff0f3', padding: '8px 10px' }}>Error</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {histRecipients
-                                        .filter(r => histFilter === 'All' || r.status === histFilter.toUpperCase())
-                                        .map((r, i) => (
-                                          <tr key={i}>
-                                            <td style={{ ...td, color: '#7a8090', padding: '8px 10px' }}>{i + 1}</td>
-                                            <td style={{ ...td, padding: '8px 10px' }}>{r.name || '—'}</td>
-                                            <td style={{ ...td, fontFamily: 'JetBrains Mono, monospace', fontSize: '12.5px', padding: '8px 10px' }}>{r.phone}</td>
-                                            <td style={{ ...td, padding: '8px 10px' }}><span style={statusBadge(r.status)}>{r.status}</span></td>
-                                            <td style={{ ...td, color: '#7a8090', fontSize: '12px', padding: '8px 10px' }}>{getErrorLabel(r.error_code)}</td>
-                                          </tr>
-                                        ))
-                                      }
-                                    </tbody>
-                                  </table>
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </>
                 ))}
               </tbody>
             </table>
@@ -952,6 +875,26 @@ const Campaigns = ({ role, onPageChange }) => {
                     }}
                   >
                     Download Failed CSV
+                  </button>
+                )}
+                {recipients.some(r => r.status === 'FAILED') && (
+                  <button
+                    onClick={() => handleRetryCampaign(completedCampaignId)}
+                    disabled={retrying}
+                    style={{
+                      height: '30px',
+                      padding: '0 14px',
+                      background: retrying ? '#7a8090' : 'rgba(18,140,126,0.08)',
+                      border: `1px solid ${retrying ? '#7a8090' : 'rgba(18,140,126,0.25)'}`,
+                      borderRadius: '6px',
+                      fontSize: '12.5px',
+                      fontWeight: '600',
+                      color: retrying ? '#ffffff' : '#128C7E',
+                      cursor: retrying ? 'not-allowed' : 'pointer',
+                      fontFamily: 'inherit'
+                    }}
+                  >
+                    {retrying ? 'Retrying...' : 'Retry Failed'}
                   </button>
                 )}
               </div>
