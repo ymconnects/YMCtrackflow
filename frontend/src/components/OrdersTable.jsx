@@ -56,14 +56,14 @@ const COLUMN_DEFS = {
   },
   msg_sent: {
     label: 'Msg Status',
-    render: (order) => <StatusBadge status={order.msg_sent} />
+    render: (order) => <StatusBadge status={order.manually_delivered ? 'MANUAL' : order.msg_sent} />
   }
 }
 
 const COLUMN_MIN_WIDTH = 120 // floor only - columns can grow wider based on content/available space
 const ACTION_COLUMN_MIN_WIDTH = 140
 
-const OrdersTable = ({ orders, showActions, onSend, onRetry, pageName }) => {
+const OrdersTable = ({ orders, showActions, onSend, onRetry, onMarkDelivered = () => {}, pageName }) => {
   // track which order is open in view modal
   const [viewOrder, setViewOrder] = useState(null)
 
@@ -325,6 +325,23 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry, pageName }) => {
                       >↺</button>
                     )}
 
+                    {/* mark manually delivered - only for FAILED, not yet flagged. One-way: no control to unset it. */}
+                    {order.msg_sent?.toUpperCase() === 'FAILED' && !order.manually_delivered && (
+                      <button
+                        onClick={() => onMarkDelivered(order)}
+                        style={{
+                          width: '30px', height: '30px',
+                          borderRadius: '7px',
+                          background: 'rgba(124,58,237,0.1)',
+                          border: '1px solid rgba(124,58,237,0.22)',
+                          color: '#7c3aed',
+                          cursor: 'pointer',
+                          fontSize: '14px'
+                        }}
+                        title="Mark as manually delivered"
+                      >✓</button>
+                    )}
+
                     {/* view button - always show */}
                     <button
                       onClick={() => setViewOrder(order)}
@@ -408,7 +425,7 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry, pageName }) => {
             {/* msg status */}
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', fontSize: '13.5px' }}>
               <span style={{ color: '#7a8090', fontWeight: '500' }}>Message Status</span>
-              <StatusBadge status={viewOrder.msg_sent} />
+              <StatusBadge status={viewOrder.manually_delivered ? 'MANUAL' : viewOrder.msg_sent} />
             </div>
 
           </div>

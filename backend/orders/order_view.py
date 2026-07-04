@@ -40,6 +40,7 @@ def _to_legacy_shape(row):
         "msg_sent": row.get("status") or "NO",
         "last_updated": _format_last_updated(row),
         "is_other": is_other,
+        "manually_delivered": bool(row.get("manually_delivered")),
     }
 
 

@@ -9,7 +9,7 @@ import OrdersTable from '../components/OrdersTable'
 import ToastContainer from '../components/ToastContainer'
 import AddOrdersModal from '../components/AddOrdersModal'
 import { Bot, RefreshCw, RotateCcw, Plus } from 'lucide-react'
-import { getOrders, runNow, retryFailed, retrySingle } from '../utils/api'
+import { getOrders, runNow, retryFailed, retrySingle, markOrderDelivered } from '../utils/api'
 
 const Orders = ({ role, onPageChange, onOrdersLoad }) => {
 
@@ -135,6 +135,17 @@ const paginatedOrders = sortedOrders.slice(startIndex, startIndex + ordersPerPag
       fetchOrders()
     } else {
       ToastContainer.addToast(`Failed: ${result.data.message}`, 'error')
+    }
+  }
+
+  // handle marking an order as manually delivered - one-way, no undo
+  const handleMarkDelivered = async (order) => {
+    const result = await markOrderDelivered(order.id)
+    if (result.data.success) {
+      ToastContainer.addToast(`${order.customer_name} marked as manually delivered ✓`, 'success')
+      fetchOrders()
+    } else {
+      ToastContainer.addToast('Failed to mark as delivered', 'error')
     }
   }
 
@@ -395,6 +406,7 @@ const paginatedOrders = sortedOrders.slice(startIndex, startIndex + ordersPerPag
         showActions={role === 'admin' || role === 'manager'}
         onSend={handleSend}
         onRetry={handleRetry}
+        onMarkDelivered={handleMarkDelivered}
         pageName="orders"
       />
     {/* pagination */}
