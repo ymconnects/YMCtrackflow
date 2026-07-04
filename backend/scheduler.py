@@ -1,17 +1,17 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from config import load_config
 from orders.bulk_sender import send_pending_orders
-from sheets import get_settings, save_settings_to_sheet
+from supabase_db import supabase
 
 import requests
 scheduler = BackgroundScheduler()
-# load settings from Google Sheet on startup
+# load settings from Supabase on startup
 try:
-    _settings = get_settings()
+    _settings = supabase.table("system_settings").select("*").eq("id", 1).single().execute().data
     auto_message_enabled = _settings["auto_message"]
     system_on = _settings["system_on"]
 except:
-    # default if sheet not available
+    # default if Supabase not available
     auto_message_enabled = True
     system_on = True
 
@@ -43,8 +43,8 @@ def stop_scheduler():
 def toggle_auto_message(state):
     global auto_message_enabled
     auto_message_enabled = state
-    # save to Google Sheet so it persists after restart
-    save_settings_to_sheet(system_on, state)
+    # save to Supabase so it persists after restart
+    supabase.table("system_settings").update({"auto_message": state}).eq("id", 1).execute()
     print(f"Auto message: {'ON' if state else 'OFF'}")
 
 def get_auto_message_status():
@@ -57,6 +57,6 @@ def get_system_status():
 def toggle_system(state):
     global system_on
     system_on = state
-    # save to Google Sheet so it persists after restart
-    save_settings_to_sheet(state, auto_message_enabled)
+    # save to Supabase so it persists after restart
+    supabase.table("system_settings").update({"system_on": state}).eq("id", 1).execute()
     print(f"System: {'ON' if state else 'OFF'}")

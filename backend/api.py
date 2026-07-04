@@ -607,8 +607,6 @@ def webhook_receive():
                 status_type = status["status"]
                 phone = status["recipient_id"]
                 print(f"Status update: {phone} | {status_type}", flush=True)
-                from sheets import update_order_status_by_phone
-                update_order_status_by_phone(phone, status_type)
 
                 # campaign_recipients — queue for background processing
                 STATUS_MAP = {"sent": "SENT", "delivered": "DELIVERED", "read": "DELIVERED", "failed": "FAILED"}
