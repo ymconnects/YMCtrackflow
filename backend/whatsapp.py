@@ -1,6 +1,25 @@
 import requests
 from config import load_config
 
+# WhatsApp Cloud API error codes we see in practice, mapped to a readable reason.
+ERROR_CODE_MEANINGS = {
+    "131026": "Number not on WhatsApp",
+    "131047": "Re-engagement required (24hr window expired)",
+    "131009": "Invalid template parameter",
+    "132000": "Template parameter count mismatch",
+    "132001": "Template does not exist or is not approved",
+    "131021": "Recipient and sender are the same number",
+    "131052": "Media could not be downloaded",
+    "133010": "Business account not registered for Cloud API",
+    "190": "Access token invalid or expired",
+    "100": "Invalid request parameter",
+}
+
+def get_error_reason(error_code):
+    if not error_code:
+        return ""
+    return ERROR_CODE_MEANINGS.get(str(error_code), f"Unknown error (code {error_code})")
+
 def format_phone_number(phone):
     phone = str(phone).strip()
     phone = phone.replace("+", "").replace(" ", "")

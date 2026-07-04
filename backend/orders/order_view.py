@@ -1,6 +1,7 @@
 import pytz
 from datetime import datetime, timezone
 from supabase_db import supabase
+from whatsapp import get_error_reason
 
 IST = pytz.timezone('Asia/Kolkata')
 
@@ -25,10 +26,25 @@ def _format_last_updated(row):
         return ""
 
 
+def _format_message_sent_at(row):
+    raw = row.get("message_sent_at")
+    if not raw:
+        return ""
+    try:
+        dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        dt = dt.astimezone(IST)
+        return dt.strftime("%Y-%m-%d %I:%M %p")
+    except Exception:
+        return ""
+
+
 def _to_legacy_shape(row):
     courier = row.get("courier") or ""
     is_other = courier == "others"
     display_courier = row.get("courier_name") if is_other else COURIER_DISPLAY_NAMES.get(courier, courier)
+    error_code = row.get("error_code") or ""
     return {
         "id": row["id"],
         "order_id": f"{courier[:3].upper()}{row['id']:04d}",
@@ -39,6 +55,10 @@ def _to_legacy_shape(row):
         "tracking_link": row.get("tracking_link") or "",
         "msg_sent": row.get("status") or "NO",
         "last_updated": _format_last_updated(row),
+        "message_sent_at": _format_message_sent_at(row),
+        "wamid": row.get("wamid") or "",
+        "error_code": error_code,
+        "error_reason": get_error_reason(error_code),
         "is_other": is_other,
         "manually_delivered": bool(row.get("manually_delivered")),
     }

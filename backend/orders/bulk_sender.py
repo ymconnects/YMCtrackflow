@@ -20,6 +20,8 @@ def update_order_status(order_id, status, wamid=None, error_code=None):
         "status_rank": new_rank,
         "last_updated": datetime.utcnow().isoformat()
     }
+    if status == "SENT":
+        update_data["message_sent_at"] = datetime.utcnow().isoformat()
     if wamid:
         update_data["wamid"] = wamid
     if error_code:
