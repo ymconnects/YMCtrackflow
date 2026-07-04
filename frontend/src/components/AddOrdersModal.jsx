@@ -16,13 +16,22 @@ const COURIERS = [
   { value: 'others', label: 'Others' },
 ]
 
+const stripStrayQuotes = (s) => s.replace(/^["']+|["']+$/g, '').trim()
+
+const splitLine = (line) => {
+  if (line.includes('\t')) return line.split('\t')
+  if (line.includes(',')) return line.split(',')
+  // fall back to runs of 2+ spaces - handles pasted text with no tab/comma delimiters
+  return line.split(/\s{2,}/)
+}
+
 const parseRows = (text) => {
   return text.split('\n')
     .map(l => l.trim())
     .filter(Boolean)
     .map(line => {
-      const parts = line.includes('\t') ? line.split('\t') : line.split(',')
-      const [name, phone, trackingId] = parts.map(p => (p || '').trim())
+      const parts = splitLine(line)
+      const [name, phone, trackingId] = parts.map(p => stripStrayQuotes(p || ''))
       return { name: name || '', phone: phone || '', tracking_id: trackingId || '' }
     })
 }
