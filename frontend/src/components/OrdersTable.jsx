@@ -7,7 +7,7 @@
 import { useState, useEffect, useRef } from 'react'
 import StatusBadge from './StatusBadge'
 import { formatPhone } from '../utils/formatters'
-import { GripVertical, Pin, PinOff } from 'lucide-react'
+import { GripVertical, Pin, PinOff, Trash2 } from 'lucide-react'
 import { getColumnSettings, saveColumnSettings } from '../utils/api'
 
 const DEFAULT_COLUMN_ORDER = ['order_id', 'customer_name', 'phone', 'courier', 'tracking_id', 'tracking_link', 'msg_sent', 'message_sent_at']
@@ -69,9 +69,9 @@ const COLUMN_DEFS = {
 }
 
 const COLUMN_MIN_WIDTH = 120 // floor only - columns can grow wider based on content/available space
-const ACTION_COLUMN_MIN_WIDTH = 140
+const ACTION_COLUMN_MIN_WIDTH = 180
 
-const OrdersTable = ({ orders, showActions, onSend, onRetry, onMarkDelivered = () => {}, pageName }) => {
+const OrdersTable = ({ orders, showActions, onSend, onRetry, onMarkDelivered = () => {}, canDelete = false, onDelete = () => {}, pageName }) => {
   // track which order is open in view modal
   const [viewOrder, setViewOrder] = useState(null)
 
@@ -364,6 +364,28 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry, onMarkDelivered = (
                       }}
                       title="View details"
                     >👁</button>
+
+                    {/* delete - admin only, permanent */}
+                    {canDelete && (
+                      <button
+                        onClick={() => {
+                          if (window.confirm(`Delete order for ${order.customer_name} (${order.order_id})? This cannot be undone.`)) {
+                            onDelete(order)
+                          }
+                        }}
+                        style={{
+                          width: '30px', height: '30px',
+                          borderRadius: '7px',
+                          background: 'rgba(220,38,38,0.1)',
+                          border: '1px solid rgba(220,38,38,0.22)',
+                          color: '#dc2626',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center'
+                        }}
+                        title="Delete order"
+                      ><Trash2 size={14} /></button>
+                    )}
                   </div>
                 </td>
               )}

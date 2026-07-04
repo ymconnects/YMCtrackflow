@@ -61,6 +61,10 @@ export const markOrderDelivered = (orderId) => {
   return api.post(`/orders/${orderId}/mark-delivered`)
 }
 
+export const deleteOrder = (orderId) => {
+  return api.delete(`/orders/${orderId}`)
+}
+
 export const toggleAutoMessage = (enabled) => {
   return api.post('/toggle-auto-message', { enabled })
 }

@@ -215,6 +215,18 @@ def mark_order_delivered(order_id):
     supabase.table("orders").update({"manually_delivered": True}).eq("id", order_id).execute()
     return jsonify({"success": True})
 
+@app.route("/orders/<int:order_id>", methods=["DELETE"])
+def delete_order(order_id):
+    token = get_token_from_request()
+    payload = verify_session(token)
+    if not payload:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    if payload["role"] != "admin":
+        return jsonify({"success": False, "message": "Access denied"}), 403
+
+    supabase.table("orders").delete().eq("id", order_id).execute()
+    return jsonify({"success": True})
+
 @app.route("/toggle-auto-message", methods=["POST"])
 def toggle_auto_message_endpoint():
     token = get_token_from_request()
