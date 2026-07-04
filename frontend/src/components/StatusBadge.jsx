@@ -5,6 +5,7 @@ const StatusBadge = ({ status }) => {
     'DELIVERED': { label: 'Delivered', bg: 'rgba(37,99,235,0.1)',   color: '#2563eb' },
     'NO':        { label: 'Pending',   bg: 'rgba(245,158,11,0.16)', color: '#b8770b' },
     'FAILED':    { label: 'Failed',    bg: 'rgba(220,38,38,0.1)',   color: '#dc2626' },
+    'MANUAL':    { label: 'Delivered (Manual)', bg: 'rgba(124,58,237,0.1)', color: '#7c3aed' },
     'Sent':      { label: 'Sent',      bg: 'rgba(18,140,126,0.1)',  color: '#128C7E' },
     'Pending':   { label: 'Pending',   bg: 'rgba(245,158,11,0.16)', color: '#b8770b' },
     'Delivered': { label: 'Delivered', bg: 'rgba(37,99,235,0.1)',   color: '#2563eb' },

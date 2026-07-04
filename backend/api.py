@@ -202,7 +202,19 @@ def retry_single():
         update_order_status(order_id, "FAILED", error_code=str(result))
         log_failure(row["phone"], row["customer_name"], row["courier"], result)
         return jsonify({"success": False, "message": result})
-    
+
+@app.route("/orders/<int:order_id>/mark-delivered", methods=["POST"])
+def mark_order_delivered(order_id):
+    token = get_token_from_request()
+    payload = verify_session(token)
+    if not payload:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    if payload["role"] not in ["admin", "manager"]:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+
+    supabase.table("orders").update({"manually_delivered": True}).eq("id", order_id).execute()
+    return jsonify({"success": True})
+
 @app.route("/toggle-auto-message", methods=["POST"])
 def toggle_auto_message_endpoint():
     token = get_token_from_request()
