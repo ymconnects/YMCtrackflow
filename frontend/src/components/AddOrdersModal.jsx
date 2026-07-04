@@ -25,6 +25,11 @@ const splitLine = (line) => {
   return line.split(/\s{2,}/)
 }
 
+const isValidPhone = (phone) => {
+  const digits = (phone || '').replace(/\D/g, '')
+  return digits.length === 10 || (digits.length === 12 && digits.startsWith('91'))
+}
+
 const parseRows = (text) => {
   return text.split('\n')
     .map(l => l.trim())
@@ -68,8 +73,9 @@ const AddOrdersModal = ({ isOpen, onClose }) => {
     const parsed = parseRows(pasteText)
     if (!parsed.length) { setErrorMsg('Paste at least one row'); return }
 
-    const validRows = parsed.filter(r => r.name && r.phone && r.tracking_id)
-    const invalidRows = parsed.filter(r => !(r.name && r.phone && r.tracking_id))
+    const hasAllFields = r => r.name && r.phone && r.tracking_id
+    const validRows = parsed.filter(r => hasAllFields(r) && isValidPhone(r.phone))
+    const invalidRows = parsed.filter(r => !(hasAllFields(r) && isValidPhone(r.phone)))
 
     setPreviewing(true)
     try {
@@ -86,7 +92,12 @@ const AddOrdersModal = ({ isOpen, onClose }) => {
         existing: res.data.results[i]?.existing || null,
         trackingLink: generateTrackingLink(courier, row.tracking_id, courierName)
       }))
-      const invalid = invalidRows.map(row => ({ ...row, valid: false, status: 'invalid', trackingLink: '' }))
+      const invalid = invalidRows.map(row => ({
+        ...row,
+        valid: false,
+        status: !hasAllFields(row) ? 'invalid' : 'invalid_phone',
+        trackingLink: ''
+      }))
       setPreviewRows([...classified, ...invalid])
     } catch {
       setErrorMsg('Preview failed - check your connection')
@@ -117,6 +128,7 @@ const AddOrdersModal = ({ isOpen, onClose }) => {
   }
 
   const readyCount = previewRows ? previewRows.filter(r => r.status === 'insert').length : 0
+  const needsReviewCount = previewRows ? previewRows.filter(r => !r.valid || r.status === 'conflict').length : 0
 
   const statusBadge = (status) => {
     const map = {
@@ -124,6 +136,7 @@ const AddOrdersModal = ({ isOpen, onClose }) => {
       duplicate: { label: 'Skipped (duplicate)', bg: 'rgba(122,128,144,0.10)', color: '#7a8090' },
       conflict:  { label: '⚠️ Conflict — review', bg: 'rgba(234,88,12,0.10)', color: '#ea580c' },
       invalid:   { label: 'Missing fields',      bg: 'rgba(220,38,38,0.10)', color: '#dc2626' },
+      invalid_phone: { label: '⚠️ Invalid phone number', bg: 'rgba(220,38,38,0.10)', color: '#dc2626' },
     }
     const s = map[status] || map.invalid
     return (
@@ -268,6 +281,11 @@ const AddOrdersModal = ({ isOpen, onClose }) => {
               <div style={{ fontSize: '13px', color: readyCount > 0 ? '#128C7E' : '#7a8090', fontWeight: '600' }}>
                 {readyCount === 0 && <AlertTriangle size={13} style={{ verticalAlign: '-2px', marginRight: '4px' }} />}
                 {readyCount} order{readyCount === 1 ? '' : 's'} ready to add
+                {needsReviewCount > 0 && (
+                  <span style={{ color: '#ea580c', fontWeight: '600', marginLeft: '8px' }}>
+                    · {needsReviewCount} row{needsReviewCount === 1 ? '' : 's'} need{needsReviewCount === 1 ? 's' : ''} review before adding
+                  </span>
+                )}
               </div>
               <button
                 onClick={handleSubmit}
