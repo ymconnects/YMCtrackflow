@@ -27,7 +27,7 @@ const Orders = ({ role, onPageChange, onOrdersLoad }) => {
   const [search, setSearch] = useState('')
   const [courierFilter, setCourierFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [sortBy, setSortBy] = useState('pending_first')
+  const [sortBy, setSortBy] = useState('newest')
   const [currentPage, setCurrentPage] = useState(1)
   const ordersPerPage = 20
   const [addHover, setAddHover] = useState(false)

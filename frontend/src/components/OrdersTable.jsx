@@ -10,7 +10,7 @@ import { formatPhone } from '../utils/formatters'
 import { GripVertical, Pin, PinOff } from 'lucide-react'
 import { getColumnSettings, saveColumnSettings } from '../utils/api'
 
-const DEFAULT_COLUMN_ORDER = ['order_id', 'customer_name', 'phone', 'courier', 'tracking_id', 'tracking_link', 'msg_sent']
+const DEFAULT_COLUMN_ORDER = ['order_id', 'customer_name', 'phone', 'courier', 'tracking_id', 'tracking_link', 'msg_sent', 'message_sent_at']
 
 const COLUMN_DEFS = {
   order_id: {
@@ -57,6 +57,14 @@ const COLUMN_DEFS = {
   msg_sent: {
     label: 'Msg Status',
     render: (order) => <StatusBadge status={order.manually_delivered ? 'MANUAL' : order.msg_sent} />
+  },
+  message_sent_at: {
+    label: 'Message Sent',
+    render: (order) => (
+      <span style={{ fontSize: '12px', color: '#4b5160' }}>
+        {order.message_sent_at || '—'}
+      </span>
+    )
   }
 }
 
@@ -402,7 +410,11 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry, onMarkDelivered = (
               { label: 'Phone', value: formatPhone(viewOrder.phone) },
               { label: 'Courier', value: viewOrder.courier },
               { label: 'Tracking ID', value: viewOrder.tracking_id || '—' },
+              { label: 'Message Sent', value: viewOrder.message_sent_at || '—' },
               { label: 'Last Updated', value: viewOrder.last_updated || '—' },
+              { label: 'Error Code', value: viewOrder.error_code || '—' },
+              { label: 'Error Reason', value: viewOrder.error_reason || '—' },
+              { label: 'WAMID', value: viewOrder.wamid || '—' },
             ].map(item => (
               <div key={item.label} style={{
                 display: 'flex', justifyContent: 'space-between',
@@ -410,7 +422,7 @@ const OrdersTable = ({ orders, showActions, onSend, onRetry, onMarkDelivered = (
                 fontSize: '13.5px'
               }}>
                 <span style={{ color: '#7a8090', fontWeight: '500' }}>{item.label}</span>
-                <span style={{ fontWeight: '600', fontFamily: item.label === 'Order ID' || item.label === 'Tracking ID' || item.label === 'Phone' ? 'JetBrains Mono, monospace' : 'inherit' }}>{item.value}</span>
+                <span style={{ fontWeight: '600', fontFamily: ['Order ID', 'Tracking ID', 'Phone', 'WAMID', 'Error Code'].includes(item.label) ? 'JetBrains Mono, monospace' : 'inherit' }}>{item.value}</span>
               </div>
             ))}
 

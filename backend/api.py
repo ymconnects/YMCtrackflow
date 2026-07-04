@@ -534,6 +534,10 @@ def orders_bulk_add():
     if error:
         return jsonify({"success": False, "message": error}), 400
 
+    # send immediately instead of waiting for the next scheduler tick - no rate limit to worry about
+    if not dry_run and result.get("added"):
+        send_pending_orders()
+
     return jsonify({"success": True, "dry_run": dry_run, **result})
 
 @app.route("/column-settings/<page_name>", methods=["GET"])
