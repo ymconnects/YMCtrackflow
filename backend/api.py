@@ -11,7 +11,6 @@ from campaigns.audience_filter import parse_csv, save_contact_book
 from supabase_db import supabase
 from config import load_config
 from whatsapp import get_all_templates, delete_template, create_template
-from migrate_orders import sync_orders_from_sheets
 from bulk_add_orders import process_bulk_add
 import os
 import threading
@@ -504,28 +503,6 @@ def get_logs():
     except Exception as e:
         return jsonify({"success": True, "logs": []})
     
-@app.route("/sync", methods=["POST"])
-def sync():
-    token = get_token_from_request()
-    payload = verify_session(token)
-    if not payload:
-        return jsonify({"success": False, "message": "Not logged in"}), 401
-    from orders.order_view import get_all_orders
-    sync_orders_from_sheets()
-    orders = get_all_orders()
-    return jsonify({"success": True, "message": "Synced", "orders": orders})
-
-@app.route("/admin/sync-orders-to-supabase", methods=["POST"])
-def sync_orders_to_supabase():
-    token = get_token_from_request()
-    payload = verify_session(token)
-    if not payload:
-        return jsonify({"success": False, "message": "Not logged in"}), 401
-    if payload["role"] != "admin":
-        return jsonify({"success": False, "message": "Access denied"}), 403
-    result = sync_orders_from_sheets()
-    return jsonify({"success": True, **result})
-
 @app.route("/orders/bulk-add", methods=["POST"])
 def orders_bulk_add():
     token = get_token_from_request()

@@ -1,5 +1,5 @@
 // Orders.jsx
-// Shows all orders from Google Sheets
+// Shows all orders from Supabase
 // Admin and Manager can send/retry
 // Viewer can only view
 
@@ -9,7 +9,7 @@ import OrdersTable from '../components/OrdersTable'
 import ToastContainer from '../components/ToastContainer'
 import AddOrdersModal from '../components/AddOrdersModal'
 import { Bot, RefreshCw, RotateCcw, Plus } from 'lucide-react'
-import { getOrders, runNow, retryFailed, syncOrders, retrySingle } from '../utils/api'
+import { getOrders, runNow, retryFailed, retrySingle } from '../utils/api'
 
 const Orders = ({ role, onPageChange, onOrdersLoad }) => {
 
@@ -19,7 +19,6 @@ const Orders = ({ role, onPageChange, onOrdersLoad }) => {
     loading,
     running,
     fetchOrders,
-    handleSync,
     handleRunNow,
     handleRetryFailed
   } = useOrders()
@@ -31,8 +30,9 @@ const Orders = ({ role, onPageChange, onOrdersLoad }) => {
   const [sortBy, setSortBy] = useState('pending_first')
   const [currentPage, setCurrentPage] = useState(1)
   const ordersPerPage = 20
+  const [addHover, setAddHover] = useState(false)
   const [syncHover, setSyncHover] = useState(false)
-  const [retryHover, setRetryHover] = useState(false) 
+  const [retryHover, setRetryHover] = useState(false)
   const [runHover, setRunHover] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [retrying, setRetrying] = useState(false)
@@ -187,10 +187,15 @@ const paginatedOrders = sortedOrders.slice(startIndex, startIndex + ordersPerPag
           {(role === 'admin' || role === 'manager') && (
             <button
               onClick={() => setAddModalOpen(true)}
+              onMouseEnter={() => setAddHover(true)}
+              onMouseLeave={() => setAddHover(false)}
               style={{
-                height: '36px', padding: '0 14px', background: '#128C7E', color: '#ffffff',
+                height: '36px', padding: '0 14px',
+                background: addHover ? '#0e7268' : '#128C7E', color: '#ffffff',
                 border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '13px',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'inherit'
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'inherit',
+                transition: 'all 0.15s ease',
+                transform: addHover ? 'translateY(-1px)' : 'none'
               }}
             >
               <Plus size={14} /> Add Orders
@@ -199,13 +204,9 @@ const paginatedOrders = sortedOrders.slice(startIndex, startIndex + ordersPerPag
           <button
             onClick={async () => {
   setSyncing(true)
-  const result = await handleSync()
+  await fetchOrders()
   setSyncing(false)
-  if (result.success) {
-    ToastContainer.addToast('Sheet synced ✓', 'success')
-  } else {
-    ToastContainer.addToast('Sync failed', 'error')
-  }
+  ToastContainer.addToast('Orders refreshed ✓', 'success')
 }}
             disabled={syncing || retrying || runningNow}
             onMouseEnter={() => setSyncHover(true)}
@@ -222,7 +223,7 @@ const paginatedOrders = sortedOrders.slice(startIndex, startIndex + ordersPerPag
               transform: syncHover ? 'translateY(-1px)' : 'none'
             }}
           >
-            <RefreshCw size={14} /> {syncing ? 'Syncing...' : 'Sync sheet'}
+            <RefreshCw size={14} /> {syncing ? 'Refreshing...' : 'Refresh'}
           </button>
 
           {/* retry failed - admin and manager only */}

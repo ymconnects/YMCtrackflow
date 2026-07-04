@@ -1,12 +1,11 @@
 // Settings.jsx
 // Admin only page
-// Meta credentials, Google Sheets config,
-// system controls, users and roles
+// Meta credentials, system controls, users and roles
 
 import { useEffect, useState } from 'react'
 import useStatus from '../hooks/useStatus'
 import ToastContainer from '../components/ToastContainer'
-import { Save, Eye, EyeOff, Key, Sheet, Settings2, FileText, Lock } from 'lucide-react'
+import { Save, Eye, EyeOff, Key, Settings2, FileText, Lock } from 'lucide-react'
 
 // ── defined OUTSIDE Settings to prevent re-renders and cursor loss ──
 
@@ -78,14 +77,6 @@ const Settings = ({ role, onPageChange, systemOn, autoMsg, onToggleSystem, onTog
     webhook_token: ''
   })
 
-  const [sheetsForm, setSheetsForm] = useState({
-    sheet_id: '',
-    tab1: 'Anjani',
-    tab2: 'DTDC',
-    tab3: 'MARUTI',
-    tab4: 'Others'
-  })
-
   const [systemForm, setSystemForm] = useState({
     check_interval: '10',
     batch_size: '80',
@@ -143,7 +134,7 @@ const Settings = ({ role, onPageChange, systemOn, autoMsg, onToggleSystem, onTog
         <div>
           <h1 style={{ margin: 0, fontSize: '22px', fontWeight: '700', letterSpacing: '-0.01em', textAlign: 'left' }}>Settings</h1>
           <div style={{ color: '#4b5160', fontSize: '13.5px', marginTop: '2px', textAlign: 'left' }}>
-            Meta credentials, sheets sync, system controls and user roles.
+            Meta credentials, system controls and user roles.
           </div>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -173,22 +164,6 @@ const Settings = ({ role, onPageChange, systemOn, autoMsg, onToggleSystem, onTog
           <Row label='Phone number ID'><input value={metaForm.phone_number_id} onChange={e => setMetaForm(p => ({ ...p, phone_number_id: e.target.value }))} placeholder='108472389172364' style={inputStyle} /></Row>
           <Row label='WABA ID'><input value={metaForm.waba_id} onChange={e => setMetaForm(p => ({ ...p, waba_id: e.target.value }))} placeholder='218938472019283' style={inputStyle} /></Row>
           <Row label='Webhook verify token' last><input type='password' value={metaForm.webhook_token} onChange={e => setMetaForm(p => ({ ...p, webhook_token: e.target.value }))} placeholder='••••••••••••' style={inputStyle} /></Row>
-        </div>
-
-        {/* Google Sheets */}
-        <div style={cardStyle}>
-          <CardTitle icon={<Sheet size={16} />} title='Google Sheets' />
-          <Row label='Sheet ID'><input value={sheetsForm.sheet_id} onChange={e => setSheetsForm(p => ({ ...p, sheet_id: e.target.value }))} placeholder='1AbCd...ZyXw9876' style={inputStyle} /></Row>
-          {[
-            { key: 'tab1', label: 'Orders tab' },
-            { key: 'tab2', label: 'Logs tab' },
-            { key: 'tab3', label: 'Campaigns tab' },
-            { key: 'tab4', label: 'Templates tab' },
-          ].map((t, i, arr) => (
-            <Row key={t.key} label={t.label} last={i === arr.length - 1}>
-              <input value={sheetsForm[t.key]} onChange={e => setSheetsForm(p => ({ ...p, [t.key]: e.target.value }))} style={inputStyle} />
-            </Row>
-          ))}
         </div>
 
         {/* System controls */}
