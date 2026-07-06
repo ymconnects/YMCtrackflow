@@ -20,7 +20,7 @@ import CampaignDetail from './pages/CampaignDetail'
 import Templates from './pages/Templates'
 import Logs from './pages/Logs'
 import Settings from './pages/Settings'
-import useOrders from './hooks/useOrders'
+import { OrdersProvider } from './context/OrdersContext'
 // App component - main function
 const App = () => {
 
@@ -64,6 +64,7 @@ const App = () => {
 
   return (
     <BrowserRouter>
+      <OrdersProvider>
       <ToastContainer />
       <Routes>
         <Route path='/login' element={
@@ -178,6 +179,7 @@ const App = () => {
 
         <Route path='*' element={<Navigate to='/login' replace />} />
       </Routes>
+      </OrdersProvider>
     </BrowserRouter>
   )
 }

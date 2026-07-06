@@ -221,7 +221,7 @@ def delete_order(order_id):
     payload = verify_session(token)
     if not payload:
         return jsonify({"success": False, "message": "Not logged in"}), 401
-    if payload["role"] != "admin":
+    if payload["role"] not in ["admin", "manager"]:
         return jsonify({"success": False, "message": "Access denied"}), 403
 
     supabase.table("orders").delete().eq("id", order_id).execute()

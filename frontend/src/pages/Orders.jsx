@@ -447,7 +447,7 @@ const paginatedOrders = sortedOrders.slice(startIndex, startIndex + ordersPerPag
         onSend={handleSend}
         onRetry={handleRetry}
         onMarkDelivered={handleMarkDelivered}
-        canDelete={role === 'admin'}
+        canDelete={role === 'admin' || role === 'manager'}
         onDelete={handleDelete}
         pageName="orders"
       />
