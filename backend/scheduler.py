@@ -17,7 +17,7 @@ except:
 
 def keep_alive():
     try:
-        requests.get("https://ymctrackflow-backend.onrender.com/status")
+        requests.get("https://ymctrackflow.onrender.com/status")
         print("Keep alive ping sent.")
     except Exception as e:
         print(f"Keep alive failed: {e}")

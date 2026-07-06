@@ -546,9 +546,10 @@ def orders_bulk_add():
     if error:
         return jsonify({"success": False, "message": error}), 400
 
-    # send immediately instead of waiting for the next scheduler tick - no rate limit to worry about
+    # send in the background instead of waiting for the next scheduler tick -
+    # the request shouldn't block on the whole send loop finishing
     if not dry_run and result.get("added"):
-        send_pending_orders()
+        threading.Thread(target=send_pending_orders, daemon=True).start()
 
     return jsonify({"success": True, "dry_run": dry_run, **result})
 

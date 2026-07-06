@@ -3,7 +3,7 @@
 // Admin and Manager can send/retry
 // Viewer can only view
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import useOrders from '../hooks/useOrders'
 import OrdersTable from '../components/OrdersTable'
 import ToastContainer from '../components/ToastContainer'
@@ -38,6 +38,35 @@ const Orders = ({ role, onPageChange, onOrdersLoad }) => {
   const [retrying, setRetrying] = useState(false)
   const [runningNow, setRunningNow] = useState(false)
   const [addModalOpen, setAddModalOpen] = useState(false)
+  const pollRef = useRef(null)
+
+  const stopPolling = () => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current)
+      pollRef.current = null
+    }
+  }
+
+  // after a batch add, refresh fast for a bit so newly added rows visibly
+  // flip from pending to sent/delivered/failed without a manual refresh
+  const handleOrdersAdded = () => {
+    fetchOrders()
+    stopPolling()
+    let ticks = 0
+    pollRef.current = setInterval(() => {
+      ticks += 1
+      fetchOrders()
+      if (ticks >= 30) stopPolling() // ~90s safety cap
+    }, 3000)
+  }
+
+  // stop polling early once nothing is left pending, and always on unmount
+  useEffect(() => {
+    if (pollRef.current && orders.length && !orders.some(o => o.msg_sent === 'NO')) {
+      stopPolling()
+    }
+  }, [orders])
+  useEffect(() => stopPolling, [])
 
   // tell App.jsx we are on orders page
   useEffect(() => {
@@ -445,7 +474,7 @@ const paginatedOrders = sortedOrders.slice(startIndex, startIndex + ordersPerPag
           style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #e6e8ee', background: '#fff', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', color: '#4b5160' }}
         >›</button>
       </div>
-      <AddOrdersModal isOpen={addModalOpen} onClose={() => setAddModalOpen(false)} />
+      <AddOrdersModal isOpen={addModalOpen} onClose={() => setAddModalOpen(false)} onAdded={handleOrdersAdded} />
     </div>
   )
 }
