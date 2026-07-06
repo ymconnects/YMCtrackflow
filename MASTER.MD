@@ -1,5 +1,5 @@
 # YMCTRACKFLOW — MASTER DOCUMENT
-# Version 12.0 — SHEETS FULLY RETIRED, SUPABASE-ONLY
+# Version 13.0 — SHEETS FULLY RETIRED, SUPABASE-ONLY, SHARED ORDERS CACHE
 # Paste this + CONTEXT.md at start of every coding chat
 ═══════════════════════════════════════════
 SECTION 1 — WHAT WE BUILDING
@@ -41,12 +41,19 @@ Backend  : cd D:\YMCtrackflow\backend → python api.py
 Frontend : cd D:\YMCtrackflow\frontend → npm run dev
 Backend  : http://localhost:5000
 Frontend : http://localhost:5173
+GOTCHA: frontend/src/utils/api.js hardcodes BASE_URL to the LIVE
+  production backend (https://ymctrackflow.onrender.com), always -
+  `npm run dev` locally still talks to production, NOT localhost:5000.
+  Running the frontend locally means you are hitting real prod data.
+  Local backend (`python api.py`) is effectively unused unless BASE_URL
+  is manually pointed at it.
 ═══════════════════════════════════════════
 SECTION 4 — LOGIN CREDENTIALS
 ═══════════════════════════════════════════
 Stored in Render env vars (ADMIN_USERNAME/PASSWORD etc). Four roles:
 ADMIN      → full access, settings, campaigns, templates, delete orders
-MANAGER    → orders only: send/retry/mark-delivered, no delete, no settings
+MANAGER    → orders only: send/retry/mark-delivered/delete (delete
+             added 2026-07-06), no settings
 CAMPAIGNER → campaigns + templates only
 VIEWER     → read only, everywhere
 ═══════════════════════════════════════════
@@ -173,11 +180,12 @@ TRACKING (orders/bulk_sender.py send_pending_orders):
 TRIGGERS for send_pending_orders (three ways, all live):
 - Scheduler: every CHECK_INTERVAL_MINUTES if Auto MSG toggle is ON
 - Manual: "Run now" button → POST /run-now (admin/manager)
-- Instant: POST /orders/bulk-add now triggers a send immediately after
-  a non-dry-run insert (added 2026-07-04) - no more waiting for the
-  scheduler tick, since there's no rate-limit constraint anymore. This
-  blocks the HTTP response until done (same pattern as /run-now) - fine
-  for normal batches, could get slow on a very large paste.
+- Instant: POST /orders/bulk-add triggers a send immediately after a
+  non-dry-run insert (added 2026-07-04) - no more waiting for the
+  scheduler tick. Since 2026-07-06 this runs in a background thread
+  instead of blocking the HTTP response (previously blocked until the
+  whole batch finished sending, same pattern as /run-now still does -
+  /run-now itself was NOT changed, only bulk-add).
 
 CAMPAIGNS (campaigns/bulk_sender.py):
 1. Fetch 5 recipients where status=NO (mini-batch)
@@ -190,7 +198,8 @@ CAMPAIGNS (campaigns/bulk_sender.py):
 SECTION 10 — USER ROLES
 ═══════════════════════════════════════════
 ADMIN      → full access: settings, campaigns, templates, delete orders
-MANAGER    → orders only: send/retry/mark-delivered, no delete/settings
+MANAGER    → orders only: send/retry/mark-delivered/delete (delete
+             added 2026-07-06), no settings
 CAMPAIGNER → campaigns + templates only
 VIEWER     → read only, everywhere
 ═══════════════════════════════════════════
@@ -232,8 +241,15 @@ frontend/src/
                  Sidebar, TopBar, ToastContainer, Toast, TemplateForm,
                  AudienceFilter, CampaignCard, CostEstimator, LogsTable,
                  ProtectedRoute
-  hooks/       ← useOrders, useStatus, useAuth, useCampaigns, useLogs
-  utils/       ← api.js, formatters.js, trackingLinks.js
+  context/     ← OrdersContext.jsx (added 2026-07-06) - single shared
+                 fetch of the orders list for the whole app; OrdersProvider
+                 wraps the app in App.jsx, useOrders() is now a thin
+                 re-export that reads this context instead of each page
+                 independently fetching
+  hooks/       ← useOrders (re-export, see context/ above), useStatus,
+                 useAuth, useCampaigns, useLogs
+  utils/       ← api.js (BASE_URL hardcoded to prod, see Section 3),
+                 formatters.js, trackingLinks.js
 ═══════════════════════════════════════════
 SECTION 12 — SUPABASE SCHEMA (LIVE, verified 2026-07-04)
 ═══════════════════════════════════════════
@@ -285,8 +301,21 @@ ADD ORDERS (paste-to-dashboard):
 - Preview shows Ready / Duplicate / Conflict / Missing fields / Invalid
   phone number per row before submitting - phone must be 10 digits or
   91+10 digits, anything else is flagged, never silently inserted
-- On submit: inserts to Supabase, THEN immediately triggers a send
-  (no waiting for scheduler)
+- Conflict/duplicate detection is batch-aware (fixed 2026-07-06): two
+  rows in the SAME paste sharing a tracking_id are now caught during
+  preview itself (bulk_add_orders.py tracks a seen_in_batch map), not
+  just checked against the DB. Previously two new rows colliding with
+  each other both showed "Ready" in preview and the collision only
+  surfaced silently at submit time.
+- On submit: inserts to Supabase, THEN triggers a send in a background
+  thread (fixed 2026-07-06 - previously blocked the HTTP response until
+  the whole batch finished sending). Modal closes immediately if the
+  add was clean; if there were conflicts, it stays open and updates the
+  same preview table with exactly which row(s) conflicted instead of
+  just an aggregate toast count.
+- Orders page briefly polls (every 3s, up to 90s, stops early once
+  nothing's left pending) after an add so rows visibly flip from
+  pending to sent/delivered/failed without a manual refresh.
 
 ORDERS TABLE:
 - Columns: Order ID, Customer, Phone, Courier, Tracking ID, Tracking
@@ -297,7 +326,8 @@ ORDERS TABLE:
 - Action buttons per row: Send (status=NO), Retry (status=FAILED),
   Mark manually delivered (FAILED only, admin/manager, one-way -
   shows "Delivered (Manual)" badge afterward, no way to undo), View
-  details, Delete (admin only, permanent, confirms first)
+  details, Delete (admin AND manager as of 2026-07-06, was admin-only
+  before - permanent, confirms first)
 - View details popup: Order ID, Customer, Phone, Courier, Tracking ID,
   Message Sent, Last Updated, Error Code, Error Reason, WAMID
 
@@ -313,9 +343,15 @@ SECTION 14 — KNOWN OPEN ITEMS (not urgent)
   send→pause→update cycle (Malik's design) not implemented; opt-out /
   STOP handling + suppression list not built; quality rating monitor
   not built; frequency capping not built.
-- Instant-send-on-add (Section 9) is synchronous and could get slow on
-  a very large single paste (tens+ of rows) - not a problem at current
-  volumes, revisit if bulk-add batches grow much larger.
+- Bulk "purge orders older than X" / scheduled retention job - does NOT
+  exist. Discussed 2026-07-06: the shared whole-dataset orders cache
+  (Section 11, context/OrdersContext.jsx) was built on the assumption
+  that old orders "get deleted eventually anyway", but no bulk-delete
+  or scheduled cleanup mechanism has been built - only one-at-a-time
+  manual delete exists. User explicitly has NOT decided the actual
+  retention rule (how old, tied to delivery status or not) and will
+  bring a plan later. Do not build this or assume a default window
+  without the user's explicit requirements first.
 ═══════════════════════════════════════════
 SECTION 15 — KEY LEARNINGS
 ═══════════════════════════════════════════
@@ -352,6 +388,28 @@ SECTION 15 — KEY LEARNINGS
     dozens of commits if only backend changes get cherry-picked
     religiously; periodically diff the whole tree, not just files you
     remember touching
+19. KEEP-ALIVE MUST MATCH THE REAL URL — scheduler.py's keep_alive() was
+    pinging a mismatched hostname (ymctrackflow-backend.onrender.com,
+    404) instead of the real deployed one (ymctrackflow.onrender.com)
+    for who knows how long. It silently never worked, so Render's free
+    tier kept sleeping after ~15 min idle and cold-starting (30-60s) on
+    the next request - almost certainly the real reason the app felt
+    much slower than the old Google Sheets version. Fixed 2026-07-06.
+    Lesson: a "keep it awake" job that fails silently is worse than none
+    - verify self-ping URLs actually resolve to the real service.
+20. BATCH-LOCAL COLLISIONS NEED BATCH-LOCAL CHECKS — bulk_add_orders.py
+    used to only check new rows against the database, so two rows in
+    the SAME paste sharing a tracking_id both looked clean in preview
+    (neither existed in the DB yet) and the collision only quietly
+    resolved once submit actually inserted them one at a time. Any
+    "is this a duplicate" check over a batch needs to check against the
+    rest of the batch, not just against already-committed state.
+21. SHARED FETCH MUST BE AUTH-AWARE — when OrdersContext's provider was
+    lifted to wrap the whole app (including the public /login route) to
+    share one fetch across pages, its fetch-on-mount fired before login
+    and threw a real 401. Fixed by gating on a token existing in
+    localStorage first. Any provider mounted above auth-gated routes
+    needs to know whether a session exists before fetching.
 ═══════════════════════════════════════════
 SECTION 16 — COSTS
 ═══════════════════════════════════════════
@@ -377,7 +435,8 @@ SECTION 17 — RULES FOR EVERY CHAT
   explicit confirmation first.
 ═══════════════════════════════════════════
 STATUS  : LIVE ✅  SHEETS FULLY RETIRED ✅  SUPABASE-ONLY ✅
+          SHARED ORDERS CACHE ✅  KEEP-ALIVE FIXED ✅
 NEXT    : see CONTEXT.md for current session state and open threads
-VERSION : 12.0
+VERSION : 13.0
 🦴
 ═══════════════════════════════════════════
