@@ -39,6 +39,10 @@ def process_bulk_add(courier, courier_name, rows, dry_run=False):
     added = 0
     skipped_duplicates = 0
     flagged_conflicts = 0
+    # tracking_id -> (name, phone) already resolved earlier in *this* paste,
+    # so a second occurrence of the same tracking_id within one batch is
+    # caught immediately instead of only surfacing once it hits the DB.
+    seen_in_batch = {}
 
     for row in rows or []:
         name = _norm(row.get("name"))
@@ -48,12 +52,29 @@ def process_bulk_add(courier, courier_name, rows, dry_run=False):
         if not name or not phone or not tracking_id:
             continue  # defensive - client should already filter these out
 
+        prior = seen_in_batch.get(tracking_id)
+        if prior:
+            prior_name, prior_phone = prior
+            if prior_name.lower() == name.lower() and prior_phone == phone:
+                results.append({"tracking_id": tracking_id, "status": "duplicate", "existing": None})
+                skipped_duplicates += 1
+            else:
+                results.append({
+                    "tracking_id": tracking_id,
+                    "status": "conflict",
+                    "existing": {"customer_name": prior_name, "phone": prior_phone}
+                })
+                flagged_conflicts += 1
+            continue
+
         existing = supabase.table("orders").select("id,customer_name,phone") \
             .eq("tracking_id", tracking_id).limit(1).execute()
 
         if existing.data:
             ex = existing.data[0]
-            if _norm(ex.get("customer_name")).lower() == name.lower() and _norm(ex.get("phone")) == phone:
+            ex_name, ex_phone = _norm(ex.get("customer_name")), _norm(ex.get("phone"))
+            seen_in_batch[tracking_id] = (ex_name, ex_phone)
+            if ex_name.lower() == name.lower() and ex_phone == phone:
                 results.append({"tracking_id": tracking_id, "status": "duplicate", "existing": None})
                 skipped_duplicates += 1
             else:
@@ -81,6 +102,7 @@ def process_bulk_add(courier, courier_name, rows, dry_run=False):
                 new_row["courier_name"] = courier_name or ""
             _insert_with_retry(new_row)
 
+        seen_in_batch[tracking_id] = (name, phone)
         results.append({"tracking_id": tracking_id, "status": "insert", "existing": None})
         added += 1
 

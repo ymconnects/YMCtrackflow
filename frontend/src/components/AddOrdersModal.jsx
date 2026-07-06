@@ -41,7 +41,7 @@ const parseRows = (text) => {
     })
 }
 
-const AddOrdersModal = ({ isOpen, onClose }) => {
+const AddOrdersModal = ({ isOpen, onClose, onAdded }) => {
   const [courier, setCourier] = useState('')
   const [courierName, setCourierName] = useState('')
   const [pasteText, setPasteText] = useState('')
@@ -115,11 +115,26 @@ const AddOrdersModal = ({ isOpen, onClose }) => {
         setSubmitting(false)
         return
       }
-      const { added, skipped_duplicates, flagged_conflicts } = res.data
+      const { added, skipped_duplicates, flagged_conflicts, results } = res.data
       let msg = `${added} order${added === 1 ? '' : 's'} added`
       if (skipped_duplicates) msg += `, ${skipped_duplicates} duplicate${skipped_duplicates === 1 ? '' : 's'} skipped`
       if (flagged_conflicts) msg += `, ${flagged_conflicts} conflict${flagged_conflicts === 1 ? '' : 's'} need review`
       ToastContainer.addToast(msg, added > 0 ? 'success' : 'info')
+
+      if (flagged_conflicts > 0) {
+        // don't close silently on a conflict - show exactly which row(s) it was
+        let ri = 0
+        setPreviewRows(prev => prev.map(r => {
+          if (!r.valid) return r
+          const result = results[ri]
+          ri += 1
+          return { ...r, status: result?.status || r.status, existing: result?.existing || r.existing }
+        }))
+        setSubmitting(false)
+        return
+      }
+
+      onAdded && onAdded()
       handleClose()
     } catch {
       setErrorMsg('Add failed - check your connection')
