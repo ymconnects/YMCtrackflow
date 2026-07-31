@@ -11,6 +11,7 @@ PERMANENT_ERROR_CODES = {
     "131026": "Not on WhatsApp",
     "130403": "Blocked by recipient",
     "131050": "Recipient opted out",
+    "130472": "Blocked by Meta's marketing message experiment (no retry will help)",
 }
 
 
