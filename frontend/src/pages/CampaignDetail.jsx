@@ -88,6 +88,7 @@ const CampaignDetail = ({ onPageChange }) => {
   const campaignStatusBadge = (status) => {
     const colors = {
       DRAFT:    { bg: 'rgba(122,128,144,0.10)', color: '#7a8090', border: 'rgba(122,128,144,0.25)' },
+      QUEUED:   { bg: 'rgba(122,128,144,0.10)', color: '#7a8090', border: 'rgba(122,128,144,0.25)' },
       SENDING:  { bg: 'rgba(37,99,235,0.10)',   color: '#2563eb', border: 'rgba(37,99,235,0.25)' },
       RETRYING: { bg: 'rgba(37,99,235,0.10)',   color: '#2563eb', border: 'rgba(37,99,235,0.25)' },
       DONE:     { bg: 'rgba(18,140,126,0.10)',  color: '#128C7E', border: 'rgba(18,140,126,0.25)' },

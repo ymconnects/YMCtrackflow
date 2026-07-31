@@ -186,7 +186,12 @@ def create_template(payload):
     return False, response.text
 
 
-def send_template_message(phone, template_name, variables):
+def send_template_message(phone, template_name, variables, header_image_url=None):
+    """header_image_url: a public image URL to use as the template's header
+    parameter, e.g. one uploaded via the campaign creation UI and stored on
+    the campaign. Takes priority over TEMPLATE_HEADER_IMAGES, which only
+    exists to keep older, already-deployed campaigns (created before a
+    per-campaign image existed) working without needing their own URL."""
     phone = format_phone_number(phone)
     if not validate_phone_number(phone):
         return False, "Invalid phone"
@@ -197,13 +202,16 @@ def send_template_message(phone, template_name, variables):
         "Content-Type": "application/json"
     }
     components = []
-    header_image = TEMPLATE_HEADER_IMAGES.get(template_name)
+    header_image = header_image_url or (
+        f"{BACKEND_BASE_URL}/campaign-assets/{TEMPLATE_HEADER_IMAGES[template_name]}"
+        if template_name in TEMPLATE_HEADER_IMAGES else None
+    )
     if header_image:
         components.append({
             "type": "header",
             "parameters": [{
                 "type": "image",
-                "image": {"link": f"{BACKEND_BASE_URL}/campaign-assets/{header_image}"}
+                "image": {"link": header_image}
             }]
         })
     if variables:

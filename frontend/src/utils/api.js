@@ -93,6 +93,12 @@ export const createCampaign = (data) => {
   return api.post('/campaigns/create', data)
 }
 
+export const uploadCampaignHeaderImage = (formData) => {
+  return api.post('/campaigns/upload-header-image', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}
+
 export const sendCampaign = (campaignId) => {
   return api.post(`/campaigns/send/${campaignId}`)
 }
