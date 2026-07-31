@@ -8,7 +8,7 @@ BACKEND_BASE_URL = "https://ymctrackflow.onrender.com"
 # keep our own durable copy (backend/campaigns/assets/) instead of relying on
 # Meta's example-image CDN link, which expires.
 TEMPLATE_HEADER_IMAGES = {
-    "_cacma_final_idt_fasttrack_batch_renu_didi": "cacma_idt_fasttrack_renu.png",
+    "_cacma_final_idt_fasttrack_batch_renu_didi": "cacma_idt_fasttrack_renu.jpg",
 }
 
 # WhatsApp Cloud API error codes we see in practice, mapped to a readable reason.
