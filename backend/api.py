@@ -8,7 +8,7 @@ import tempfile
 from campaigns.campaign_manager import create_campaign, get_campaign, get_contacts_by_book
 from campaigns.bulk_sender import send_campaign, determine_retry_batch, process_retry_batch
 from campaigns.audience_filter import parse_csv, save_contact_book
-from supabase_db import supabase
+from supabase_db import supabase, select_all
 from config import load_config
 from whatsapp import get_all_templates, delete_template, create_template
 from bulk_add_orders import process_bulk_add
@@ -465,8 +465,8 @@ def campaign_status_endpoint(campaign_id):
     # count live from the recipient rows instead of campaigns.sent/failed,
     # which only get written once the whole send/retry loop finishes - so a
     # mid-flight or crashed run looked frozen even while it was progressing
-    recipients = supabase.table("campaign_recipients") \
-        .select("status,last_updated").eq("campaign_id", campaign_id).execute().data
+    recipients = select_all("campaign_recipients", "status,last_updated",
+                            {"campaign_id": campaign_id})
 
     sent = sum(1 for r in recipients if r["status"] in ("SENT", "DELIVERED"))
     failed = sum(1 for r in recipients if r["status"] == "FAILED")
@@ -520,8 +520,8 @@ def get_book_contacts(book_id):
         return jsonify({"success": False, "message": "Not logged in"}), 401
     if payload["role"] not in ["admin", "campaigner"]:
         return jsonify({"success": False, "message": "Access denied"}), 403
-    result = supabase.table("contacts").select("name,phone").eq("book_id", book_id).execute()
-    return jsonify({"success": True, "contacts": result.data})
+    contacts = select_all("contacts", "name,phone", {"book_id": book_id})
+    return jsonify({"success": True, "contacts": contacts})
 
 
 @app.route("/campaigns/<campaign_id>/recipients", methods=["GET"])
@@ -532,10 +532,9 @@ def get_campaign_recipients(campaign_id):
         return jsonify({"success": False, "message": "Not logged in"}), 401
     if payload["role"] not in ["admin", "campaigner"]:
         return jsonify({"success": False, "message": "Access denied"}), 403
-    result = supabase.table("campaign_recipients") \
-        .select("name,phone,status,error_code") \
-        .eq("campaign_id", campaign_id).execute()
-    return jsonify({"success": True, "recipients": result.data})
+    recipients = select_all("campaign_recipients", "name,phone,status,error_code",
+                            {"campaign_id": campaign_id})
+    return jsonify({"success": True, "recipients": recipients})
 
 
 @app.route("/campaigns/history", methods=["GET"])

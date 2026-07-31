@@ -1,6 +1,6 @@
 import pytz
 from datetime import datetime, timezone
-from supabase_db import supabase
+from supabase_db import supabase, select_all
 from whatsapp import get_error_reason
 
 IST = pytz.timezone('Asia/Kolkata')
@@ -65,7 +65,7 @@ def _to_legacy_shape(row):
 
 
 def get_all_orders():
-    rows = supabase.table("orders").select("*").order("id", desc=True).execute().data
+    rows = select_all("orders", "*", order_by="id", desc=True)
     return [_to_legacy_shape(r) for r in rows]
 
 

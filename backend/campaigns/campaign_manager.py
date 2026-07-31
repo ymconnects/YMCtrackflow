@@ -1,4 +1,4 @@
-from supabase_db import supabase
+from supabase_db import supabase, select_all
 from datetime import datetime
 
 def create_campaign(name, template_name, book_id):
@@ -30,5 +30,4 @@ def get_contact_book(book_id):
     return result.data
 
 def get_contacts_by_book(book_id):
-    result = supabase.table("contacts").select("*").eq("book_id", book_id).execute()
-    return result.data
+    return select_all("contacts", "*", {"book_id": book_id})
