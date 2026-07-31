@@ -25,11 +25,21 @@ def parse_csv(file_path):
             (h for h in headers if "phone" in h.lower() or "mobile" in h.lower()),
             None
         )
-        # phone priority 2: fallback — "contact number" or "whatsapp" (avoids bare "number")
+        # phone priority 2: fallback — "contact number" or "whatsapp"
         if not phone_col:
             phone_col = next(
                 (h for h in headers
                  if "contact number" in h.lower() or "whatsapp" in h.lower()),
+                None
+            )
+        # phone priority 3: fallback — bare "number", excluding order/tracking/serial numbers
+        if not phone_col:
+            phone_col = next(
+                (h for h in headers
+                 if "number" in h.lower()
+                 and "order" not in h.lower()
+                 and "tracking" not in h.lower()
+                 and "serial" not in h.lower()),
                 None
             )
 

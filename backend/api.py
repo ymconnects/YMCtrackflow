@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from auth import check_login, create_session, verify_session, get_user_role, get_user_tab
 from scheduler import start_scheduler
@@ -277,6 +277,12 @@ def toggle_system_endpoint():
     else:
         return jsonify({"success": False, "message": "Invalid action"}), 400
     
+@app.route("/campaign-assets/<path:filename>", methods=["GET"])
+def campaign_assets(filename):
+    assets_dir = os.path.join(os.path.dirname(__file__), "campaigns", "assets")
+    return send_from_directory(assets_dir, filename)
+
+
 @app.route("/campaigns/books/<book_id>/columns", methods=["GET"])
 def get_book_columns(book_id):
     token = get_token_from_request()

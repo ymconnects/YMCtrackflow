@@ -1,6 +1,16 @@
 import requests
 from config import load_config
 
+BACKEND_BASE_URL = "https://ymctrackflow.onrender.com"
+
+# Campaign templates with an IMAGE header - WhatsApp rejects the send (error
+# 132012) unless a header image parameter is supplied on every message, so we
+# keep our own durable copy (backend/campaigns/assets/) instead of relying on
+# Meta's example-image CDN link, which expires.
+TEMPLATE_HEADER_IMAGES = {
+    "_cacma_final_idt_fasttrack_batch_renu_didi": "cacma_idt_fasttrack_renu.png",
+}
+
 # WhatsApp Cloud API error codes we see in practice, mapped to a readable reason.
 ERROR_CODE_MEANINGS = {
     "131026": "Number not on WhatsApp",
@@ -8,6 +18,7 @@ ERROR_CODE_MEANINGS = {
     "131009": "Invalid template parameter",
     "132000": "Template parameter count mismatch",
     "132001": "Template does not exist or is not approved",
+    "132012": "Template parameter format mismatch (e.g. missing required header image)",
     "131021": "Recipient and sender are the same number",
     "131052": "Media could not be downloaded",
     "133010": "Business account not registered for Cloud API",
@@ -184,6 +195,21 @@ def send_template_message(phone, template_name, variables):
         "Authorization": f"Bearer {config['META_ACCESS_TOKEN']}",
         "Content-Type": "application/json"
     }
+    components = []
+    header_image = TEMPLATE_HEADER_IMAGES.get(template_name)
+    if header_image:
+        components.append({
+            "type": "header",
+            "parameters": [{
+                "type": "image",
+                "image": {"link": f"{BACKEND_BASE_URL}/campaign-assets/{header_image}"}
+            }]
+        })
+    if variables:
+        components.append({
+            "type": "body",
+            "parameters": [{"type": "text", "text": str(v)} for v in variables]
+        })
     data = {
         "messaging_product": "whatsapp",
         "to": phone,
@@ -191,12 +217,7 @@ def send_template_message(phone, template_name, variables):
         "template": {
             "name": template_name,
             "language": {"code": "en_US"},
-            "components": [
-                {
-                    "type": "body",
-                    "parameters": [{"type": "text", "text": str(v)} for v in variables]
-                }
-            ]
+            "components": components
         }
     }
     response = requests.post(url, headers=headers, json=data)
