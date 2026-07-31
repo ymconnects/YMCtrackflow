@@ -60,9 +60,18 @@ def send_campaign(campaign_id):
 
     try:
         while True:
-            batch = db.table("campaign_recipients") \
-                .select("*").eq("campaign_id", campaign_id).eq("status", "NO") \
-                .limit(5).execute().data
+            batch = None
+            for attempt in range(3):
+                try:
+                    batch = db.table("campaign_recipients") \
+                        .select("*").eq("campaign_id", campaign_id).eq("status", "NO") \
+                        .limit(5).execute().data
+                    break
+                except Exception:
+                    if attempt < 2:
+                        time.sleep(2)
+                    else:
+                        raise
 
             if not batch:
                 break
@@ -73,11 +82,14 @@ def send_campaign(campaign_id):
                     break
 
                 variables = recipient.get("variables") or []
-                success, result = send_template_message(
-                    recipient["phone"],
-                    campaign["template_name"],
-                    variables
-                )
+                try:
+                    success, result = send_template_message(
+                        recipient["phone"],
+                        campaign["template_name"],
+                        variables
+                    )
+                except Exception as e:
+                    success, result = False, f"send_error: {e}"
 
                 if success:
                     update_recipient_status(recipient["id"], "SENT", wamid=result)
@@ -156,13 +168,13 @@ def determine_retry_batch(campaign_id, recipient_id=None):
     }, None
 
 
-def process_retry_batch(campaign_id, template_name, rows, original_status):
+def process_retry_batch(campaign_id, template_name, rows):
     supabase.table("campaigns").update({"status": "SENDING"}).eq("id", campaign_id).execute()
 
-    try:
-        for i in range(0, len(rows), 5):
-            chunk = rows[i:i + 5]
-            for row in chunk:
+    for i in range(0, len(rows), 5):
+        chunk = rows[i:i + 5]
+        for row in chunk:
+            try:
                 supabase.table("campaign_recipients").update({
                     "status": "NO",
                     "status_rank": 0,
@@ -170,24 +182,32 @@ def process_retry_batch(campaign_id, template_name, rows, original_status):
                 }).eq("id", row["id"]).execute()
 
                 variables = row.get("variables") or []
-                success, result = send_template_message(row["phone"], template_name, variables)
+                try:
+                    success, result = send_template_message(row["phone"], template_name, variables)
+                except Exception as e:
+                    success, result = False, f"send_error: {e}"
 
                 if success:
                     update_recipient_status(row["id"], "SENT", wamid=result)
                 else:
                     update_recipient_status(row["id"], "FAILED", error_code=str(result))
+            except Exception as e:
+                print(f"Retry row {row.get('id')} for campaign {campaign_id} crashed: {e}", flush=True)
 
-                time.sleep(1)
-    except Exception as e:
-        print(f"Retry for campaign {campaign_id} crashed: {e}", flush=True)
+            time.sleep(1)
 
+    # recompute the real end state from the data rather than trusting a
+    # possibly-stale status captured before this retry ran
     recipients = supabase.table("campaign_recipients").select("status") \
         .eq("campaign_id", campaign_id).execute().data
     sent_count = sum(1 for r in recipients if r["status"] in ("SENT", "DELIVERED"))
     failed_count = sum(1 for r in recipients if r["status"] == "FAILED")
+    no_count = sum(1 for r in recipients if r["status"] == "NO")
+
+    final_status = "DONE" if failed_count == 0 and no_count == 0 else "PAUSED"
 
     supabase.table("campaigns").update({
-        "status": original_status or "DONE",
+        "status": final_status,
         "sent": sent_count,
         "failed": failed_count
     }).eq("id", campaign_id).execute()

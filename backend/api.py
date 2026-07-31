@@ -379,6 +379,12 @@ def campaign_send(campaign_id):
     if payload["role"] not in ["admin", "campaigner"]:
         return jsonify({"success": False, "message": "Access denied"}), 403
 
+    campaign = get_campaign(campaign_id)
+    if not campaign:
+        return jsonify({"success": False, "message": "Campaign not found"}), 404
+    if campaign["status"] == "SENDING":
+        return jsonify({"success": False, "message": "Campaign is already sending"}), 409
+
     thread = threading.Thread(target=send_campaign, args=(campaign_id,))
     thread.daemon = True
     thread.start()
@@ -405,9 +411,11 @@ def campaign_retry(campaign_id):
     skipped_reasons = batch["skipped_reasons"]
 
     if to_retry:
+        if batch["campaign"]["status"] == "SENDING":
+            return jsonify({"success": False, "message": "Campaign is already sending - wait for it to finish or pause before retrying"}), 409
         thread = threading.Thread(
             target=process_retry_batch,
-            args=(campaign_id, batch["campaign"]["template_name"], to_retry, batch["campaign"]["status"])
+            args=(campaign_id, batch["campaign"]["template_name"], to_retry)
         )
         thread.daemon = True
         thread.start()

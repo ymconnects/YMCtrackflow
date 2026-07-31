@@ -103,7 +103,7 @@ def send_order_template_message(phone, courier, courier_name, name, tracking_id,
             "components": components
         }
     }
-    response = requests.post(url, headers=headers, json=data)
+    response = requests.post(url, headers=headers, json=data, timeout=30)
     print(f"Order send: {phone} | {response.status_code}", flush=True)
     if response.status_code == 200:
         try:
@@ -132,7 +132,7 @@ def send_fixed_reply(phone):
             "body": "Thank you for contacting Yashvant Mangal Classes.\n\nFor any queries, please contact us:\n\nFor Dispatch/Courier Related Query : 8955122355\nFor Activation Related Query : 7425055442\nFor Lectures Link Related Query : 7073699442\nFor Software Related Technical Assistance : 7425055442\nFor Products Purchase Related Query : 8690270442 , 9216812400\nIf your books are not delivered within 7 working days, please contact : 8955122355\n\nTeam Yashvant Mangal Classes"
         }
     }
-    response = requests.post(url, headers=headers, json=data)
+    response = requests.post(url, headers=headers, json=data, timeout=30)
     print(f"Auto reply sent to {phone}: {response.status_code}", flush=True)
     return response.status_code == 200
 
@@ -148,7 +148,7 @@ def get_all_templates():
     all_templates = []
     url = f"https://graph.facebook.com/v18.0/{config['META_WABA_ID']}/message_templates"
     while url:
-        response = requests.get(url, headers=headers, params=params)
+        response = requests.get(url, headers=headers, params=params, timeout=30)
         print(f"Get templates: {response.status_code}", flush=True)
         if response.status_code != 200:
             return False, response.text
@@ -167,7 +167,7 @@ def delete_template(name):
         "Authorization": f"Bearer {config['META_ACCESS_TOKEN']}"
     }
     params = {"name": name}
-    response = requests.delete(url, headers=headers, params=params)
+    response = requests.delete(url, headers=headers, params=params, timeout=30)
     print(f"Delete template {name}: {response.status_code}", flush=True)
     return response.status_code == 200, response.text
 
@@ -179,7 +179,7 @@ def create_template(payload):
         "Authorization": f"Bearer {config['META_ACCESS_TOKEN']}",
         "Content-Type": "application/json"
     }
-    response = requests.post(url, headers=headers, json=payload)
+    response = requests.post(url, headers=headers, json=payload, timeout=30)
     print(f"Create template: {response.status_code} | {response.text}", flush=True)
     if response.status_code == 200:
         return True, response.json()
@@ -221,7 +221,7 @@ def send_template_message(phone, template_name, variables):
             "components": components
         }
     }
-    response = requests.post(url, headers=headers, json=data)
+    response = requests.post(url, headers=headers, json=data, timeout=30)
     print(f"Campaign send: {phone} | {response.status_code}", flush=True)
     if response.status_code == 200:
         try:
