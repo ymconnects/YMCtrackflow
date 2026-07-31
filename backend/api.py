@@ -13,6 +13,7 @@ from config import load_config
 from whatsapp import get_all_templates, delete_template, create_template
 from bulk_add_orders import process_bulk_add
 import os
+import subprocess
 import threading
 import time
 import queue
@@ -22,6 +23,25 @@ app = Flask(__name__)
 CORS(app, origins="*")
 
 webhook_queue = queue.Queue()
+
+BOOT_TIME = datetime.utcnow().isoformat()
+
+# Render sets this automatically; fall back to reading it from git for local
+# dev, since there's no other way to tell whether a deploy actually landed
+# short of inferring it from unrelated route behavior.
+GIT_SHA = os.getenv("RENDER_GIT_COMMIT")
+if not GIT_SHA:
+    try:
+        GIT_SHA = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=os.path.dirname(__file__)
+        ).decode().strip()
+    except Exception:
+        GIT_SHA = "unknown"
+
+
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify({"success": True, "git_sha": GIT_SHA, "boot_time": BOOT_TIME})
 
 def get_token_from_request():
     auth_header = request.headers.get("Authorization")
@@ -437,13 +457,31 @@ def campaign_status_endpoint(campaign_id):
     if payload["role"] not in ["admin", "campaigner"]:
         return jsonify({"success": False, "message": "Access denied"}), 403
 
-    result = supabase.table("campaigns").select("status,sent,failed,total") \
+    campaign = supabase.table("campaigns").select("status,total") \
         .eq("id", campaign_id).single().execute()
-    if not result.data:
+    if not campaign.data:
         return jsonify({"success": False, "message": "Campaign not found"}), 404
-    d = result.data
-    return jsonify({"success": True, "status": d["status"],
-                    "sent": d["sent"], "failed": d["failed"], "total": d["total"]})
+
+    # count live from the recipient rows instead of campaigns.sent/failed,
+    # which only get written once the whole send/retry loop finishes - so a
+    # mid-flight or crashed run looked frozen even while it was progressing
+    recipients = supabase.table("campaign_recipients") \
+        .select("status,last_updated").eq("campaign_id", campaign_id).execute().data
+
+    sent = sum(1 for r in recipients if r["status"] in ("SENT", "DELIVERED"))
+    failed = sum(1 for r in recipients if r["status"] == "FAILED")
+    pending = sum(1 for r in recipients if r["status"] == "NO")
+    last_activity_at = max((r["last_updated"] for r in recipients if r.get("last_updated")), default=None)
+
+    return jsonify({
+        "success": True,
+        "status": campaign.data["status"],
+        "sent": sent,
+        "failed": failed,
+        "pending": pending,
+        "total": campaign.data["total"],
+        "last_activity_at": last_activity_at
+    })
 
 @app.route("/campaigns/books", methods=["GET"])
 def get_contact_books():
