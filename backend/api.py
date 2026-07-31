@@ -687,6 +687,12 @@ def process_webhook_queue():
 if __name__ == "__main__":
     config = load_config()
     log_system_start()
+
+    # a campaign stuck in SENDING at boot means the thread that set it died
+    # with the previous process (redeploy, crash) - nothing is sending it
+    # anymore, so reflect that instead of silently blocking future resumes
+    supabase.table("campaigns").update({"status": "PAUSED"}).eq("status", "SENDING").execute()
+
     # auto start scheduler on boot
     start_scheduler()
     threading.Thread(target=process_webhook_queue, daemon=True).start()
