@@ -35,7 +35,15 @@ RATE_LIMIT_ERROR_CODES = {
 # for that recipient so the retry flow can pick them up later.
 TRANSIENT_ERROR_CODES = {"1", "2", "500", "502", "503", "504", "131000", "133000"}
 
-MAX_CONSECUTIVE_DEAD_BATCHES = 3
+# How long the run tolerates zero successful sends before giving up
+# entirely. Meta's ecosystem/experiment throttles (131049, 130472) hit in
+# short clusters that clear up within a batch or two of just continuing -
+# they are not a sign anything is actually broken, so a stop threshold
+# measured in a handful of batches was giving up on runs that would have
+# recovered seconds later. A real, permanent problem (expired token,
+# policy block) shows as zero progress for a long stretch, not a blip -
+# that is what this is actually meant to catch.
+MAX_DEAD_SECONDS = 900
 
 PERMANENT_ERROR_CODES = {
     "131026": "Not on WhatsApp",
@@ -255,7 +263,15 @@ def _send_batch_concurrent(batch, template_name, counts, concurrency=SEND_CONCUR
 
 def _apply_throttle(state, stats, batch_size):
     """Slow down on any sign of trouble, recover only after clean batches.
-    Returns False when the run should stop entirely (circuit breaker)."""
+    Returns False when the run should stop entirely (circuit breaker).
+
+    Per-recipient throttles (ecosystem/experiment blocks) are NOT trouble in
+    the rate-limiting sense - they mean "not this person, right now", not
+    "you are sending too fast" - so they do not reduce concurrency. They do
+    count toward the dead-time circuit breaker below, which is time-based
+    rather than a small consecutive-batch count, since these blocks cluster
+    in short bursts that clear up on their own within seconds to minutes.
+    """
     trouble = stats["rate_limited"] + stats["transient"] + len(stats["unrecorded"])
 
     if stats["rate_limited"]:
@@ -276,13 +292,16 @@ def _apply_throttle(state, stats, batch_size):
         if state["concurrency"] < SEND_CONCURRENCY:
             state["concurrency"] += 1
 
-    # Circuit breaker: a batch where nothing at all got through counts as dead.
-    if batch_size and stats["sent"] == 0:
-        state["dead_batches"] += 1
-    else:
-        state["dead_batches"] = 0
+    now = time.time()
+    if batch_size and stats["sent"] > 0:
+        state["last_success_time"] = now
 
-    return state["dead_batches"] < MAX_CONSECUTIVE_DEAD_BATCHES
+    dead_for = now - state["last_success_time"]
+    if dead_for > MAX_DEAD_SECONDS:
+        print(f"No successful sends in {int(dead_for)}s - stopping (likely a real problem, "
+              f"not just per-recipient throttling)", flush=True)
+        return False
+    return True
 
 
 def send_campaign(campaign_id):
@@ -303,7 +322,7 @@ def send_campaign(campaign_id):
             db.table("campaigns").update({"status": "SENDING"}).eq("id", campaign_id).execute()
 
             counts = {"sent": 0, "failed": 0}
-            state = {"concurrency": SEND_CONCURRENCY, "backoff": 0, "dead_batches": 0}
+            state = {"concurrency": SEND_CONCURRENCY, "backoff": 0, "last_success_time": time.time()}
             paused = False
             stop_reason = None
             # Every recipient we have already fired a message at during THIS
@@ -364,8 +383,8 @@ def send_campaign(campaign_id):
                     if not _apply_throttle(state, stats, len(batch)):
                         paused = True
                         stop_reason = (
-                            f"Stopped after {MAX_CONSECUTIVE_DEAD_BATCHES} consecutive batches "
-                            f"with zero successful sends - paused at {counts['sent']} sent."
+                            f"No successful sends in over {MAX_DEAD_SECONDS // 60} minutes - "
+                            f"paused at {counts['sent']} sent."
                         )
                         break
 
@@ -449,7 +468,7 @@ def process_retry_batch(campaign_id, template_name, rows, header_image_url=None)
             supabase.table("campaigns").update({"status": "SENDING"}).eq("id", campaign_id).execute()
 
             counts = {"sent": 0, "failed": 0}
-            state = {"concurrency": SEND_CONCURRENCY, "backoff": 0, "dead_batches": 0}
+            state = {"concurrency": SEND_CONCURRENCY, "backoff": 0, "last_success_time": time.time()}
 
             i = 0
             while i < len(rows):
@@ -486,8 +505,8 @@ def process_retry_batch(campaign_id, template_name, rows, header_image_url=None)
                 )
 
                 if not _apply_throttle(state, stats, len(ready)):
-                    print(f"Retry for campaign {campaign_id} stopped after "
-                          f"{MAX_CONSECUTIVE_DEAD_BATCHES} consecutive dead batches.", flush=True)
+                    print(f"Retry for campaign {campaign_id} stopped - no successful sends "
+                          f"in over {MAX_DEAD_SECONDS // 60} minutes.", flush=True)
                     break
 
             # recompute the real end state from the data rather than trusting
