@@ -66,6 +66,30 @@ def _release_campaign(campaign_id):
         _active_campaigns.discard(campaign_id)
 
 
+# Only one campaign's send/retry loop may actually be moving messages at a
+# time, system-wide - two campaigns sending in parallel would double the
+# request rate against Meta from the same business number (risking real
+# rate-limit errors) and nothing would stop the same phone number from
+# appearing in two different books and getting messaged twice around the
+# same moment. A second campaign that starts while one is already running
+# waits here instead of running alongside it - it shows as QUEUED and
+# begins automatically the moment the first one finishes or pauses.
+_global_send_lock = threading.Lock()
+
+
+def _wait_turn(campaign_id, db_or_supabase):
+    """Block until no other campaign is actively sending. Marks the campaign
+    QUEUED in the DB for as long as it has to wait, so the status endpoint
+    reflects reality instead of looking stalled."""
+    if _global_send_lock.acquire(blocking=False):
+        return
+    try:
+        db_or_supabase.table("campaigns").update({"status": "QUEUED"}).eq("id", campaign_id).execute()
+    except Exception:
+        pass
+    _global_send_lock.acquire()
+
+
 def update_recipient_status(recipient_id, status, wamid=None, error_code=None):
     """Write a recipient's outcome, never letting a lower rank overwrite a
     higher one. Returns True when the row is known to reflect `status` (or
@@ -123,20 +147,22 @@ def update_recipient_status(recipient_id, status, wamid=None, error_code=None):
     return False
 
 
-def _send_one(recipient, template_name):
+def _send_one(recipient, template_name, header_image_url=None):
     """Runs on a worker thread. Must never raise - the recipient id is
     captured before anything that can fail, so the caller always gets a
     result it can attribute to a row."""
     recipient_id = recipient.get("id")
     try:
         variables = recipient.get("variables") or []
-        success, result = send_template_message(recipient["phone"], template_name, variables)
+        success, result = send_template_message(
+            recipient["phone"], template_name, variables, header_image_url=header_image_url
+        )
     except Exception as e:
         success, result = False, f"send_error: {e}"
     return recipient_id, success, result
 
 
-def _send_batch_concurrent(batch, template_name, counts, concurrency=SEND_CONCURRENCY):
+def _send_batch_concurrent(batch, template_name, counts, concurrency=SEND_CONCURRENCY, header_image_url=None):
     """Send one batch in parallel, then persist every outcome.
 
     Two rules make this safe:
@@ -157,7 +183,7 @@ def _send_batch_concurrent(batch, template_name, counts, concurrency=SEND_CONCUR
 
     executor = ThreadPoolExecutor(max_workers=max(1, concurrency))
     try:
-        futures = {executor.submit(_send_one, r, template_name): r for r in batch}
+        futures = {executor.submit(_send_one, r, template_name, header_image_url): r for r in batch}
         for future in as_completed(futures):
             try:
                 recipient_id, success, result = future.result()
@@ -272,100 +298,107 @@ def send_campaign(campaign_id):
         return False, "Campaign is already sending"
 
     try:
-        db.table("campaigns").update({"status": "SENDING"}).eq("id", campaign_id).execute()
-
-        counts = {"sent": 0, "failed": 0}
-        state = {"concurrency": SEND_CONCURRENCY, "backoff": 0, "dead_batches": 0}
-        paused = False
-        stop_reason = None
-        # Every recipient we have already fired a message at during THIS run.
-        # If a status write failed, the row is still 'NO' and the next select
-        # would hand it back to us - re-sending to a real customer. Never.
-        attempted = set()
-
+        _wait_turn(campaign_id, db)
         try:
-            while True:
-                if counts["sent"] >= DAILY_LIMIT:
-                    paused = True
-                    stop_reason = f"Daily safety limit reached, paused at {counts['sent']} sent."
-                    break
+            db.table("campaigns").update({"status": "SENDING"}).eq("id", campaign_id).execute()
 
-                size = min(state["concurrency"], DAILY_LIMIT - counts["sent"])
-                if size <= 0:
-                    paused = True
-                    stop_reason = f"Daily safety limit reached, paused at {counts['sent']} sent."
-                    break
+            counts = {"sent": 0, "failed": 0}
+            state = {"concurrency": SEND_CONCURRENCY, "backoff": 0, "dead_batches": 0}
+            paused = False
+            stop_reason = None
+            # Every recipient we have already fired a message at during THIS
+            # run. If a status write failed, the row is still 'NO' and the
+            # next select would hand it back to us - re-sending to a real
+            # customer. Never.
+            attempted = set()
 
-                fetched = None
-                for attempt in range(3):
-                    try:
-                        # Over-fetch so rows we already attempted (but whose
-                        # status write failed) cannot permanently mask the
-                        # rows behind them.
-                        fetched = db.table("campaign_recipients") \
-                            .select("*").eq("campaign_id", campaign_id).eq("status", "NO") \
-                            .limit(size + 2 * SEND_CONCURRENCY).execute().data
-                        break
-                    except Exception:
-                        if attempt < 2:
-                            time.sleep(2)
-                        else:
-                            raise
-
-                if not fetched:
-                    break
-
-                batch = [r for r in fetched if r.get("id") not in attempted][:size]
-                if not batch:
-                    # Everything still marked NO is something we already sent
-                    # and failed to record. Stop - do not message them again.
-                    raise RuntimeError(
-                        "Stopping: recipients already sent this run are still marked NO "
-                        "(status writes are not landing). Refusing to re-send."
-                    )
-
-                attempted.update(r.get("id") for r in batch)
-
-                stats = _send_batch_concurrent(
-                    batch, campaign["template_name"], counts, state["concurrency"]
-                )
-
-                if not _apply_throttle(state, stats, len(batch)):
-                    paused = True
-                    stop_reason = (
-                        f"Stopped after {MAX_CONSECUTIVE_DEAD_BATCHES} consecutive batches "
-                        f"with zero successful sends - paused at {counts['sent']} sent."
-                    )
-                    break
-
-        except Exception as e:
-            print(f"Campaign {campaign_id} crashed: {e}", flush=True)
             try:
+                while True:
+                    if counts["sent"] >= DAILY_LIMIT:
+                        paused = True
+                        stop_reason = f"Daily safety limit reached, paused at {counts['sent']} sent."
+                        break
+
+                    size = min(state["concurrency"], DAILY_LIMIT - counts["sent"])
+                    if size <= 0:
+                        paused = True
+                        stop_reason = f"Daily safety limit reached, paused at {counts['sent']} sent."
+                        break
+
+                    fetched = None
+                    for attempt in range(3):
+                        try:
+                            # Over-fetch so rows we already attempted (but
+                            # whose status write failed) cannot permanently
+                            # mask the rows behind them.
+                            fetched = db.table("campaign_recipients") \
+                                .select("*").eq("campaign_id", campaign_id).eq("status", "NO") \
+                                .limit(size + 2 * SEND_CONCURRENCY).execute().data
+                            break
+                        except Exception:
+                            if attempt < 2:
+                                time.sleep(2)
+                            else:
+                                raise
+
+                    if not fetched:
+                        break
+
+                    batch = [r for r in fetched if r.get("id") not in attempted][:size]
+                    if not batch:
+                        # Everything still marked NO is something we already
+                        # sent and failed to record. Stop - do not message
+                        # them again.
+                        raise RuntimeError(
+                            "Stopping: recipients already sent this run are still marked NO "
+                            "(status writes are not landing). Refusing to re-send."
+                        )
+
+                    attempted.update(r.get("id") for r in batch)
+
+                    stats = _send_batch_concurrent(
+                        batch, campaign["template_name"], counts, state["concurrency"],
+                        header_image_url=campaign.get("header_image_url")
+                    )
+
+                    if not _apply_throttle(state, stats, len(batch)):
+                        paused = True
+                        stop_reason = (
+                            f"Stopped after {MAX_CONSECUTIVE_DEAD_BATCHES} consecutive batches "
+                            f"with zero successful sends - paused at {counts['sent']} sent."
+                        )
+                        break
+
+            except Exception as e:
+                print(f"Campaign {campaign_id} crashed: {e}", flush=True)
+                try:
+                    db.table("campaigns").update({
+                        "status": "PAUSED",
+                        "sent": counts["sent"],
+                        "failed": counts["failed"]
+                    }).eq("id", campaign_id).execute()
+                except Exception:
+                    pass
+                return False, str(e)
+
+            if paused:
+                print(stop_reason, flush=True)
                 db.table("campaigns").update({
                     "status": "PAUSED",
                     "sent": counts["sent"],
                     "failed": counts["failed"]
                 }).eq("id", campaign_id).execute()
-            except Exception:
-                pass
-            return False, str(e)
+                return False, stop_reason
 
-        if paused:
-            print(stop_reason, flush=True)
             db.table("campaigns").update({
-                "status": "PAUSED",
+                "status": "DONE",
                 "sent": counts["sent"],
                 "failed": counts["failed"]
             }).eq("id", campaign_id).execute()
-            return False, stop_reason
 
-        db.table("campaigns").update({
-            "status": "DONE",
-            "sent": counts["sent"],
-            "failed": counts["failed"]
-        }).eq("id", campaign_id).execute()
-
-        return True, {"sent": counts["sent"], "failed": counts["failed"]}
+            return True, {"sent": counts["sent"], "failed": counts["failed"]}
+        finally:
+            _global_send_lock.release()
     finally:
         _release_campaign(campaign_id)
 
@@ -404,66 +437,74 @@ def determine_retry_batch(campaign_id, recipient_id=None):
     }, None
 
 
-def process_retry_batch(campaign_id, template_name, rows):
+def process_retry_batch(campaign_id, template_name, rows, header_image_url=None):
     if not _claim_campaign(campaign_id):
         print(f"Retry for campaign {campaign_id} skipped - a send/retry is already running.",
               flush=True)
         return
 
     try:
-        supabase.table("campaigns").update({"status": "SENDING"}).eq("id", campaign_id).execute()
+        _wait_turn(campaign_id, supabase)
+        try:
+            supabase.table("campaigns").update({"status": "SENDING"}).eq("id", campaign_id).execute()
 
-        counts = {"sent": 0, "failed": 0}
-        state = {"concurrency": SEND_CONCURRENCY, "backoff": 0, "dead_batches": 0}
+            counts = {"sent": 0, "failed": 0}
+            state = {"concurrency": SEND_CONCURRENCY, "backoff": 0, "dead_batches": 0}
 
-        i = 0
-        while i < len(rows):
-            chunk = rows[i:i + state["concurrency"]]
-            i += len(chunk)
+            i = 0
+            while i < len(rows):
+                chunk = rows[i:i + state["concurrency"]]
+                i += len(chunk)
 
-            ready = []
-            for row in chunk:
-                try:
-                    # wamid must be cleared too: a late webhook for the OLD
-                    # message would otherwise be matched to this row and
-                    # overwrite the retry's real outcome with stale data.
-                    supabase.table("campaign_recipients").update({
-                        "status": "NO",
-                        "status_rank": 0,
-                        "error_code": None,
-                        "wamid": None
-                    }).eq("id", row["id"]).execute()
-                    ready.append(row)
-                except Exception as e:
-                    # Do NOT send this one: the row is still FAILED (rank 2),
-                    # so a successful SENT (rank 1) would be discarded and the
-                    # customer would show as failed despite being messaged.
-                    print(f"Retry row {row.get('id')} reset for campaign {campaign_id} "
-                          f"failed, skipping send: {e}", flush=True)
+                ready = []
+                for row in chunk:
+                    try:
+                        # wamid must be cleared too: a late webhook for the OLD
+                        # message would otherwise be matched to this row and
+                        # overwrite the retry's real outcome with stale data.
+                        supabase.table("campaign_recipients").update({
+                            "status": "NO",
+                            "status_rank": 0,
+                            "error_code": None,
+                            "wamid": None
+                        }).eq("id", row["id"]).execute()
+                        ready.append(row)
+                    except Exception as e:
+                        # Do NOT send this one: the row is still FAILED (rank
+                        # 2), so a successful SENT (rank 1) would be discarded
+                        # and the customer would show as failed despite being
+                        # messaged.
+                        print(f"Retry row {row.get('id')} reset for campaign {campaign_id} "
+                              f"failed, skipping send: {e}", flush=True)
 
-            if not ready:
-                continue
+                if not ready:
+                    continue
 
-            stats = _send_batch_concurrent(ready, template_name, counts, state["concurrency"])
+                stats = _send_batch_concurrent(
+                    ready, template_name, counts, state["concurrency"],
+                    header_image_url=header_image_url
+                )
 
-            if not _apply_throttle(state, stats, len(ready)):
-                print(f"Retry for campaign {campaign_id} stopped after "
-                      f"{MAX_CONSECUTIVE_DEAD_BATCHES} consecutive dead batches.", flush=True)
-                break
+                if not _apply_throttle(state, stats, len(ready)):
+                    print(f"Retry for campaign {campaign_id} stopped after "
+                          f"{MAX_CONSECUTIVE_DEAD_BATCHES} consecutive dead batches.", flush=True)
+                    break
 
-        # recompute the real end state from the data rather than trusting a
-        # possibly-stale status captured before this retry ran
-        recipients = select_all("campaign_recipients", "status", {"campaign_id": campaign_id})
-        sent_count = sum(1 for r in recipients if r["status"] in ("SENT", "DELIVERED"))
-        failed_count = sum(1 for r in recipients if r["status"] == "FAILED")
-        no_count = sum(1 for r in recipients if r["status"] == "NO")
+            # recompute the real end state from the data rather than trusting
+            # a possibly-stale status captured before this retry ran
+            recipients = select_all("campaign_recipients", "status", {"campaign_id": campaign_id})
+            sent_count = sum(1 for r in recipients if r["status"] in ("SENT", "DELIVERED"))
+            failed_count = sum(1 for r in recipients if r["status"] == "FAILED")
+            no_count = sum(1 for r in recipients if r["status"] == "NO")
 
-        final_status = "DONE" if failed_count == 0 and no_count == 0 else "PAUSED"
+            final_status = "DONE" if failed_count == 0 and no_count == 0 else "PAUSED"
 
-        supabase.table("campaigns").update({
-            "status": final_status,
-            "sent": sent_count,
-            "failed": failed_count
-        }).eq("id", campaign_id).execute()
+            supabase.table("campaigns").update({
+                "status": final_status,
+                "sent": sent_count,
+                "failed": failed_count
+            }).eq("id", campaign_id).execute()
+        finally:
+            _global_send_lock.release()
     finally:
         _release_campaign(campaign_id)

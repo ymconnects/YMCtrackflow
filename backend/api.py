@@ -303,6 +303,41 @@ def campaign_assets(filename):
     return send_from_directory(assets_dir, filename)
 
 
+@app.route("/campaigns/upload-header-image", methods=["POST"])
+def upload_header_image():
+    token = get_token_from_request()
+    payload = verify_session(token)
+    if not payload:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    if payload["role"] not in ["admin", "campaigner"]:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+
+    if "file" not in request.files:
+        return jsonify({"success": False, "message": "No file uploaded"}), 400
+
+    file = request.files["file"]
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    if ext not in (".jpg", ".jpeg", ".png"):
+        return jsonify({"success": False, "message": "Image must be a JPG or PNG"}), 400
+
+    file_bytes = file.read()
+    if len(file_bytes) > 5 * 1024 * 1024:
+        return jsonify({"success": False, "message": "Image must be under 5MB"}), 400
+
+    import uuid
+    path = f"{uuid.uuid4().hex}{ext}"
+    content_type = "image/png" if ext == ".png" else "image/jpeg"
+
+    try:
+        supabase.storage.from_("campaign-headers").upload(
+            path, file_bytes, file_options={"content-type": content_type}
+        )
+        url = supabase.storage.from_("campaign-headers").get_public_url(path)
+        return jsonify({"success": True, "url": url})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
 @app.route("/campaigns/books/<book_id>/columns", methods=["GET"])
 def get_book_columns(book_id):
     token = get_token_from_request()
@@ -361,8 +396,19 @@ def create_new_campaign():
     template_name = data.get("template_name")
     book_id = data.get("book_id")
     variables = data.get("variables", {})  # e.g. {"1": "name", "2": "phone"}
+    header_image_url = data.get("header_image_url")
 
-    campaign_id = create_campaign(name, template_name, book_id)
+    templates_ok, templates = get_all_templates()
+    if templates_ok:
+        t = next((t for t in templates if t.get("name") == template_name), None)
+        header = next((c for c in (t or {}).get("components", []) if c.get("type") == "HEADER"), None)
+        if header and header.get("format") == "IMAGE" and not header_image_url:
+            return jsonify({
+                "success": False,
+                "message": "This template has an image header - upload a header image before creating the campaign"
+            }), 400
+
+    campaign_id = create_campaign(name, template_name, book_id, header_image_url=header_image_url)
     contacts = get_contacts_by_book(book_id)
 
     rows = []
@@ -435,7 +481,8 @@ def campaign_retry(campaign_id):
             return jsonify({"success": False, "message": "Campaign is already sending - wait for it to finish or pause before retrying"}), 409
         thread = threading.Thread(
             target=process_retry_batch,
-            args=(campaign_id, batch["campaign"]["template_name"], to_retry)
+            args=(campaign_id, batch["campaign"]["template_name"], to_retry),
+            kwargs={"header_image_url": batch["campaign"].get("header_image_url")}
         )
         thread.daemon = True
         thread.start()

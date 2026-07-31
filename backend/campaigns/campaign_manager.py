@@ -1,8 +1,8 @@
 from supabase_db import supabase, select_all
 from datetime import datetime
 
-def create_campaign(name, template_name, book_id):
-    result = supabase.table("campaigns").insert({
+def create_campaign(name, template_name, book_id, header_image_url=None):
+    row = {
         "name": name,
         "template_name": template_name,
         "book_id": book_id,
@@ -11,7 +11,10 @@ def create_campaign(name, template_name, book_id):
         "sent": 0,
         "failed": 0,
         "created_at": datetime.utcnow().isoformat()
-    }).execute()
+    }
+    if header_image_url:
+        row["header_image_url"] = header_image_url
+    result = supabase.table("campaigns").insert(row).execute()
     return result.data[0]["id"]
 
 def get_campaign(campaign_id):

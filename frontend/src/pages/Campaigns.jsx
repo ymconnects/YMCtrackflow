@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { uploadContacts, getContactBooks, getBookColumns, getTemplates, createCampaign, sendCampaign, retryCampaign, getCampaignStatus, getBookContacts, getCampaignRecipients, deleteContactBook, getCampaignHistory, deleteCampaign } from '../utils/api'
+import { uploadContacts, getContactBooks, getBookColumns, getTemplates, createCampaign, sendCampaign, retryCampaign, getCampaignStatus, getBookContacts, getCampaignRecipients, deleteContactBook, getCampaignHistory, deleteCampaign, uploadCampaignHeaderImage } from '../utils/api'
 import { getErrorLabel } from '../utils/formatters'
 
 const Campaigns = ({ role, onPageChange }) => {
@@ -29,6 +29,9 @@ const Campaigns = ({ role, onPageChange }) => {
   const [selectedTemplateName, setSelectedTemplateName] = useState('')
   const [templateVars, setTemplateVars]       = useState([])
   const [variableMap, setVariableMap]         = useState({})
+  const [headerImageUrl, setHeaderImageUrl]   = useState(null)
+  const [uploadingHeaderImage, setUploadingHeaderImage] = useState(false)
+  const [headerImageError, setHeaderImageError] = useState(null)
   const [creating, setCreating]               = useState(false)
   const [polling, setPolling]                 = useState(false)
   const [pollProgress, setPollProgress]       = useState(null)
@@ -125,8 +128,11 @@ const Campaigns = ({ role, onPageChange }) => {
       .catch(() => setColumns(['name', 'phone']))
   }, [selectedBookId])
 
-  // extract {{N}} variables when template changes
+  // extract {{N}} variables when template changes, and reset any header
+  // image chosen for the previous template - it doesn't carry over
   useEffect(() => {
+    setHeaderImageUrl(null)
+    setHeaderImageError(null)
     if (!selectedTemplateName) {
       setTemplateVars([])
       setVariableMap({})
@@ -141,6 +147,33 @@ const Campaigns = ({ role, onPageChange }) => {
     setTemplateVars(vars)
     setVariableMap({})
   }, [selectedTemplateName, allTemplates])
+
+  const selectedTemplateNeedsImage = (() => {
+    const t = allTemplates.find(t => t.name === selectedTemplateName)
+    const header = (t?.components || []).find(c => c.type === 'HEADER')
+    return header?.format === 'IMAGE'
+  })()
+
+  const handleHeaderImageChange = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setHeaderImageError(null)
+    setHeaderImageUrl(null)
+    setUploadingHeaderImage(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await uploadCampaignHeaderImage(formData)
+      if (res.data.success) {
+        setHeaderImageUrl(res.data.url)
+      } else {
+        setHeaderImageError(res.data.message || 'Upload failed')
+      }
+    } catch {
+      setHeaderImageError('Upload failed - check your connection')
+    }
+    setUploadingHeaderImage(false)
+  }
 
   const handleUpload = async () => {
     if (!bookName || !csvFile) return
@@ -205,7 +238,8 @@ const Campaigns = ({ role, onPageChange }) => {
         name: campName,
         template_name: selectedTemplateName,
         book_id: selectedBookId,
-        variables: variableMap
+        variables: variableMap,
+        header_image_url: headerImageUrl
       })
       if (!createRes.data.success) {
         setErrorMsg(createRes.data.message || 'Create failed')
@@ -298,7 +332,8 @@ const Campaigns = ({ role, onPageChange }) => {
   })
 
   const isReadyToSend = selectedBookId && campName && selectedTemplateName &&
-    templateVars.every(v => variableMap[v])
+    templateVars.every(v => variableMap[v]) &&
+    (!selectedTemplateNeedsImage || headerImageUrl)
 
   // shared styles
   const card = {
@@ -380,6 +415,7 @@ const Campaigns = ({ role, onPageChange }) => {
   const campaignStatusBadge = (status) => {
     const colors = {
       DRAFT:   { bg: 'rgba(122,128,144,0.10)', color: '#7a8090', border: 'rgba(122,128,144,0.25)' },
+      QUEUED:  { bg: 'rgba(122,128,144,0.10)', color: '#7a8090', border: 'rgba(122,128,144,0.25)' },
       SENDING: { bg: 'rgba(37,99,235,0.10)',   color: '#2563eb', border: 'rgba(37,99,235,0.25)' },
       DONE:    { bg: 'rgba(18,140,126,0.10)',  color: '#128C7E', border: 'rgba(18,140,126,0.25)' },
       FAILED:  { bg: 'rgba(220,38,38,0.10)',   color: '#dc2626', border: 'rgba(220,38,38,0.25)' },
@@ -745,6 +781,44 @@ const Campaigns = ({ role, onPageChange }) => {
             ))}
           </select>
         </div>
+
+        {/* header image — only for templates whose header is an image */}
+        {selectedTemplateNeedsImage && (
+          <div style={{
+            background: '#f6f7f9',
+            border: '1px solid #e6e8ee',
+            borderRadius: '10px',
+            padding: '14px 16px',
+            marginBottom: '16px'
+          }}>
+            <div style={{ fontSize: '12.5px', fontWeight: '600', color: '#4b5160', marginBottom: '8px' }}>
+              This template has an image header — upload the image to send with it
+            </div>
+            <input
+              type="file"
+              accept="image/jpeg,image/png"
+              onChange={handleHeaderImageChange}
+              disabled={uploadingHeaderImage}
+              style={{ fontSize: '13px' }}
+            />
+            {uploadingHeaderImage && (
+              <div style={{ fontSize: '12px', color: '#7a8090', marginTop: '8px' }}>Uploading...</div>
+            )}
+            {headerImageError && (
+              <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '8px' }}>{headerImageError}</div>
+            )}
+            {headerImageUrl && (
+              <div style={{ marginTop: '10px' }}>
+                <img
+                  src={headerImageUrl}
+                  alt="Header preview"
+                  style={{ maxWidth: '220px', maxHeight: '140px', borderRadius: '8px', border: '1px solid #e6e8ee', display: 'block' }}
+                />
+                <div style={{ fontSize: '11.5px', color: '#128C7E', marginTop: '4px', fontWeight: '600' }}>Image ready</div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* variable mapping */}
         {templateVars.length > 0 && (
