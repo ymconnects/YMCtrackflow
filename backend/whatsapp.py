@@ -19,6 +19,7 @@ ERROR_CODE_MEANINGS = {
     "132000": "Template parameter count mismatch",
     "132001": "Template does not exist or is not approved",
     "132012": "Template parameter format mismatch (e.g. missing required header image)",
+    "130472": "Blocked by Meta's marketing message experiment (no retry will help)",
     "131021": "Recipient and sender are the same number",
     "131052": "Media could not be downloaded",
     "133010": "Business account not registered for Cloud API",
