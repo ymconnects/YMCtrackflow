@@ -3,7 +3,7 @@
 # Google Apps Script logic. Used both for the one-time Supabase backfill
 # and for order creation going forward (paste-to-dashboard UI).
 
-from supabase_db import supabase
+from supabase_db import supabase, select_all
 
 
 def generate_tracking_link(courier, tracking_id, courier_name=None):
@@ -26,7 +26,7 @@ def generate_tracking_link(courier, tracking_id, courier_name=None):
 
 
 def backfill_tracking_links():
-    rows = supabase.table("orders").select("id,courier,courier_name,tracking_id,tracking_link").execute().data
+    rows = select_all("orders", "id,courier,courier_name,tracking_id,tracking_link")
 
     updated = 0
     unchanged = 0

@@ -1,6 +1,6 @@
 import time
 from datetime import datetime
-from supabase_db import supabase
+from supabase_db import supabase, select_all
 from campaigns.campaign_manager import get_campaign
 from whatsapp import send_template_message
 
@@ -138,11 +138,10 @@ def determine_retry_batch(campaign_id, recipient_id=None):
     if not campaign:
         return None, "Campaign not found"
 
-    query = supabase.table("campaign_recipients").select("*") \
-        .eq("campaign_id", campaign_id).eq("status", "FAILED")
+    filters = {"campaign_id": campaign_id, "status": "FAILED"}
     if recipient_id:
-        query = query.eq("id", recipient_id)
-    failed_rows = query.execute().data
+        filters["id"] = recipient_id
+    failed_rows = select_all("campaign_recipients", "*", filters)
 
     if recipient_id and not failed_rows:
         return None, "Recipient not found or not in FAILED status"
@@ -198,8 +197,7 @@ def process_retry_batch(campaign_id, template_name, rows):
 
     # recompute the real end state from the data rather than trusting a
     # possibly-stale status captured before this retry ran
-    recipients = supabase.table("campaign_recipients").select("status") \
-        .eq("campaign_id", campaign_id).execute().data
+    recipients = select_all("campaign_recipients", "status", {"campaign_id": campaign_id})
     sent_count = sum(1 for r in recipients if r["status"] in ("SENT", "DELIVERED"))
     failed_count = sum(1 for r in recipients if r["status"] == "FAILED")
     no_count = sum(1 for r in recipients if r["status"] == "NO")
