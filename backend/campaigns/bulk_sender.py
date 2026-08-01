@@ -1,7 +1,7 @@
 import time
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
+from datetime import datetime, timezone
 from supabase_db import supabase, select_all
 from campaigns.campaign_manager import get_campaign
 from whatsapp import send_template_message
@@ -153,6 +153,48 @@ def update_recipient_status(recipient_id, status, wamid=None, error_code=None):
                 print(f"STATUS WRITE FAILED recipient={recipient_id} status={status} "
                       f"wamid={wamid} error_code={error_code}: {e}", flush=True)
     return False
+
+
+def record_campaign_reply(phone, text):
+    """Store an inbound WhatsApp reply against the campaign_recipients row it
+    belongs to - but only if that recipient's campaign message was sent to
+    them within the last 24 hours (the same free-messaging window already
+    used for orders' auto-reply). A reply days after a campaign send isn't
+    reliably about that campaign, so it is left untouched rather than
+    misattributed.
+    """
+    from orders.order_view import _phone_candidates
+    candidates = _phone_candidates(phone)
+
+    try:
+        rows = supabase.table("campaign_recipients").select("id,last_updated") \
+            .in_("phone", candidates).in_("status", ["SENT", "DELIVERED"]).execute().data
+    except Exception as e:
+        print(f"record_campaign_reply lookup failed for {phone}: {e}", flush=True)
+        return
+
+    now = datetime.now(timezone.utc)
+    for row in rows:
+        raw = row.get("last_updated")
+        if not raw:
+            continue
+        try:
+            dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+        except Exception:
+            continue
+
+        if (now - dt).total_seconds() >= 86400:
+            continue
+
+        try:
+            supabase.table("campaign_recipients").update({
+                "reply_text": text,
+                "replied_at": datetime.utcnow().isoformat()
+            }).eq("id", row["id"]).execute()
+        except Exception as e:
+            print(f"record_campaign_reply write failed for recipient {row['id']}: {e}", flush=True)
 
 
 def _send_one(recipient, template_name, header_image_url=None):

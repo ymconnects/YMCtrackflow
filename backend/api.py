@@ -725,6 +725,11 @@ def webhook_receive():
             message = value["messages"][0]
             from_phone = message["from"]
             print(f"Incoming message from: {from_phone}", flush=True)
+
+            from campaigns.bulk_sender import record_campaign_reply
+            text_body = message.get("text", {}).get("body") or f"[{message.get('type', 'unknown')} message]"
+            record_campaign_reply(from_phone, text_body)
+
             from orders.order_view import was_message_sent_within_24hrs
             from whatsapp import send_fixed_reply
             if was_message_sent_within_24hrs(from_phone):
