@@ -397,6 +397,7 @@ def create_new_campaign():
     book_id = data.get("book_id")
     variables = data.get("variables", {})  # e.g. {"1": "name", "2": "phone"}
     header_image_url = data.get("header_image_url")
+    carousel_image_urls = data.get("carousel_image_urls")
 
     templates_ok, templates = get_all_templates()
     if templates_ok:
@@ -408,7 +409,20 @@ def create_new_campaign():
                 "message": "This template has an image header - upload a header image before creating the campaign"
             }), 400
 
-    campaign_id = create_campaign(name, template_name, book_id, header_image_url=header_image_url)
+        carousel = next((c for c in (t or {}).get("components", []) if c.get("type") == "CAROUSEL"), None)
+        if carousel:
+            card_count = len(carousel.get("cards", []))
+            if not carousel_image_urls or len(carousel_image_urls) != card_count or not all(carousel_image_urls):
+                return jsonify({
+                    "success": False,
+                    "message": f"This template has {card_count} carousel cards - upload an image for each one before creating the campaign"
+                }), 400
+
+    campaign_id = create_campaign(
+        name, template_name, book_id,
+        header_image_url=header_image_url,
+        carousel_image_urls=carousel_image_urls
+    )
     contacts = get_contacts_by_book(book_id)
 
     rows = []
@@ -482,7 +496,10 @@ def campaign_retry(campaign_id):
         thread = threading.Thread(
             target=process_retry_batch,
             args=(campaign_id, batch["campaign"]["template_name"], to_retry),
-            kwargs={"header_image_url": batch["campaign"].get("header_image_url")}
+            kwargs={
+                "header_image_url": batch["campaign"].get("header_image_url"),
+                "carousel_image_urls": batch["campaign"].get("carousel_image_urls")
+            }
         )
         thread.daemon = True
         thread.start()

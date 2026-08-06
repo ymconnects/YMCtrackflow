@@ -32,6 +32,9 @@ const Campaigns = ({ role, onPageChange }) => {
   const [headerImageUrl, setHeaderImageUrl]   = useState(null)
   const [uploadingHeaderImage, setUploadingHeaderImage] = useState(false)
   const [headerImageError, setHeaderImageError] = useState(null)
+  const [carouselImageUrls, setCarouselImageUrls]     = useState([])
+  const [uploadingCarouselIndex, setUploadingCarouselIndex] = useState(null)
+  const [carouselErrors, setCarouselErrors]           = useState({})
   const [creating, setCreating]               = useState(false)
   const [polling, setPolling]                 = useState(false)
   const [pollProgress, setPollProgress]       = useState(null)
@@ -133,6 +136,9 @@ const Campaigns = ({ role, onPageChange }) => {
   useEffect(() => {
     setHeaderImageUrl(null)
     setHeaderImageError(null)
+    setCarouselImageUrls([])
+    setCarouselErrors({})
+    setUploadingCarouselIndex(null)
     if (!selectedTemplateName) {
       setTemplateVars([])
       setVariableMap({})
@@ -153,6 +159,35 @@ const Campaigns = ({ role, onPageChange }) => {
     const header = (t?.components || []).find(c => c.type === 'HEADER')
     return header?.format === 'IMAGE'
   })()
+
+  const selectedTemplateCarousel = (() => {
+    const t = allTemplates.find(t => t.name === selectedTemplateName)
+    return (t?.components || []).find(c => c.type === 'CAROUSEL') || null
+  })()
+
+  const handleCarouselImageChange = async (index, e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setCarouselErrors(prev => ({ ...prev, [index]: null }))
+    setUploadingCarouselIndex(index)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await uploadCampaignHeaderImage(formData)
+      if (res.data.success) {
+        setCarouselImageUrls(prev => {
+          const next = [...prev]
+          next[index] = res.data.url
+          return next
+        })
+      } else {
+        setCarouselErrors(prev => ({ ...prev, [index]: res.data.message || 'Upload failed' }))
+      }
+    } catch {
+      setCarouselErrors(prev => ({ ...prev, [index]: 'Upload failed - check your connection' }))
+    }
+    setUploadingCarouselIndex(null)
+  }
 
   const handleHeaderImageChange = async (e) => {
     const file = e.target.files?.[0]
@@ -239,7 +274,8 @@ const Campaigns = ({ role, onPageChange }) => {
         template_name: selectedTemplateName,
         book_id: selectedBookId,
         variables: variableMap,
-        header_image_url: headerImageUrl
+        header_image_url: headerImageUrl,
+        carousel_image_urls: selectedTemplateCarousel ? carouselImageUrls : undefined
       })
       if (!createRes.data.success) {
         setErrorMsg(createRes.data.message || 'Create failed')
@@ -333,7 +369,8 @@ const Campaigns = ({ role, onPageChange }) => {
 
   const isReadyToSend = selectedBookId && campName && selectedTemplateName &&
     templateVars.every(v => variableMap[v]) &&
-    (!selectedTemplateNeedsImage || headerImageUrl)
+    (!selectedTemplateNeedsImage || headerImageUrl) &&
+    (!selectedTemplateCarousel || carouselImageUrls.filter(Boolean).length === selectedTemplateCarousel.cards.length)
 
   // shared styles
   const card = {
@@ -817,6 +854,48 @@ const Campaigns = ({ role, onPageChange }) => {
                 <div style={{ fontSize: '11.5px', color: '#128C7E', marginTop: '4px', fontWeight: '600' }}>Image ready</div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* carousel images — only for templates built as a carousel (2-10 cards) */}
+        {selectedTemplateCarousel && (
+          <div style={{
+            background: '#f6f7f9',
+            border: '1px solid #e6e8ee',
+            borderRadius: '10px',
+            padding: '14px 16px',
+            marginBottom: '16px'
+          }}>
+            <div style={{ fontSize: '12.5px', fontWeight: '600', color: '#4b5160', marginBottom: '10px' }}>
+              This template is a carousel with {selectedTemplateCarousel.cards.length} cards — upload an image for each card
+            </div>
+            <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
+              {selectedTemplateCarousel.cards.map((_, i) => (
+                <div key={i} style={{ width: '160px' }}>
+                  <div style={{ fontSize: '11.5px', color: '#7a8090', marginBottom: '6px', fontWeight: '600' }}>Card {i + 1}</div>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png"
+                    onChange={e => handleCarouselImageChange(i, e)}
+                    disabled={uploadingCarouselIndex === i}
+                    style={{ fontSize: '12px', width: '100%' }}
+                  />
+                  {uploadingCarouselIndex === i && (
+                    <div style={{ fontSize: '11.5px', color: '#7a8090', marginTop: '6px' }}>Uploading...</div>
+                  )}
+                  {carouselErrors[i] && (
+                    <div style={{ fontSize: '11.5px', color: '#dc2626', marginTop: '6px' }}>{carouselErrors[i]}</div>
+                  )}
+                  {carouselImageUrls[i] && (
+                    <img
+                      src={carouselImageUrls[i]}
+                      alt={`Card ${i + 1} preview`}
+                      style={{ maxWidth: '100%', maxHeight: '110px', borderRadius: '8px', border: '1px solid #e6e8ee', display: 'block', marginTop: '8px' }}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
