@@ -242,3 +242,62 @@ def send_template_message(phone, template_name, variables, header_image_url=None
     except Exception:
         error_code = str(response.status_code)
     return False, error_code
+
+
+def send_carousel_template_message(phone, template_name, variables, carousel_image_urls):
+    """Send a message using a carousel-format template (2-10 cards, each with
+    its own image) already created and approved in Meta Business Manager.
+    Cards are static - the same images/text for every recipient - only the
+    top-level body keeps per-recipient variables, same as send_template_message.
+    carousel_image_urls: ordered list of public image URLs, one per card."""
+    phone = format_phone_number(phone)
+    if not validate_phone_number(phone):
+        return False, "Invalid phone"
+    config = load_config()
+    url = f"https://graph.facebook.com/v18.0/{config['META_PHONE_NUMBER_ID']}/messages"
+    headers = {
+        "Authorization": f"Bearer {config['META_ACCESS_TOKEN']}",
+        "Content-Type": "application/json"
+    }
+    components = []
+    if variables:
+        components.append({
+            "type": "body",
+            "parameters": [{"type": "text", "text": str(v)} for v in variables]
+        })
+    components.append({
+        "type": "carousel",
+        "cards": [
+            {
+                "card_index": i,
+                "components": [{
+                    "type": "header",
+                    "parameters": [{"type": "image", "image": {"link": img_url}}]
+                }]
+            }
+            for i, img_url in enumerate(carousel_image_urls)
+        ]
+    })
+    data = {
+        "messaging_product": "whatsapp",
+        "to": phone,
+        "type": "template",
+        "template": {
+            "name": template_name,
+            "language": {"code": "en_US"},
+            "components": components
+        }
+    }
+    response = requests.post(url, headers=headers, json=data, timeout=30)
+    print(f"Carousel campaign send: {phone} | {response.status_code}", flush=True)
+    if response.status_code == 200:
+        try:
+            wamid = response.json()["messages"][0]["id"]
+        except Exception:
+            wamid = "unknown"
+        return True, wamid
+    try:
+        error_code = str(response.json().get("error", {}).get("code", response.status_code))
+    except Exception:
+        error_code = str(response.status_code)
+    return False, error_code

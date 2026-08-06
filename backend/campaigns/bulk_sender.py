@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from supabase_db import supabase, select_all
 from campaigns.campaign_manager import get_campaign
-from whatsapp import send_template_message
+from whatsapp import send_template_message, send_carousel_template_message
 
 STATUS_RANK = {"NO": 0, "SENT": 1, "FAILED": 2, "DELIVERED": 3}
 DAILY_LIMIT = 1900
@@ -197,22 +197,27 @@ def record_campaign_reply(phone, text):
             print(f"record_campaign_reply write failed for recipient {row['id']}: {e}", flush=True)
 
 
-def _send_one(recipient, template_name, header_image_url=None):
+def _send_one(recipient, template_name, header_image_url=None, carousel_image_urls=None):
     """Runs on a worker thread. Must never raise - the recipient id is
     captured before anything that can fail, so the caller always gets a
     result it can attribute to a row."""
     recipient_id = recipient.get("id")
     try:
         variables = recipient.get("variables") or []
-        success, result = send_template_message(
-            recipient["phone"], template_name, variables, header_image_url=header_image_url
-        )
+        if carousel_image_urls:
+            success, result = send_carousel_template_message(
+                recipient["phone"], template_name, variables, carousel_image_urls
+            )
+        else:
+            success, result = send_template_message(
+                recipient["phone"], template_name, variables, header_image_url=header_image_url
+            )
     except Exception as e:
         success, result = False, f"send_error: {e}"
     return recipient_id, success, result
 
 
-def _send_batch_concurrent(batch, template_name, counts, concurrency=SEND_CONCURRENCY, header_image_url=None):
+def _send_batch_concurrent(batch, template_name, counts, concurrency=SEND_CONCURRENCY, header_image_url=None, carousel_image_urls=None):
     """Send one batch in parallel, then persist every outcome.
 
     Two rules make this safe:
@@ -233,7 +238,7 @@ def _send_batch_concurrent(batch, template_name, counts, concurrency=SEND_CONCUR
 
     executor = ThreadPoolExecutor(max_workers=max(1, concurrency))
     try:
-        futures = {executor.submit(_send_one, r, template_name, header_image_url): r for r in batch}
+        futures = {executor.submit(_send_one, r, template_name, header_image_url, carousel_image_urls): r for r in batch}
         for future in as_completed(futures):
             try:
                 recipient_id, success, result = future.result()
@@ -419,7 +424,8 @@ def send_campaign(campaign_id):
 
                     stats = _send_batch_concurrent(
                         batch, campaign["template_name"], counts, state["concurrency"],
-                        header_image_url=campaign.get("header_image_url")
+                        header_image_url=campaign.get("header_image_url"),
+                        carousel_image_urls=campaign.get("carousel_image_urls")
                     )
 
                     if not _apply_throttle(state, stats, len(batch)):
@@ -498,7 +504,7 @@ def determine_retry_batch(campaign_id, recipient_id=None):
     }, None
 
 
-def process_retry_batch(campaign_id, template_name, rows, header_image_url=None):
+def process_retry_batch(campaign_id, template_name, rows, header_image_url=None, carousel_image_urls=None):
     if not _claim_campaign(campaign_id):
         print(f"Retry for campaign {campaign_id} skipped - a send/retry is already running.",
               flush=True)
@@ -543,7 +549,8 @@ def process_retry_batch(campaign_id, template_name, rows, header_image_url=None)
 
                 stats = _send_batch_concurrent(
                     ready, template_name, counts, state["concurrency"],
-                    header_image_url=header_image_url
+                    header_image_url=header_image_url,
+                    carousel_image_urls=carousel_image_urls
                 )
 
                 if not _apply_throttle(state, stats, len(ready)):

@@ -1,7 +1,7 @@
 from supabase_db import supabase, select_all
 from datetime import datetime
 
-def create_campaign(name, template_name, book_id, header_image_url=None):
+def create_campaign(name, template_name, book_id, header_image_url=None, carousel_image_urls=None):
     row = {
         "name": name,
         "template_name": template_name,
@@ -14,6 +14,8 @@ def create_campaign(name, template_name, book_id, header_image_url=None):
     }
     if header_image_url:
         row["header_image_url"] = header_image_url
+    if carousel_image_urls:
+        row["carousel_image_urls"] = carousel_image_urls
     result = supabase.table("campaigns").insert(row).execute()
     return result.data[0]["id"]
 
