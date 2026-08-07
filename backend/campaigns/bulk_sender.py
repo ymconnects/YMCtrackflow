@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from supabase_db import supabase, select_all
 from campaigns.campaign_manager import get_campaign
-from whatsapp import send_template_message, send_carousel_template_message
+from whatsapp import send_template_message, send_carousel_template_message, get_all_templates
 
 STATUS_RANK = {"NO": 0, "SENT": 1, "FAILED": 2, "DELIVERED": 3}
 DAILY_LIMIT = 1900
@@ -197,7 +197,29 @@ def record_campaign_reply(phone, text):
             print(f"record_campaign_reply write failed for recipient {row['id']}: {e}", flush=True)
 
 
-def _send_one(recipient, template_name, header_image_url=None, carousel_image_urls=None):
+def _template_needs_button_param(template_name):
+    """True when this template has a URL button whose link is dynamic
+    (contains a {{n}} placeholder) - e.g. a "track your gift" button that
+    must deep-link to each recipient's own tracking id rather than a fixed
+    page. When true, the recipient's last body variable (the one already
+    entered via the campaign's variable-mapping UI) is reused as that
+    button's value - the same value, just also placed on the button."""
+    ok, templates = get_all_templates()
+    if not ok:
+        return False
+    t = next((t for t in templates if t.get("name") == template_name), None)
+    if not t:
+        return False
+    buttons = next((c for c in t.get("components", []) if c.get("type") == "BUTTONS"), None)
+    if not buttons:
+        return False
+    return any(
+        b.get("type") == "URL" and "{{" in (b.get("url") or "")
+        for b in buttons.get("buttons", [])
+    )
+
+
+def _send_one(recipient, template_name, header_image_url=None, carousel_image_urls=None, needs_button_param=False):
     """Runs on a worker thread. Must never raise - the recipient id is
     captured before anything that can fail, so the caller always gets a
     result it can attribute to a row."""
@@ -209,15 +231,17 @@ def _send_one(recipient, template_name, header_image_url=None, carousel_image_ur
                 recipient["phone"], template_name, variables, carousel_image_urls
             )
         else:
+            button_param = variables[-1] if needs_button_param and variables else None
             success, result = send_template_message(
-                recipient["phone"], template_name, variables, header_image_url=header_image_url
+                recipient["phone"], template_name, variables,
+                header_image_url=header_image_url, button_param=button_param
             )
     except Exception as e:
         success, result = False, f"send_error: {e}"
     return recipient_id, success, result
 
 
-def _send_batch_concurrent(batch, template_name, counts, concurrency=SEND_CONCURRENCY, header_image_url=None, carousel_image_urls=None):
+def _send_batch_concurrent(batch, template_name, counts, concurrency=SEND_CONCURRENCY, header_image_url=None, carousel_image_urls=None, needs_button_param=False):
     """Send one batch in parallel, then persist every outcome.
 
     Two rules make this safe:
@@ -238,7 +262,7 @@ def _send_batch_concurrent(batch, template_name, counts, concurrency=SEND_CONCUR
 
     executor = ThreadPoolExecutor(max_workers=max(1, concurrency))
     try:
-        futures = {executor.submit(_send_one, r, template_name, header_image_url, carousel_image_urls): r for r in batch}
+        futures = {executor.submit(_send_one, r, template_name, header_image_url, carousel_image_urls, needs_button_param): r for r in batch}
         for future in as_completed(futures):
             try:
                 recipient_id, success, result = future.result()
@@ -370,6 +394,7 @@ def send_campaign(campaign_id):
 
             counts = {"sent": 0, "failed": 0}
             state = {"concurrency": SEND_CONCURRENCY, "backoff": 0, "last_success_time": time.time()}
+            needs_button_param = _template_needs_button_param(campaign["template_name"])
             paused = False
             stop_reason = None
             # Every recipient we have already fired a message at during THIS
@@ -425,7 +450,8 @@ def send_campaign(campaign_id):
                     stats = _send_batch_concurrent(
                         batch, campaign["template_name"], counts, state["concurrency"],
                         header_image_url=campaign.get("header_image_url"),
-                        carousel_image_urls=campaign.get("carousel_image_urls")
+                        carousel_image_urls=campaign.get("carousel_image_urls"),
+                        needs_button_param=needs_button_param
                     )
 
                     if not _apply_throttle(state, stats, len(batch)):
@@ -569,6 +595,7 @@ def process_retry_batch(campaign_id, template_name, rows, header_image_url=None,
 
             counts = {"sent": 0, "failed": 0}
             state = {"concurrency": SEND_CONCURRENCY, "backoff": 0, "last_success_time": time.time()}
+            needs_button_param = _template_needs_button_param(template_name)
 
             i = 0
             while i < len(rows):
@@ -602,7 +629,8 @@ def process_retry_batch(campaign_id, template_name, rows, header_image_url=None,
                 stats = _send_batch_concurrent(
                     ready, template_name, counts, state["concurrency"],
                     header_image_url=header_image_url,
-                    carousel_image_urls=carousel_image_urls
+                    carousel_image_urls=carousel_image_urls,
+                    needs_button_param=needs_button_param
                 )
 
                 if not _apply_throttle(state, stats, len(ready)):
