@@ -186,12 +186,17 @@ def create_template(payload):
     return False, response.text
 
 
-def send_template_message(phone, template_name, variables, header_image_url=None):
+def send_template_message(phone, template_name, variables, header_image_url=None, button_param=None):
     """header_image_url: a public image URL to use as the template's header
     parameter, e.g. one uploaded via the campaign creation UI and stored on
     the campaign. Takes priority over TEMPLATE_HEADER_IMAGES, which only
     exists to keep older, already-deployed campaigns (created before a
-    per-campaign image existed) working without needing their own URL."""
+    per-campaign image existed) working without needing their own URL.
+
+    button_param: value for a template's dynamic URL button (index 0), e.g.
+    a per-recipient tracking id that turns a "track your gift" button into a
+    deep link straight to that recipient's own shipment - same mechanism
+    orders already use, extended to campaigns."""
     phone = format_phone_number(phone)
     if not validate_phone_number(phone):
         return False, "Invalid phone"
@@ -218,6 +223,13 @@ def send_template_message(phone, template_name, variables, header_image_url=None
         components.append({
             "type": "body",
             "parameters": [{"type": "text", "text": str(v)} for v in variables]
+        })
+    if button_param:
+        components.append({
+            "type": "button",
+            "sub_type": "url",
+            "index": "0",
+            "parameters": [{"type": "text", "text": str(button_param)}]
         })
     data = {
         "messaging_product": "whatsapp",
