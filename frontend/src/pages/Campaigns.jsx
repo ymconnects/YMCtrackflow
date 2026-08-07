@@ -51,6 +51,7 @@ const Campaigns = ({ role, onPageChange }) => {
   const [history, setHistory]                       = useState([])
   const [loadingHistory, setLoadingHistory]         = useState(false)
   const [resumingId, setResumingId]                 = useState(null)
+  const [retryingHistoryId, setRetryingHistoryId]   = useState(null)
 
   // load books + templates + history on mount; clean up interval on unmount
   useEffect(() => {
@@ -110,6 +111,33 @@ const Campaigns = ({ role, onPageChange }) => {
       }, 3000)
     } catch {
       setResumingId(null)
+    }
+  }
+
+  const handleRetryHistoryCampaign = async (c) => {
+    setRetryingHistoryId(c.id)
+    try {
+      await retryCampaign(c.id)
+      histPollRef.current = setInterval(async () => {
+        try {
+          const statusRes = await getCampaignStatus(c.id)
+          if (statusRes.data.success) {
+            const d = statusRes.data
+            setHistory(prev => prev.map(h =>
+              h.id === c.id ? { ...h, status: d.status, sent: d.sent, failed: d.failed } : h
+            ))
+            if (d.status === 'DONE' || d.status === 'PAUSED') {
+              clearInterval(histPollRef.current)
+              setRetryingHistoryId(null)
+            }
+          }
+        } catch {
+          clearInterval(histPollRef.current)
+          setRetryingHistoryId(null)
+        }
+      }, 3000)
+    } catch {
+      setRetryingHistoryId(null)
     }
   }
 
@@ -580,6 +608,24 @@ const Campaigns = ({ role, onPageChange }) => {
                               }}
                             >
                               {resumingId === c.id ? 'Resuming...' : 'Resume'}
+                            </button>
+                          )}
+                          {c.failed > 0 && c.status !== 'SENDING' && (
+                            <button
+                              onClick={() => handleRetryHistoryCampaign(c)}
+                              disabled={retryingHistoryId === c.id}
+                              title="Retry every FAILED recipient in this campaign (permanent failures like opt-outs are skipped automatically)"
+                              style={{
+                                height: '28px', padding: '0 12px',
+                                background: retryingHistoryId === c.id ? '#7a8090' : 'rgba(220,38,38,0.08)',
+                                border: `1px solid ${retryingHistoryId === c.id ? '#7a8090' : 'rgba(220,38,38,0.25)'}`,
+                                borderRadius: '6px', fontSize: '12px', fontWeight: '600',
+                                color: retryingHistoryId === c.id ? '#ffffff' : '#dc2626',
+                                cursor: retryingHistoryId === c.id ? 'not-allowed' : 'pointer',
+                                fontFamily: 'inherit'
+                              }}
+                            >
+                              {retryingHistoryId === c.id ? 'Retrying...' : `Retry Failed (${c.failed})`}
                             </button>
                           )}
                           {role === 'admin' && (

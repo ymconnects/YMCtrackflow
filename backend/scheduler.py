@@ -1,6 +1,7 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from config import load_config
 from orders.bulk_sender import send_pending_orders
+from campaigns.bulk_sender import auto_retry_failed_campaigns
 from supabase_db import supabase
 
 import requests
@@ -26,15 +27,27 @@ def run_if_enabled():
     if auto_message_enabled:
         send_pending_orders()
 
+def retry_campaigns_if_enabled():
+    if auto_message_enabled:
+        try:
+            auto_retry_failed_campaigns()
+        except Exception as e:
+            print(f"Auto campaign retry failed: {e}")
+
 def start_scheduler():
     config = load_config()
     interval = config["CHECK_INTERVAL_MINUTES"]
+    retry_hours = config["RETRY_INTERVAL_HOURS"]
     # keep alive runs every 10 minutes to prevent server sleep
     scheduler.add_job(keep_alive, 'interval', minutes=10)
     # message processing runs on configured interval
     scheduler.add_job(run_if_enabled, 'interval', minutes=interval)
+    # campaigns paused/done with retryable failures (e.g. a cleared ecosystem
+    # throttle) get automatically retried, same as clicking Retry in the app
+    scheduler.add_job(retry_campaigns_if_enabled, 'interval', hours=retry_hours)
     scheduler.start()
-    print(f"Scheduler started. Keep alive every 10 min. Messages every {interval} minutes.")
+    print(f"Scheduler started. Keep alive every 10 min. Messages every {interval} minutes. "
+          f"Campaign retry every {retry_hours} hours.")
 
 def stop_scheduler():
     scheduler.shutdown()

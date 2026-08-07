@@ -6,7 +6,7 @@ from orders.bulk_sender import send_pending_orders
 from logger import log_system_start
 import tempfile
 from campaigns.campaign_manager import create_campaign, get_campaign, get_contacts_by_book
-from campaigns.bulk_sender import send_campaign, determine_retry_batch, process_retry_batch
+from campaigns.bulk_sender import send_campaign, determine_retry_batch, process_retry_batch, get_live_campaign_counts
 from campaigns.audience_filter import parse_csv, save_contact_book
 from supabase_db import supabase, select_all
 from config import load_config
@@ -609,8 +609,23 @@ def campaign_history():
         return jsonify({"success": False, "message": "Not logged in"}), 401
     if payload["role"] not in ["admin", "campaigner"]:
         return jsonify({"success": False, "message": "Access denied"}), 403
-    result = supabase.table("campaigns").select("*").order("created_at", desc=True).execute()
-    return jsonify({"success": True, "campaigns": result.data})
+
+    campaigns = supabase.table("campaigns").select("*").order("created_at", desc=True).execute().data
+
+    # campaigns.sent/failed are only written once when a send/retry loop
+    # finishes, so they go stale the moment a DELIVERED webhook lands
+    # afterward (a DONE campaign can show "0 failed" while campaign_recipients
+    # says otherwise). Recompute live from campaign_recipients instead, same
+    # source of truth /campaigns/status/<id> already uses.
+    live_counts = get_live_campaign_counts()
+
+    for c in campaigns:
+        counts = live_counts.get(c["id"], {"sent": 0, "failed": 0, "pending": 0})
+        c["sent"] = counts["sent"]
+        c["failed"] = counts["failed"]
+        c["pending"] = counts["pending"]
+
+    return jsonify({"success": True, "campaigns": campaigns})
 
 
 @app.route("/campaigns/<campaign_id>", methods=["DELETE"])
