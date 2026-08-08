@@ -513,41 +513,6 @@ def get_live_campaign_counts():
     return counts
 
 
-def auto_retry_failed_campaigns():
-    """Retry every campaign sitting on retryable FAILED recipients (e.g. an
-    ecosystem throttle that has since cleared) without anyone needing to open
-    the app and click Retry. Runs on a schedule - see scheduler.py. Campaigns
-    are retried one at a time, in-line, so this never overlaps a manual retry
-    or another campaign's run (both go through the same _claim_campaign /
-    _global_send_lock guards as the API-triggered path)."""
-    counts = get_live_campaign_counts()
-    candidate_ids = [cid for cid, c in counts.items() if c["failed"] > 0]
-    if not candidate_ids:
-        return
-
-    campaigns = {c["id"]: c for c in select_all("campaigns", "id,status,template_name")}
-
-    for campaign_id in candidate_ids:
-        campaign = campaigns.get(campaign_id)
-        if not campaign or campaign["status"] == "SENDING":
-            continue
-
-        batch, error = determine_retry_batch(campaign_id)
-        if error or not batch["to_retry"]:
-            continue
-
-        print(f"Auto-retry: campaign {campaign_id} has {len(batch['to_retry'])} "
-              f"retryable failures ({len(batch['skipped_reasons'])} permanent, skipped).",
-              flush=True)
-        process_retry_batch(
-            campaign_id,
-            batch["campaign"]["template_name"],
-            batch["to_retry"],
-            header_image_url=batch["campaign"].get("header_image_url"),
-            carousel_image_urls=batch["campaign"].get("carousel_image_urls")
-        )
-
-
 def determine_retry_batch(campaign_id, recipient_id=None):
     campaign = get_campaign(campaign_id)
     if not campaign:
